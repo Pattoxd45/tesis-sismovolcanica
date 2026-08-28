@@ -76,7 +76,7 @@ FS = 100.0  # Hz
 CANALES = [1, 2, 3, 5, 6]
 
 # La traza concatena tres segmentos de fechas distintas (saltos de anos).
-CORTES = [2_160_000, 3_240_000]
+CORTES = [2_160_000, 3_240_001]
 GUARDA_S = 30.0
 
 # --- Nivel 1: deteccion del momento --------------------------------

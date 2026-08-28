@@ -29,7 +29,7 @@ NPY = f"{BASE}/NVCh_10h_continuous_trace.npy"
 CSV = f"{BASE}/NVCh_10h_continuous_trace_reference.csv"
 
 FS = 100.0
-CORTES = [2_160_000, 3_240_000]
+CORTES = [2_160_000, 3_240_001]
 GUARDA_S = 30.0
 CLASES = ["VT", "LP", "TR", "AV", "IC"]
 

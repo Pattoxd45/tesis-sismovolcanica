@@ -4,7 +4,7 @@ import pandas as pd
 BASE = "/home/patto/tesis/datos/zenodo"
 a = np.load(f"{BASE}/NVCh_10h_continuous_trace.npy", mmap_mode="r")
 df = pd.read_csv(f"{BASE}/NVCh_10h_continuous_trace_reference.csv")
-CORTES = [2_160_000, 3_240_000]
+CORTES = [2_160_000, 3_240_001]
 
 # --- 1. Los huecos, son los MISMOS indices? ---
 print("Comparacion exacta de patrones de hueco (bloque 0:1.000.000)")
