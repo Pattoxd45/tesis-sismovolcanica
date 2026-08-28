@@ -1,0 +1,21 @@
+# entorno
+venv/
+__pycache__/
+*.pyc
+
+# datos: se descargan de Zenodo, DOI 10.5281/zenodo.17163020
+datos/
+
+# salidas reproducibles
+resultados/
+
+# codigo de terceros
+volcano-seismic-segmentation/
+papers/
+
+# pesos de modelos
+*.pt
+*.pkl
+
+# el documento vive en Overleaf
+latex/
