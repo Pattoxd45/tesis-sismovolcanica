@@ -7,20 +7,7 @@
 % Compatible con biblatex + biber, estilo apa.
 % NO usar \citep ni \citet en el documento: solo \parencite y \textcite.
 %
-% Cambios respecto de la version anterior:
-%  - espinosacurilem2025dataset: el campo "note" contenia \citet{...},
-%    comando de natbib que no existe con biblatex. Reescrito como texto.
-%  - aracena2025ovdascore: la nota apuntaba al repositorio antiguo.
-%    Actualizada al repositorio vigente.
-%  - Anadidas allen1978stalta, simonyan2015vgg y he2016resnet, que el
-%    capitulo de requerimientos necesita y no estaban.
-%  - Conservada anderson2001taxonomy: la usa la seccion de objetivos.
-%
-% PENDIENTE: moralesmorales2026tesis tiene campos sin completar. Si no
-% se cita en el texto, biblatex la ignora y no aparece en la
-% bibliografia. Si se cita, completar autor y universidad antes de
-% entregar.
-% =============================================================
+===============================================================
 
 % ---------- Detectores clasicos y de aprendizaje profundo ----------
 
@@ -200,3 +187,19 @@
   year      = {2001},
   publisher = {Longman}
 }
+
+@article{woollam2022seisbench,
+  author  = {Woollam, Jack and M{\"u}nchmeyer, Jannes and Tilmann, Frederik and
+             Rietbrock, Andreas and Lange, Dietrich and Bornstein, Thomas and
+             Diehl, Tobias and Giunchi, Carlo and Haslinger, Florian and
+             Jozinovi{\'c}, Dario and Michelini, Alberto and Saul, Joachim and
+             Soto, Hugo},
+  title   = {{SeisBench}---A Toolbox for Machine Learning in Seismology},
+  journal = {Seismological Research Letters},
+  volume  = {93},
+  number  = {3},
+  pages   = {1695--1709},
+  year    = {2022},
+  doi     = {10.1785/0220210324}
+}
+ 

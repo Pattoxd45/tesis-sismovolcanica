@@ -1,7 +1,233 @@
-%% ======================================================================
-%% Se inserta dentro de anexos.tex con:  \input{anexo_requerimientos}
-%% ======================================================================
 \chapter{Anexos}
+
+
+\section{Criterios SMART de los objetivos específicos}
+\label{sec:anexo-smart}
+
+Se desarrollan aquí los cinco criterios SMART de cada objetivo específico. El
+criterio medible y el hito de cierre están resumidos en el
+Cuadro~\ref{tab:smart} de la Sección~\ref{subsec:smart}.
+
+\textbf{OE1.} \emph{Específico}: compara tres detectores concretos, STA/LTA,
+PhaseNet y EQTransformer, sobre un conjunto de datos delimitado.
+\emph{Medible}: \emph{recall} y precisión globales y por clase con intervalos
+de confianza del 95\,\% obtenidos por \emph{bootstrap}; distribución de IoU;
+error de onset; frontera de Pareto de los barridos de parámetros.
+\emph{Alcanzable}: ejecutado en su totalidad con inferencia en CPU sobre
+modelos preentrenados, sin requerir entrenamiento.
+\emph{Relevante}: aborda los aspectos P1 y P2 del problema
+(Cuadro~\ref{tab:trazabilidad}). \emph{Temporizado}: cerrado y documentado
+para la Etapa 2, el 2 de octubre de 2026.
+
+\textbf{OE2.} \emph{Específico}: define un procedimiento de recorte cuya
+extensión depende de la duración detectada, y su transformación a una entrada
+de dimensiones compatibles con una red convolucional. \emph{Medible}: IoU del
+recorte adaptativo contra el recorte de referencia, comparado con la línea
+base de ventana fija y desglosado por clase; fracción de eventos truncados;
+cobertura del rango de duraciones de 3,4\,s a 240,8\,s; número de solapamientos
+resueltos correctamente. \emph{Alcanzable}: opera sobre las salidas ya
+generadas por OE1, sin dependencia de hardware especializado.
+\emph{Relevante}: aborda P3 y P1. \emph{Temporizado}: diseñado para la
+Etapa 2 e implementado y medido para la Etapa 3, el 30 de octubre de 2026.
+
+\textbf{OE3.} \emph{Específico}: contrasta un conjunto acotado de tres
+arquitecturas convolucionales sobre los recortes producidos por OE2.
+\emph{Medible}: F1 macro y \emph{recall} por clase con intervalos de confianza
+del 95\,\%; matriz de confusión; diferencia de desempeño del mismo modelo
+evaluado sobre recorte de referencia y sobre recorte automático; costo de
+inferencia en CPU. \emph{Alcanzable}: el entrenamiento se realiza en Google
+Colab y la inferencia en CPU local; el conjunto de entrenamiento de 9\,102
+eventos etiquetados ya está disponible. \emph{Relevante}: aborda P4 y P5.
+\emph{Temporizado}: resultados preliminares en la Etapa 3 y validación
+completa en la Etapa 4, el 4 de diciembre de 2026.
+
+
+\section{Evidencia empírica de la evaluación de detectores}
+\label{sec:anexo-evidencia}
+
+La evaluación de detectores, cerrada antes de esta etapa, entregó nueve
+hallazgos que condicionan el diseño de los bloques posteriores. Todos
+corresponden a mediciones sobre la traza continua de 10,18~horas con su catálogo
+de 203 eventos, y son los que la Sección~\ref{sec:evidencia} invoca como origen
+de los requerimientos funcionales.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{5.3cm}>{\raggedright\arraybackslash}p{5.3cm}}
+\caption{Hallazgos medidos en la evaluación de detectores y su implicación de diseño.}\label{tab:evidencia}\\
+\toprule
+\textbf{ID} & \textbf{Hallazgo medido} & \textbf{Implicación de diseño} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Hallazgo medido} & \textbf{Implicación de diseño} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+E1 & El recall global de los tres detectores es estadísticamente indistinguible:
+0,542; 0,527 y 0,581, con intervalos de confianza del 95\,\% solapados &
+El detector no puede seleccionarse por su recall global \\
+\addlinespace
+E2 & Por clase existen diferencias significativas de signo opuesto que se cancelan
+al promediar: un detector aventaja en LP y TR, el otro en VT, AV e IC &
+Toda métrica debe reportarse desagregada por clase \\
+\addlinespace
+E3 & En calidad de delimitación, STA/LTA supera a EQTransformer de forma robusta
+frente al umbral de solapamiento: IoU de 0,563 contra 0,479 &
+La variabilidad del recorte entre detectores es un hecho medido; el clasificador
+debe absorberla \\
+\addlinespace
+E4 & PhaseNet no delimita eventos: entrega arribos, no intervalos &
+Se requiere una regla explícita de expansión de arribo a intervalo \\
+\addlinespace
+E5 & La mediana de duración de TR es de 87,8~s y excede la ventana fija de
+81,92~s; el rango observado va de 3,4~s a 240,8~s &
+El recorte debe ser adaptativo: la ventana fija trunca la clase más extensa \\
+\addlinespace
+E6 & 73 de los 203 eventos del catálogo continuo, un 36\,\%, son de clases no
+volcánicas, y los detectores las encuentran con buen desempeño &
+El rechazo no puede ocurrir en la detección; debe resolverse en la clasificación \\
+\addlinespace
+E7 & De 106 falsas alarmas analizadas, un 20,8\,\% son fragmentos de eventos
+catalogados, un 35,8\,\% son adyacentes y un 43,4\,\% aisladas &
+Las falsas alarmas son material de entrenamiento aprovechable como negativos
+duros \\
+\addlinespace
+E8 & La estrategia de relleno de componentes altera el techo de recall y su efecto
+depende del modelo: uno pasa de 0,527 a 0,946, el otro se comporta de forma
+inversa &
+El preprocesamiento es un parámetro del sistema, no una constante \\
+\addlinespace
+E9 & El error de onset se sitúa entre 1,7~s y 2,0~s en los modelos profundos y en
+2,4~s en STA/LTA &
+El recorte debe incorporar margen de contexto previo \\
+\bottomrule
+\end{longtable}
+}
+
+
+\section{Desarrollo de la evaluación de alternativas}
+\label{sec:anexo-alternativas}
+
+Se detallan aquí las siete decisiones de diseño resumidas en la
+Sección~\ref{sec:alternativas}. El Cuadro~\ref{tab:alternativas} las presenta en
+forma comparativa y los párrafos siguientes desarrollan el criterio decisivo en
+cada caso.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.8cm}>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\caption{Alternativas consideradas y criterio de selección.}\label{tab:alternativas}\\
+\toprule
+\textbf{ID} & \textbf{Decisión} & \textbf{Alternativas} & \textbf{Selección y criterio} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Decisión} & \textbf{Alternativas} & \textbf{Selección y criterio} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+D1 & Elección del detector &
+Detector único elegido por desempeño; conservar varios &
+Conservar varios: el recorte variable es el objeto de estudio, no un defecto a
+eliminar \\
+\addlinespace
+D2 & Manejo de clases no volcánicas &
+Umbral en detección; detección OOD posterior; clase de rechazo supervisada &
+Rechazo supervisado: hay 1.782 ejemplos etiquetados y los detectores sí
+encuentran esas clases \\
+\addlinespace
+D3 & Estrategia de recorte &
+Ventana fija de 81,92~s; ventana fija mayor; recorte adaptativo &
+Recorte adaptativo: la ventana fija trunca TR y una mayor degrada la relación
+entre evento y contexto \\
+\addlinespace
+D4 & Representación de entrada &
+Forma de onda cruda; espectrograma; escalograma &
+Representación espectral: mantiene comparabilidad con la línea base publicada \\
+\addlinespace
+D5 & Arquitecturas a comparar &
+Una sola arquitectura; comparación de varias &
+Tres arquitecturas: la elección debe quedar respaldada y no ser arbitraria \\
+\addlinespace
+D6 & Uso de detectores profundos &
+Preentrenados; ajuste fino con datos locales &
+Preentrenados: el ajuste fino consumiría el único conjunto con delimitación de
+referencia \\
+\addlinespace
+D7 & Nivel de operación &
+Canal individual; coincidencia multiestación &
+Canal individual: la asociación robusta excede el presupuesto de esta etapa \\
+\bottomrule
+\end{longtable}
+}
+
+\textbf{D1. Elección del detector.} La alternativa natural era seleccionar el
+mejor detector y descartar los demás. La medición lo impide: E1 muestra que sus
+recalls globales son indistinguibles, y E2 muestra que las diferencias por clase
+tienen signo opuesto, de modo que no existe un ganador único. Además, E3
+establece que los recortes que producen difieren de forma medible. Conservar más
+de un detector convierte esa variabilidad en la variable independiente del
+estudio, que es exactamente lo que exige el objetivo general. Para la cadena
+integrada se emplea como fuente principal el detector que mejor delimita, y se
+mide también con el segundo, para cuantificar la sensibilidad del clasificador a
+la fuente del recorte.
+
+\textbf{D2. Manejo de las clases no volcánicas.} Se consideraron tres caminos.
+Elevar el umbral de detección para que las avalanchas y los sismos de hielo no se
+detecten sacrificaría recall, porque E6 muestra que los detectores las encuentran
+bien y que constituyen el 36\,\% del catálogo continuo. Emplear un detector de
+datos fuera de distribución posterior al clasificador, como hace el trabajo de
+referencia \parencite{espinosacurilem2025ood}, exige calibración adicional y desaprovecha los 1.782 ejemplos etiquetados de
+esas clases que están disponibles. Entrenar una clase de rechazo supervisada los
+aprovecha y permite incorporar negativos duros extraídos de las falsas alarmas,
+según E7. Se opta por la tercera y se conserva la segunda como línea base de
+comparación. La limitación de esta elección debe declararse: un rechazo
+supervisado no generaliza a clases nunca observadas, cosa que un detector de
+datos fuera de distribución sí aspira a hacer.
+
+\textbf{D3. Estrategia de recorte.} La ventana fija de 8.192 muestras trunca la
+clase TR, cuya mediana de duración excede la ventana según E5. Ampliar la ventana
+fija hasta cubrir el evento más largo del catálogo exigiría unas 24.080 muestras,
+con lo que un evento de 3,4~s ocuparía cerca del 1,4\,\% de la ventana y el resto
+sería contexto sin información de clase, además de multiplicar el costo de
+cómputo. El recorte adaptativo preserva la proporción entre evento y contexto,
+pero pierde la escala absoluta de duración al normalizar, por lo que esa
+información debe reinyectarse de forma explícita en la representación.
+
+\textbf{D4. Representación de entrada.} Las alternativas eran alimentar la red
+con la forma de onda cruda o con una representación tiempo-frecuencia. Se opta
+por la representación espectral porque el trabajo de referencia sobre este mismo
+complejo volcánico la emplea \parencite{espinosacurilem2026segmentacion} y mantener esa elección permite atribuir las diferencias de desempeño al recorte
+y no a la representación. Declaro que la comparación empírica entre
+representaciones queda fuera del alcance por presupuesto de tiempo: es una
+decisión de comparabilidad, no un resultado medido.
+
+\textbf{D5. Arquitecturas a comparar.} Se comparan tres: la arquitectura de la
+línea base publicada, que permite contraste directo con el trabajo previo; una
+red con conexiones residuales, que aporta mayor profundidad efectiva; y una
+arquitectura liviana, que atiende la restricción de inferencia en CPU sin
+aceleración. Una sola arquitectura habría hecho imposible distinguir si el
+desempeño obtenido proviene del recorte adaptativo o de la capacidad del modelo.
+
+\textbf{D6. Uso de los detectores profundos.} Ajustar finamente PhaseNet \parencite{zhu2019phasenet} o EQTransformer \parencite{mousavi2020eqtransformer} con datos locales podría mejorar su desempeño, pero exigiría particionar el
+catálogo continuo, que es el único conjunto con delimitación de referencia y está
+reservado para evaluación. Se emplean preentrenados y se declara el ajuste fino
+como trabajo futuro.
+
+\textbf{D7. Nivel de operación.} La coincidencia entre estaciones reduce falsos
+positivos, pero requiere una regla de asociación robusta cuya validación excede
+el presupuesto de esta etapa. Se exploró de forma preliminar y se descartó para
+el alcance actual. La detección opera sobre canales individuales y la asociación
+multiestación queda como trabajo futuro.
 
 \section{Detalle de los requerimientos}
 \label{sec:anexo-rf}
@@ -248,11 +474,127 @@ de inspección visual, para permitir la revisión manual de casos \\
 \end{longtable}
 }
 
+\section{Criterios de aceptación}
+\label{sec:anexo-aceptacion}
+
+Los criterios se formulan como comparaciones contra una referencia medible y
+no como umbrales absolutos, porque fijar un umbral numérico sin medición previa
+que lo respalde sería arbitrario.
+
+\begin{itemize}
+\item \textbf{CA-01.} El clasificador entrenado sobre recortes adaptativos debe
+superar, con intervalos de confianza que no se solapen, a un clasificador de
+referencia entrenado sobre la ventana fija actual, en las métricas por clase.
+\item \textbf{CA-02.} La degradación entre recorte de referencia y recorte
+automático debe quedar cuantificada con su intervalo de confianza. No se fija un
+máximo admisible: esa magnitud es el resultado que OE3 busca establecer.
+\item \textbf{CA-03.} La clase de rechazo debe reducir la proporción de
+detecciones no volcánicas propagadas como eventos volcánicos, respecto de la
+configuración sin rechazo.
+\item \textbf{CA-04.} Toda comparación entre arquitecturas debe realizarse bajo
+partición, semilla y presupuesto idénticos, y reportarse por clase.
+\item \textbf{CA-05.} La cadena completa debe ejecutarse sobre la traza de
+evaluación en CPU y reportar su tiempo de procesamiento.
+\end{itemize}
+
+\section{Riesgos y mitigaciones}
+\label{sec:anexo-riesgos}
+
+Se listan los riesgos que pueden comprometer la validez de los resultados o el
+cumplimiento del calendario. Los dos de severidad alta se enuncian además en la
+Sección~\ref{sec:riesgos}. La severidad corresponde a un juicio propio y se
+declara como tal, no como una estimación cuantitativa.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.1cm}>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{4.5cm}}
+\caption{Riesgos identificados y mitigación prevista.}\label{tab:riesgos}\\
+\toprule
+\textbf{ID} & \textbf{Riesgo} & \textbf{Severidad} & \textbf{Mitigación} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Riesgo} & \textbf{Severidad} & \textbf{Mitigación} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+RG-01 & Superposición entre el conjunto de entrenamiento y la traza de
+evaluación. Hay 31 archivos cuya fecha parcial cae dentro de los bloques de la
+traza, pero los nombres carecen de año y los conteos son compatibles con el azar.
+No está probada ni descartada &
+Alta &
+Partición por bloque temporal, más verificación directa por correlación de forma
+de onda antes de reportar resultados \\
+\addlinespace
+RG-02 & Discrepancia en el número de estaciones con señal entre el conjunto de
+entrenamiento y la traza continua &
+Media &
+Auditoría sobre una muestra amplia y adecuación del preprocesamiento si se
+confirma \\
+\addlinespace
+RG-03 & Truncamiento sistemático de los eventos más extensos por efecto de la
+ventana fija &
+Alta &
+Recorte adaptativo con política explícita para eventos extensos \\
+\addlinespace
+RG-04 & Desbalance entre clases en el conjunto de entrenamiento, cercano a cuatro
+a uno entre la más y la menos representada &
+Media &
+Tratamiento explícito del desbalance y reporte de métricas por clase \\
+\addlinespace
+RG-05 & Limitaciones de sesión del entorno remoto de entrenamiento &
+Media &
+Persistencia periódica de estado y experimentos fraccionables \\
+\addlinespace
+RG-06 & Cambios de alcance derivados de la retroalimentación del profesor guía &
+Baja &
+Objetivos formulados en términos de lo que se mide y no de cómo se implementa \\
+\bottomrule
+\end{longtable}
+}
+
+\section{Capacidad, método de estimación y épicas}
+\label{sec:anexo-planificacion}
+
+La capacidad de trabajo se estima en 20~horas semanales, valor medio de una
+disponibilidad declarada entre 15 y 25~horas, sobre la que se aplica un factor de
+disponibilidad efectiva de 0,8 para absorber interrupciones y tareas
+administrativas. Resultan 16~horas comprometibles por semana. El período hasta la
+entrega final comprende 13,1 semanas repartidas en tres sprints de cuatro semanas,
+con una capacidad total cercana a 208~horas.
+
+Las estimaciones por tarea provienen de juicio propio anclado en trabajo análogo
+ya ejecutado durante la evaluación de detectores. Corresponde declarar la
+limitación: no se llevó registro del esfuerzo real invertido en aquellas tareas,
+por lo que el anclaje es cualitativo y las cifras son estimaciones, no
+mediciones. Como mitigación, registraré el esfuerzo real de cada tarea a medida
+que se complete, de modo que los sprints siguientes puedan recalibrarse con datos
+propios.
+
+El backlog se organiza en seis épicas. \textbf{EP-1, validez experimental},
+garantiza que ningún resultado esté contaminado por superposición entre conjuntos
+ni por supuestos no verificados. \textbf{EP-2, cadena de detección operativa},
+permite conectar cualquier detector mediante una interfaz única. \textbf{EP-3,
+recorte adaptativo y representación}, resuelve el paso de duración variable a
+entrada fija y responde a OE2. \textbf{EP-4, clasificador de cuatro salidas},
+distingue las clases volcánicas y rechaza el resto. \textbf{EP-5, evaluación
+integrada}, mide la degradación entre recorte de referencia y automático, y
+responde a OE3. \textbf{EP-6, documentación y cierre}, asegura que cada resultado
+quede escrito, versionado y reproducible.
+
+Cada épica se descompone en historias de usuario y estas en tareas técnicas
+estimadas y priorizadas, detalladas en la Sección~\ref{sec:anexo-backlog}.
+
+
 \section{Backlog del proyecto}
 \label{sec:anexo-backlog}
 
 El backlog se estructura en tres niveles: épicas, presentadas en la
-Sección~\ref{sec:epicas}; historias de usuario, que expresan la necesidad desde el
+Sección~\ref{sec:anexo-planificacion}; historias de usuario, que expresan la necesidad desde el
 punto de vista de quien recibe el valor; y tareas técnicas, que son las unidades
 estimadas y ejecutables.
 
@@ -570,118 +912,5 @@ Ante una desviación, si una tarea supera su estimación en más del 50\,\% se
 detiene su ejecución y se reevalúa el alcance, en lugar de absorber la holgura de
 forma silenciosa. Quedan explícitamente fuera del backlog las tareas
 correspondientes a lo declarado fuera de alcance en la
-Sección~\ref{sec:fuera-alcance}. No se incorporan como tareas de baja prioridad,
+Sección~\ref{sec:alcances}. No se incorporan como tareas de baja prioridad,
 porque hacerlo sugeriría que podrían abordarse si sobrara tiempo, y no es el caso.
-
-\subsection{tablas D1 - D7}
-\textbf{D1. Elección del detector.} La alternativa natural era seleccionar el
-mejor detector y descartar los demás. La medición lo impide: E1 muestra que sus
-recalls globales son indistinguibles, y E2 muestra que las diferencias por clase
-tienen signo opuesto, de modo que no existe un ganador único. Además, E3
-establece que los recortes que producen difieren de forma medible. Conservar más
-de un detector convierte esa variabilidad en la variable independiente del
-estudio, que es exactamente lo que exige el objetivo general. Para la cadena
-integrada se emplea como fuente principal el detector que mejor delimita, y se
-mide también con el segundo, para cuantificar la sensibilidad del clasificador a
-la fuente del recorte.
-
-\textbf{D2. Manejo de las clases no volcánicas.} Se consideraron tres caminos.
-Elevar el umbral de detección para que las avalanchas y los sismos de hielo no se
-detecten sacrificaría recall, porque E6 muestra que los detectores las encuentran
-bien y que constituyen el 36\,\% del catálogo continuo. Emplear un detector de
-datos fuera de distribución posterior al clasificador, como hace el trabajo de
-referencia \parencite{espinosacurilem2025ood}, exige calibración adicional y desaprovecha los 1.782 ejemplos etiquetados de
-esas clases que están disponibles. Entrenar una clase de rechazo supervisada los
-aprovecha y permite incorporar negativos duros extraídos de las falsas alarmas,
-según E7. Se opta por la tercera y se conserva la segunda como línea base de
-comparación. La limitación de esta elección debe declararse: un rechazo
-supervisado no generaliza a clases nunca observadas, cosa que un detector de
-datos fuera de distribución sí aspira a hacer.
-
-\textbf{D3. Estrategia de recorte.} La ventana fija de 8.192 muestras trunca la
-clase TR, cuya mediana de duración excede la ventana según E5. Ampliar la ventana
-fija hasta cubrir el evento más largo del catálogo exigiría unas 24.080 muestras,
-con lo que un evento de 3,4~s ocuparía cerca del 1,4\,\% de la ventana y el resto
-sería contexto sin información de clase, además de multiplicar el costo de
-cómputo. El recorte adaptativo preserva la proporción entre evento y contexto,
-pero pierde la escala absoluta de duración al normalizar, por lo que esa
-información debe reinyectarse de forma explícita en la representación.
-
-\textbf{D4. Representación de entrada.} Las alternativas eran alimentar la red
-con la forma de onda cruda o con una representación tiempo-frecuencia. Se opta
-por la representación espectral porque el trabajo de referencia sobre este mismo
-complejo volcánico la emplea \parencite{espinosacurilem2026segmentacion} y mantener esa elección permite atribuir las diferencias de desempeño al recorte
-y no a la representación. Declaro que la comparación empírica entre
-representaciones queda fuera del alcance por presupuesto de tiempo: es una
-decisión de comparabilidad, no un resultado medido.
-
-\textbf{D5. Arquitecturas a comparar.} Se comparan tres: la arquitectura de la
-línea base publicada, que permite contraste directo con el trabajo previo; una
-red con conexiones residuales, que aporta mayor profundidad efectiva; y una
-arquitectura liviana, que atiende la restricción de inferencia en CPU sin
-aceleración. Una sola arquitectura habría hecho imposible distinguir si el
-desempeño obtenido proviene del recorte adaptativo o de la capacidad del modelo.
-
-\textbf{D6. Uso de los detectores profundos.} Ajustar finamente PhaseNet \parencite{zhu2019phasenet} o EQTransformer \parencite{mousavi2020eqtransformer} con datos locales podría mejorar su desempeño, pero exigiría particionar el
-catálogo continuo, que es el único conjunto con delimitación de referencia y está
-reservado para evaluación. Se emplean preentrenados y se declara el ajuste fino
-como trabajo futuro.
-
-\textbf{D7. Nivel de operación.} La coincidencia entre estaciones reduce falsos
-positivos, pero requiere una regla de asociación robusta cuya validación excede
-el presupuesto de esta etapa. Se exploró de forma preliminar y se descartó para
-el alcance actual. La detección opera sobre canales individuales y la asociación
-multiestación queda como trabajo futuro.
-
-\section{Riesgos y mitigaciones}
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{1.1cm}>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{4.5cm}}
-\caption{Riesgos identificados y mitigación prevista.}\label{sec:anexo-riesgos}\\
-\toprule
-\textbf{ID} & \textbf{Riesgo} & \textbf{Severidad} & \textbf{Mitigación} \\
-\midrule
-\endfirsthead
-\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{ID} & \textbf{Riesgo} & \textbf{Severidad} & \textbf{Mitigación} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-RG-01 & Superposición entre el conjunto de entrenamiento y la traza de
-evaluación. Hay 31 archivos cuya fecha parcial cae dentro de los bloques de la
-traza, pero los nombres carecen de año y los conteos son compatibles con el azar.
-No está probada ni descartada &
-Alta &
-Partición por bloque temporal, más verificación directa por correlación de forma
-de onda antes de reportar resultados \\
-\addlinespace
-RG-02 & Discrepancia en el número de estaciones con señal entre el conjunto de
-entrenamiento y la traza continua &
-Media &
-Auditoría sobre una muestra amplia y adecuación del preprocesamiento si se
-confirma \\
-\addlinespace
-RG-03 & Truncamiento sistemático de los eventos más extensos por efecto de la
-ventana fija &
-Alta &
-Recorte adaptativo con política explícita para eventos extensos \\
-\addlinespace
-RG-04 & Desbalance entre clases en el conjunto de entrenamiento, cercano a cuatro
-a uno entre la más y la menos representada &
-Media &
-Tratamiento explícito del desbalance y reporte de métricas por clase \\
-\addlinespace
-RG-05 & Limitaciones de sesión del entorno remoto de entrenamiento &
-Media &
-Persistencia periódica de estado y experimentos fraccionables \\
-\addlinespace
-RG-06 & Cambios de alcance derivados de la retroalimentación del profesor guía &
-Baja &
-Objetivos formulados en términos de lo que se mide y no de cómo se implementa \\
-\bottomrule
-\end{longtable}
-}
