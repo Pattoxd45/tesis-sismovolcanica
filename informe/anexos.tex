@@ -1,0 +1,687 @@
+%% ======================================================================
+%% Se inserta dentro de anexos.tex con:  \input{anexo_requerimientos}
+%% ======================================================================
+\chapter{Anexos}
+
+\section{Detalle de los requerimientos}
+\label{sec:anexo-rf}
+
+Se listan los veinte requerimientos funcionales y los ocho no funcionales
+sintetizados en la Sección~\ref{sec:sintesis-req}. La columna \emph{Origen}
+remite a los hallazgos del Cuadro~\ref{tab:evidencia}, a los aspectos del
+problema o a una restricción del entorno. La columna \emph{Verificación} indica
+el procedimiento con el que se comprobará el cumplimiento.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\caption{Requerimientos funcionales del bloque A, ingesta y preprocesamiento.}\label{tab:rf-a}\\
+\toprule
+\textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+RF-01 & Leer la traza continua multicanal a 100~Hz, interpretando la primera fila
+como marca de tiempo, las ocho siguientes como estaciones y las seis finales como
+máscaras de clase & Datos &
+Prueba de lectura que confirme dimensiones y rango temporal de los tres bloques \\
+\addlinespace
+RF-02 & Operar únicamente sobre los canales con señal utilizable y documentar la
+exclusión de los restantes & Diagnóstico propio &
+Informe de estadísticos por canal que sustente cada exclusión \\
+\addlinespace
+RF-03 & Construir la entrada de tres componentes que exigen los detectores
+profundos mediante una estrategia de relleno declarada y configurable por modelo &
+E8 & Reproducir los techos de recall medidos bajo cada estrategia \\
+\addlinespace
+RF-04 & Excluir las guardas de unión entre bloques temporales al construir el
+conjunto de evaluación & Estructura del archivo &
+Conteo por clase igual a 38 VT, 55 LP, 37 TR, 23 AV y 50 IC \\
+\addlinespace
+RF-05 & Garantizar una partición que impida que material de entrenamiento aparezca
+en el conjunto de evaluación & RG-01 &
+Prueba de correlación de forma de onda entre ambos conjuntos, documentada \\
+\bottomrule
+\end{longtable}
+}
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\caption{Requerimientos funcionales del bloque B, detección.}\label{tab:rf-b}\\
+\toprule
+\textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+RF-06 & Exponer una interfaz común de detección, de modo que cualquier detector
+entregue una lista de intervalos con inicio, término y puntaje & E3, diseño &
+Los tres detectores implementan la misma interfaz; prueba con un detector
+sintético de salida conocida \\
+\addlinespace
+RF-07 & Aplicar una regla explícita de expansión de arribo a intervalo para los
+detectores que no delimitan eventos & E4 &
+Medición del IoU resultante tras aplicar la regla \\
+\addlinespace
+RF-08 & Reportar las métricas de detección desagregadas por clase, además de la
+métrica global & E1, E2 &
+Cada tabla de resultados incluye las cinco clases del catálogo \\
+\bottomrule
+\end{longtable}
+}
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\caption{Requerimientos funcionales del bloque C, recorte y representación.}\label{tab:rf-c}\\
+\toprule
+\textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+RF-09 & Recortar cada evento con una duración adaptada al intervalo entregado por
+el detector, cubriendo el rango de duraciones observado & E5, P3 &
+Distribución de duraciones de los recortes contrastada con la del catálogo \\
+\addlinespace
+RF-10 & Aplicar una política explícita para los eventos cuya duración excede la
+ventana nominal, sin truncamiento arbitrario & E5, P3 &
+Prueba sobre los eventos de mayor duración, con inspección visual \\
+\addlinespace
+RF-11 & Incorporar margen de contexto previo al inicio estimado para tolerar el
+error de onset del detector & E9 &
+Ensayo de sensibilidad frente a desplazamientos controlados del inicio \\
+\addlinespace
+RF-12 & Resolver el solapamiento entre detecciones consecutivas mediante una regla
+documentada & OE2 &
+Casos sintéticos con solapamiento conocido y resultado esperado \\
+\addlinespace
+RF-13 & Transformar recortes de duración variable en una representación espectral
+de dimensiones fijas, preservando información de duración & E5, OE2 &
+Comparación del desempeño con y sin preservación explícita de la duración \\
+\bottomrule
+\end{longtable}
+}
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\caption{Requerimientos funcionales del bloque D, clasificación.}\label{tab:rf-d}\\
+\toprule
+\textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+RF-14 & Entregar cuatro salidas: las tres clases volcánicas y una clase de
+rechazo & E6, P5 &
+Matriz de confusión de cuatro clases sobre el conjunto de evaluación \\
+\addlinespace
+RF-15 & Entrenar la clase de rechazo con eventos no volcánicos, ventanas de fondo
+y negativos duros extraídos de las falsas alarmas & E7 &
+Registro del origen y volumen de cada componente del conjunto de rechazo \\
+\addlinespace
+RF-16 & Aplicar y documentar un tratamiento explícito del desbalance entre clases &
+Conteos del conjunto &
+Reporte de métricas macro y por clase antes y después del tratamiento \\
+\addlinespace
+RF-17 & Permitir la comparación de tres arquitecturas convolucionales bajo un
+protocolo idéntico & OE3 &
+Los tres modelos se entrenan con la misma partición, semilla y presupuesto \\
+\bottomrule
+\end{longtable}
+}
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\caption{Requerimientos funcionales del bloque de evaluación integrada.}\label{tab:rf-e}\\
+\toprule
+\textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+RF-18 & Permitir la evaluación pareada del clasificador sobre recorte de
+referencia y sobre recorte automático, para los mismos eventos & P4, OE3 &
+Ambas condiciones se ejecutan sobre el mismo conjunto de eventos \\
+\addlinespace
+RF-19 & Acompañar toda métrica comparativa de su intervalo de confianza estimado
+por remuestreo & Consistencia metodológica &
+Cada comparación reporta su intervalo del 95\,\% \\
+\addlinespace
+RF-20 & Persistir resultados y configuración de cada ejecución de forma que
+cualquier cifra reportada pueda regenerarse & RNF-03 &
+Regeneración de al menos una tabla de resultados desde el registro almacenado \\
+\bottomrule
+\end{longtable}
+}
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.4cm}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{7.4cm}}
+\caption{Requerimientos no funcionales.}\label{tab:rnf}\\
+\toprule
+\textbf{ID} & \textbf{Característica} & \textbf{Requerimiento y verificación} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Característica} & \textbf{Requerimiento y verificación} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+RNF-01 & Portabilidad &
+La inferencia debe ejecutarse íntegramente en CPU, sin dependencia de CUDA. Se
+verifica ejecutando la cadena completa en el equipo local \\
+\addlinespace
+RNF-02 & Portabilidad &
+El entrenamiento debe poder realizarse en un entorno de cuaderno remoto con sesión
+limitada, con persistencia periódica de estado. Se verifica reanudando un
+entrenamiento tras una interrupción \\
+\addlinespace
+RNF-03 & Fiabilidad &
+Toda ejecución debe fijar semillas y registrar versiones de las bibliotecas. Se
+verifica repitiendo una ejecución y comparando resultados \\
+\addlinespace
+RNF-04 & Mantenibilidad &
+El detector debe ser intercambiable sin modificar el clasificador. Se verifica
+sustituyéndolo y ejecutando la cadena sin cambios en el bloque D \\
+\addlinespace
+RNF-05 & Eficiencia &
+El tiempo de procesamiento de la traza completa en CPU debe medirse y reportarse.
+La meta de diseño es procesarla en menos tiempo que su duración real; el valor
+alcanzado se reporta con independencia de si se cumple \\
+\addlinespace
+RNF-06 & Adecuación funcional &
+Ninguna comparación entre configuraciones puede sustentarse en una diferencia
+puntual sin medida de incertidumbre asociada \\
+\addlinespace
+RNF-07 & Mantenibilidad &
+El código debe estar versionado en el repositorio, organizado por etapa,
+excluyendo datos y pesos de modelos del control de versiones \\
+\addlinespace
+RNF-08 & Usabilidad &
+Las salidas deben incluir un archivo tabular de detecciones clasificadas y figuras
+de inspección visual, para permitir la revisión manual de casos \\
+\bottomrule
+\end{longtable}
+}
+
+\section{Backlog del proyecto}
+\label{sec:anexo-backlog}
+
+El backlog se estructura en tres niveles: épicas, presentadas en la
+Sección~\ref{sec:epicas}; historias de usuario, que expresan la necesidad desde el
+punto de vista de quien recibe el valor; y tareas técnicas, que son las unidades
+estimadas y ejecutables.
+
+\subsection{Historias de usuario}
+\label{sec:anexo-historias}
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{7.6cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{1.9cm}}
+\caption{Historias de usuario, con su épica y las tareas que las realizan.}\label{tab:historias}\\
+\toprule
+\textbf{ID} & \textbf{Historia} & \textbf{Épica} & \textbf{Tareas} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Historia} & \textbf{Épica} & \textbf{Tareas} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+HU-01 & Como responsable del estudio, quiero garantizar que ningún evento usado
+para entrenar aparezca en la traza de evaluación, para que las métricas midan
+generalización y no memorización & EP-1 & B-01, B-03 \\
+\addlinespace
+HU-02 & Como responsable del estudio, quiero conocer qué estaciones tienen señal
+utilizable en cada conjunto, para que el preprocesamiento sea equivalente entre
+entrenamiento y evaluación & EP-1 & B-02 \\
+\addlinespace
+HU-03 & Como responsable del estudio, quiero poder sustituir el detector sin
+modificar el resto de la cadena, para medir su efecto sobre la clasificación
+final & EP-2 & B-06, B-07 \\
+\addlinespace
+HU-04 & Como analista del observatorio, quiero que un detector que solo entrega
+arribos produzca igualmente intervalos, para comparar todos los detectores bajo un
+mismo criterio & EP-2 & B-11 \\
+\addlinespace
+HU-05 & Como analista del observatorio, quiero que los eventos largos se recorten
+completos, para que el tremor no se evalúe truncado & EP-3 & B-08, B-12 \\
+\addlinespace
+HU-06 & Como responsable del estudio, quiero que la representación de entrada
+conserve la duración del evento, para no perder un rasgo discriminante entre
+clases & EP-3 & B-14, B-15 \\
+\addlinespace
+HU-07 & Como responsable del estudio, quiero saber cuánto afecta el error de onset
+a la clasificación, para dimensionar el margen de contexto del recorte & EP-3 &
+B-13, B-21 \\
+\addlinespace
+HU-08 & Como analista del observatorio, quiero que las avalanchas y los sismos de
+hielo no se reporten como eventos volcánicos, para no revisar manualmente falsas
+identificaciones & EP-4 & B-16, B-17, B-27 \\
+\addlinespace
+HU-09 & Como responsable del estudio, quiero comparar tres arquitecturas bajo un
+protocolo idéntico, para que la elección final esté respaldada y no sea
+arbitraria & EP-4 & B-19, B-20, B-22, B-23, B-24 \\
+\addlinespace
+HU-10 & Como analista del observatorio, quiero saber cuánto se degrada el
+desempeño al usar recortes automáticos en vez de manuales, para decidir si la
+cadena es utilizable & EP-5 & B-25, B-26 \\
+\addlinespace
+HU-11 & Como analista del observatorio, quiero un archivo de detecciones
+clasificadas y figuras de inspección, para revisar los casos dudosos & EP-5 &
+B-28 \\
+\addlinespace
+HU-12 & Como evaluador del trabajo, quiero poder regenerar cualquier cifra del
+informe desde el repositorio, para verificar los resultados & EP-6 & B-09,
+B-29 \\
+\bottomrule
+\end{longtable}
+}
+
+\subsection{Definición de terminado}
+\label{sec:anexo-dod}
+
+Una tarea se considera terminada cuando cumple las cuatro condiciones siguientes.
+El código está en el repositorio, con mensaje de commit descriptivo y sin datos ni
+pesos incluidos. Cuando la tarea implica una regla de decisión, esta fue probada
+con al menos un caso sintético de solución conocida antes de aplicarse a datos
+reales. Las cifras producidas quedan almacenadas junto con la configuración que
+las generó. Y todo supuesto o limitación detectado durante la ejecución queda
+registrado en el documento, no solo en el código.
+
+\subsection{Sprint 1, cierre el 2 de octubre}
+\label{sec:anexo-s1}
+
+Concentra las condiciones habilitantes y el diseño de la cadena. La tarea B-01 es
+bloqueante: mientras no se resuelva la posible superposición entre conjuntos,
+cualquier entrenamiento arriesga producir resultados no interpretables. La columna
+\emph{Tipo} distingue diseño, implementación, validación y documentación.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{1.2cm}}
+\caption{Backlog del sprint 1. Capacidad comprometible estimada: 64~horas.}\label{tab:bl1}\\
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Tipo} & \textbf{Traza} & \textbf{h} & \textbf{Prior.} \\
+\midrule
+\endfirsthead
+\multicolumn{6}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Tipo} & \textbf{Traza} & \textbf{h} & \textbf{Prior.} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{6}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+B-01 & Verificar por correlación de forma de onda si existe superposición entre el
+conjunto de entrenamiento y la traza de evaluación & Val. & RF-05, RG-01 & 10 & Debe \\
+\addlinespace
+B-02 & Auditar sobre una muestra amplia el número de estaciones con señal en el
+conjunto de entrenamiento & Val. & RG-02 & 5 & Debería \\
+\addlinespace
+B-03 & Implementar la partición por bloque temporal y documentar su composición
+por clase & Imp. & RF-04, RF-05 & 4 & Debe \\
+\addlinespace
+B-04 & Elaborar el diagrama de arquitectura de la cadena de procesamiento, con sus
+cuatro bloques y sus responsabilidades & Dis. & OE1, OE2 & 6 & Debe \\
+\addlinespace
+B-05 & Elaborar el diagrama de flujo del procesamiento y el contrato de datos
+entre bloques & Dis. & RF-06 & 6 & Debe \\
+\addlinespace
+B-06 & Especificar la interfaz común de detección y su formato de intercambio &
+Dis. & RF-06 & 5 & Debe \\
+\addlinespace
+B-07 & Implementar la interfaz común y validarla con un detector sintético de
+salida conocida & Imp. & RF-06 & 7 & Debe \\
+\addlinespace
+B-08 & Diseñar el procedimiento de recorte adaptativo, con la política para
+eventos que exceden la ventana nominal & Dis. & RF-09, RF-10 & 6 & Debe \\
+\addlinespace
+B-09 & Ordenar el repositorio por etapa, definir \texttt{.gitignore} y la
+convención de mensajes de commit & Doc. & RNF-07 & 4 & Debe \\
+\addlinespace
+B-10 & Redactar el avance documental del sprint & Doc. & --- & 5 & Debe \\
+\midrule
+\multicolumn{4}{r}{\textbf{Comprometido}} & \textbf{58} & \\
+\multicolumn{4}{r}{\textbf{Holgura}} & 6 & \\
+\bottomrule
+\end{longtable}
+}
+
+\subsection{Sprint 2, cierre el 30 de octubre}
+\label{sec:anexo-s2}
+
+Materializa el diseño del sprint anterior y produce los primeros resultados
+preliminares del clasificador.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{1.2cm}}
+\caption{Backlog del sprint 2. Capacidad comprometible estimada: 64~horas.}\label{tab:bl2}\\
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Tipo} & \textbf{Traza} & \textbf{h} & \textbf{Prior.} \\
+\midrule
+\endfirsthead
+\multicolumn{6}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Tipo} & \textbf{Traza} & \textbf{h} & \textbf{Prior.} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{6}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+B-11 & Implementar la regla de expansión de arribo a intervalo y medir el IoU
+resultante & Imp. & RF-07 & 7 & Debería \\
+\addlinespace
+B-12 & Implementar el recorte adaptativo según el diseño de B-08 & Imp. & RF-09,
+RF-10 & 10 & Debe \\
+\addlinespace
+B-13 & Validar la regla de solapamiento con casos sintéticos de resultado
+esperado & Val. & RF-12 & 4 & Debe \\
+\addlinespace
+B-14 & Implementar la representación espectral de dimensiones fijas a partir de
+recortes de duración variable & Imp. & RF-13 & 10 & Debe \\
+\addlinespace
+B-15 & Incorporar la duración como información explícita y medir su aporte frente
+a la representación sin ella & Imp. & RF-13 & 5 & Debería \\
+\addlinespace
+B-16 & Extraer el conjunto de negativos duros desde las falsas alarmas
+caracterizadas & Imp. & RF-15, E7 & 4 & Debería \\
+\addlinespace
+B-17 & Construir el conjunto de entrenamiento de cuatro clases, incluida la clase
+de rechazo & Imp. & RF-14, RF-15 & 7 & Debe \\
+\addlinespace
+B-18 & Redactar el avance documental del sprint & Doc. & --- & 5 & Debe \\
+\addlinespace
+B-19 & Entrenar el clasificador de línea base sobre ventana fija & Imp. & CA-01 &
+6 & Debe \\
+\midrule
+\multicolumn{4}{r}{\textbf{Comprometido}} & \textbf{58} & \\
+\multicolumn{4}{r}{\textbf{Holgura}} & 6 & \\
+\bottomrule
+\end{longtable}
+}
+
+\subsection{Sprint 3, cierre el 4 de diciembre}
+\label{sec:anexo-s3}
+
+Cierra OE3 y produce el informe final. Es el más extenso y concentra el trabajo de
+escritura, por lo que su holgura es proporcionalmente mayor.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{1.2cm}}
+\caption{Backlog del sprint 3. Capacidad comprometible estimada: 80~horas.}\label{tab:bl3}\\
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Tipo} & \textbf{Traza} & \textbf{h} & \textbf{Prior.} \\
+\midrule
+\endfirsthead
+\multicolumn{6}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Tipo} & \textbf{Traza} & \textbf{h} & \textbf{Prior.} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{6}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+B-20 & Entrenar el clasificador sobre recorte adaptativo y compararlo con la línea
+base & Imp. & CA-01 & 8 & Debe \\
+\addlinespace
+B-21 & Medir la sensibilidad del clasificador a desplazamientos controlados del
+instante de inicio & Val. & RF-11, E9 & 4 & Debería \\
+\addlinespace
+B-22 & Aplicar el tratamiento del desbalance y medir su efecto por clase & Imp. &
+RF-16, RG-04 & 4 & Debería \\
+\addlinespace
+B-23 & Adaptar las tres arquitecturas convolucionales al protocolo común & Imp. &
+RF-17 & 7 & Debe \\
+\addlinespace
+B-24 & Entrenar y evaluar las tres arquitecturas bajo partición, semilla y
+presupuesto idénticos & Val. & RF-17, CA-04 & 10 & Debe \\
+\addlinespace
+B-25 & Ejecutar la cadena completa sobre la traza de evaluación en CPU y medir su
+tiempo de procesamiento & Val. & RNF-05, CA-05 & 6 & Debería \\
+\addlinespace
+B-26 & Realizar la evaluación pareada entre recorte de referencia y automático, con
+intervalos de confianza & Val. & RF-18, RF-19 & 9 & Debe \\
+\addlinespace
+B-27 & Medir la reducción de detecciones no volcánicas propagadas que aporta la
+clase de rechazo & Val. & CA-03 & 4 & Debería \\
+\addlinespace
+B-28 & Generar el archivo tabular de salida y las figuras de inspección visual &
+Imp. & RNF-08 & 3 & Debería \\
+\addlinespace
+B-29 & Verificar la regeneración de una tabla de resultados desde el registro
+almacenado & Val. & RF-20, RNF-03 & 3 & Podría \\
+\addlinespace
+B-30 & Redactar el capítulo de resultados & Doc. & --- & 6 & Debe \\
+\addlinespace
+B-31 & Redactar validación, conclusiones y recomendaciones para trabajo futuro &
+Doc. & --- & 8 & Debe \\
+\midrule
+\multicolumn{4}{r}{\textbf{Comprometido}} & \textbf{72} & \\
+\multicolumn{4}{r}{\textbf{Holgura}} & 8 & \\
+\bottomrule
+\end{longtable}
+}
+
+\subsection{Refinamiento de las tareas prioritarias}
+\label{sec:anexo-refinamiento}
+
+Las tareas de prioridad \emph{Debe} del primer sprint se refinan con criterios de
+aceptación propios, adicionales a la definición de terminado.
+
+\begin{itemize}
+\item \textbf{B-01.} Se acepta cuando exista un informe que reporte, para cada uno
+de los 31 archivos sospechosos, el coeficiente de correlación máximo contra la
+traza y la decisión asociada, junto con la distribución de correlación de una
+muestra de control de archivos no sospechosos.
+\item \textbf{B-03.} Se acepta cuando la partición esté implementada como función
+reproducible, y exista una tabla con el número de eventos por clase y por bloque
+en cada subconjunto.
+\item \textbf{B-04.} Se acepta cuando el diagrama identifique los cuatro bloques,
+sus interfaces y el punto exacto donde se aplica cada requerimiento funcional, y
+siga una notación estándar reconocida.
+\item \textbf{B-05.} Se acepta cuando el contrato de datos entre bloques
+especifique nombres de campo, tipos y unidades, y sea suficiente para que un
+tercero implemente un bloque sin leer el código del anterior.
+\item \textbf{B-06.} Se acepta cuando la especificación describa la interfaz de
+forma independiente de cualquier detector concreto, y se demuestre que los tres
+detectores evaluados encajan en ella.
+\item \textbf{B-07.} Se acepta cuando el detector sintético, cuya salida es
+conocida de antemano, atraviese la cadena y produzca exactamente los intervalos
+esperados.
+\item \textbf{B-08.} Se acepta cuando el diseño especifique el comportamiento para
+los tres casos límite: evento más corto del catálogo, evento más largo y evento de
+duración igual a la ventana nominal.
+\item \textbf{B-09.} Se acepta cuando el repositorio no contenga datos ni pesos, y
+el historial de commits permita identificar qué cambió en cada uno.
+\end{itemize}
+
+\subsection{Priorización, dependencias y política ante desviación}
+\label{sec:anexo-priorizacion}
+
+La prioridad se asigna según tres criterios ordenados: si la omisión de la tarea
+invalidaría los resultados; si bloquea a otras tareas; y su aporte a la respuesta
+de un objetivo específico. Las tareas marcadas como \emph{Podría} son las primeras
+candidatas a salir del alcance si la capacidad real resulta inferior a la
+estimada. Si la disponibilidad cae al extremo inferior del rango declarado, la
+capacidad total baja cerca de un 25\,\% y la holgura de 20~horas no alcanza a
+absorberla, por lo que la reducción debe hacerse por alcance y no por calidad.
+
+Las dependencias que condicionan el orden de ejecución son las siguientes. B-01
+bloquea a B-19 y B-20, porque entrenar antes de resolver la posible superposición
+produciría métricas no interpretables. B-06 bloquea a B-07. B-08 bloquea a B-12, y
+B-12 bloquea a B-14, porque la representación se construye sobre el recorte. B-17
+bloquea a B-19 y B-20. B-23 bloquea a B-24, y B-25 bloquea a B-26.
+
+Ante una desviación, si una tarea supera su estimación en más del 50\,\% se
+detiene su ejecución y se reevalúa el alcance, en lugar de absorber la holgura de
+forma silenciosa. Quedan explícitamente fuera del backlog las tareas
+correspondientes a lo declarado fuera de alcance en la
+Sección~\ref{sec:fuera-alcance}. No se incorporan como tareas de baja prioridad,
+porque hacerlo sugeriría que podrían abordarse si sobrara tiempo, y no es el caso.
+
+\subsection{tablas D1 - D7}
+\textbf{D1. Elección del detector.} La alternativa natural era seleccionar el
+mejor detector y descartar los demás. La medición lo impide: E1 muestra que sus
+recalls globales son indistinguibles, y E2 muestra que las diferencias por clase
+tienen signo opuesto, de modo que no existe un ganador único. Además, E3
+establece que los recortes que producen difieren de forma medible. Conservar más
+de un detector convierte esa variabilidad en la variable independiente del
+estudio, que es exactamente lo que exige el objetivo general. Para la cadena
+integrada se emplea como fuente principal el detector que mejor delimita, y se
+mide también con el segundo, para cuantificar la sensibilidad del clasificador a
+la fuente del recorte.
+
+\textbf{D2. Manejo de las clases no volcánicas.} Se consideraron tres caminos.
+Elevar el umbral de detección para que las avalanchas y los sismos de hielo no se
+detecten sacrificaría recall, porque E6 muestra que los detectores las encuentran
+bien y que constituyen el 36\,\% del catálogo continuo. Emplear un detector de
+datos fuera de distribución posterior al clasificador, como hace el trabajo de
+referencia \parencite{espinosacurilem2025ood}, exige calibración adicional y desaprovecha los 1.782 ejemplos etiquetados de
+esas clases que están disponibles. Entrenar una clase de rechazo supervisada los
+aprovecha y permite incorporar negativos duros extraídos de las falsas alarmas,
+según E7. Se opta por la tercera y se conserva la segunda como línea base de
+comparación. La limitación de esta elección debe declararse: un rechazo
+supervisado no generaliza a clases nunca observadas, cosa que un detector de
+datos fuera de distribución sí aspira a hacer.
+
+\textbf{D3. Estrategia de recorte.} La ventana fija de 8.192 muestras trunca la
+clase TR, cuya mediana de duración excede la ventana según E5. Ampliar la ventana
+fija hasta cubrir el evento más largo del catálogo exigiría unas 24.080 muestras,
+con lo que un evento de 3,4~s ocuparía cerca del 1,4\,\% de la ventana y el resto
+sería contexto sin información de clase, además de multiplicar el costo de
+cómputo. El recorte adaptativo preserva la proporción entre evento y contexto,
+pero pierde la escala absoluta de duración al normalizar, por lo que esa
+información debe reinyectarse de forma explícita en la representación.
+
+\textbf{D4. Representación de entrada.} Las alternativas eran alimentar la red
+con la forma de onda cruda o con una representación tiempo-frecuencia. Se opta
+por la representación espectral porque el trabajo de referencia sobre este mismo
+complejo volcánico la emplea \parencite{espinosacurilem2026segmentacion} y mantener esa elección permite atribuir las diferencias de desempeño al recorte
+y no a la representación. Declaro que la comparación empírica entre
+representaciones queda fuera del alcance por presupuesto de tiempo: es una
+decisión de comparabilidad, no un resultado medido.
+
+\textbf{D5. Arquitecturas a comparar.} Se comparan tres: la arquitectura de la
+línea base publicada, que permite contraste directo con el trabajo previo; una
+red con conexiones residuales, que aporta mayor profundidad efectiva; y una
+arquitectura liviana, que atiende la restricción de inferencia en CPU sin
+aceleración. Una sola arquitectura habría hecho imposible distinguir si el
+desempeño obtenido proviene del recorte adaptativo o de la capacidad del modelo.
+
+\textbf{D6. Uso de los detectores profundos.} Ajustar finamente PhaseNet \parencite{zhu2019phasenet} o EQTransformer \parencite{mousavi2020eqtransformer} con datos locales podría mejorar su desempeño, pero exigiría particionar el
+catálogo continuo, que es el único conjunto con delimitación de referencia y está
+reservado para evaluación. Se emplean preentrenados y se declara el ajuste fino
+como trabajo futuro.
+
+\textbf{D7. Nivel de operación.} La coincidencia entre estaciones reduce falsos
+positivos, pero requiere una regla de asociación robusta cuya validación excede
+el presupuesto de esta etapa. Se exploró de forma preliminar y se descartó para
+el alcance actual. La detección opera sobre canales individuales y la asociación
+multiestación queda como trabajo futuro.
+
+\section{Riesgos y mitigaciones}
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.1cm}>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{4.5cm}}
+\caption{Riesgos identificados y mitigación prevista.}\label{sec:anexo-riesgos}\\
+\toprule
+\textbf{ID} & \textbf{Riesgo} & \textbf{Severidad} & \textbf{Mitigación} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Riesgo} & \textbf{Severidad} & \textbf{Mitigación} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+RG-01 & Superposición entre el conjunto de entrenamiento y la traza de
+evaluación. Hay 31 archivos cuya fecha parcial cae dentro de los bloques de la
+traza, pero los nombres carecen de año y los conteos son compatibles con el azar.
+No está probada ni descartada &
+Alta &
+Partición por bloque temporal, más verificación directa por correlación de forma
+de onda antes de reportar resultados \\
+\addlinespace
+RG-02 & Discrepancia en el número de estaciones con señal entre el conjunto de
+entrenamiento y la traza continua &
+Media &
+Auditoría sobre una muestra amplia y adecuación del preprocesamiento si se
+confirma \\
+\addlinespace
+RG-03 & Truncamiento sistemático de los eventos más extensos por efecto de la
+ventana fija &
+Alta &
+Recorte adaptativo con política explícita para eventos extensos \\
+\addlinespace
+RG-04 & Desbalance entre clases en el conjunto de entrenamiento, cercano a cuatro
+a uno entre la más y la menos representada &
+Media &
+Tratamiento explícito del desbalance y reporte de métricas por clase \\
+\addlinespace
+RG-05 & Limitaciones de sesión del entorno remoto de entrenamiento &
+Media &
+Persistencia periódica de estado y experimentos fraccionables \\
+\addlinespace
+RG-06 & Cambios de alcance derivados de la retroalimentación del profesor guía &
+Baja &
+Objetivos formulados en términos de lo que se mide y no de cómo se implementa \\
+\bottomrule
+\end{longtable}
+}
