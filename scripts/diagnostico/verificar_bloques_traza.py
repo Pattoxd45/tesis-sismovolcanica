@@ -8,7 +8,10 @@ from datetime import datetime, timezone
 NPY = os.path.expanduser("~/tesis/datos/zenodo/NVCh_10h_continuous_trace.npy")
 t = np.asarray(np.load(NPY, mmap_mode="r")[0])
 
-saltos = np.where(np.diff(t) > 0.015)[0] + 1
+# El paso esperado es 0,01 s a 100 Hz. Se compara en valor absoluto porque
+# el segundo corte retrocede en el tiempo (2020 -> 2017) y un umbral con
+# signo no lo detecta.
+saltos = np.where(np.abs(np.diff(t) - 0.01) > 1.0)[0] + 1
 print("cortes detectados en las muestras:", saltos)
 
 for ini, fin in zip([0, *saltos], [*saltos, len(t)]):
