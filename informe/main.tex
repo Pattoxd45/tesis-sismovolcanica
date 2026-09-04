@@ -1,0 +1,108 @@
+%% Plantilla Trabajo de Titulo - Ingenieria Civil en Informatica UCT
+%% Adaptada para: Patricio Valdes Troncoso
+
+\documentclass[12pt,oneside,spanish,oldfontcommands]{memoir}
+
+% --- Bibliografia ---
+\usepackage[backend=biber,style=apa]{biblatex}
+\addbibresource{referencias.bib}
+\DeclareLanguageMapping{spanish}{spanish-apa}
+
+% --- Fuentes e idioma ---
+\usepackage{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{babel}
+\addto\shorthandsspanish{\spanishdeactivate{~<>.}}
+\usepackage[none]{hyphenat}
+
+% Detector de tildes mal codificadas: si ves una fila de asteriscos en el
+% PDF, ese texto viene con acentos descompuestos y hay que retipearlo.
+\DeclareUnicodeCharacter{0301}{*************************************}
+
+% --- Estructura ---
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+\setlength{\parskip}{\medskipamount}
+\setlength{\parindent}{0pt}
+
+% --- Tablas y figuras ---
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{graphicx}
+
+% --- Algoritmos ---
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\makeatletter
+\renewcommand{\ALG@name}{Algoritmo}
+\makeatother
+
+% --- Varios ---
+\usepackage{textcomp}
+\usepackage{csquotes}
+\usepackage{url}
+\usepackage{hyperref}
+
+\providecommand{\definitionname}{Definición}
+\providecommand{\theoremname}{Teorema}
+
+\begin{document}
+
+\sloppy
+
+% ---------------- Preliminares ----------------
+\include{Portada}
+
+% Las tres paginas siguientes son formularios que se firman al cierre del
+% trabajo. Se mantienen comentadas mientras el documento sea un borrador
+% en revision, y se reactivan para la entrega final.
+%\include{Comision}
+%\include{ProfesorGuia}
+%\include{ProfesorInformante}
+
+\include{Agradecimientos}
+
+\pagebreak{}
+\pagenumbering{roman}
+
+\tableofcontents{}
+\pagebreak{}
+
+% El indice de figuras se reactiva cuando el documento tenga figuras.
+%\listoffigures
+%\pagebreak{}
+
+\listoftables
+\pagebreak{}
+
+\thispagestyle{plain}
+\clearpage
+\include{resumen}
+
+\pagebreak{}
+\thispagestyle{plain}
+\clearpage
+\include{abstract}
+\addto{\captionsspanish}{\renewcommand{\abstractname}{Executive Summary}}
+
+\pagebreak{}
+
+% ---------------- Cuerpo ----------------
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\include{cap1}
+\include{cap2}
+\include{cap3}
+\include{cap4}
+\include{conclusion}
+
+\include{bibliografia}
+\appendix
+\include{anexos}
+\end{document}

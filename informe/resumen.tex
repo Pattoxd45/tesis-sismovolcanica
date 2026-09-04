@@ -1,0 +1,25 @@
+\chapter*{Resumen}
+\addcontentsline{toc}{chapter}{Resumen}
+
+El monitoreo sismo-volcánico automático requiere detectar eventos en
+registro continuo y clasificarlos por tipo. Los sistemas en operación
+resuelven ambas etapas de forma desacoplada: un detector fija los límites
+del evento y un clasificador entrenado sobre segmentaciones hechas por
+analistas asigna la clase. Esta tesis desarrolla un algoritmo de
+identificación de eventos sismo-volcánicos que ajusta la etapa de
+clasificación a la variabilidad del recorte que produce el detector, sobre
+registros del Complejo Volcánico Nevados de Chillán.
+
+El trabajo evalúa empíricamente tres detectores (STA/LTA, PhaseNet y
+EQTransformer) en dos niveles, identificación del instante del evento y
+calidad de la delimitación temporal; construye un procedimiento de recorte
+adaptativo que se ajusta a la duración real de los eventos, cuyo rango
+excede en dos órdenes de magnitud la ventana fija empleada habitualmente; y
+valida el algoritmo integrado contrastando arquitecturas convolucionales
+alternativas y cuantificando la degradación entre el recorte de referencia
+y el recorte automático.
+
+\vspace{1cm}
+\noindent\textbf{Palabras clave:} sismología volcánica, detección de
+eventos, clasificación automática, redes neuronales convolucionales,
+Nevados de Chillán.
