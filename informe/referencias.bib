@@ -1,0 +1,202 @@
+% =============================================================
+% referencias.bib
+% Bibliografia de "Desarrollo de un algoritmo de identificacion de
+% eventos sismo-volcanicos mediante deteccion automatica y
+% clasificacion con CNN".
+%
+% Compatible con biblatex + biber, estilo apa.
+% NO usar \citep ni \citet en el documento: solo \parencite y \textcite.
+%
+% Cambios respecto de la version anterior:
+%  - espinosacurilem2025dataset: el campo "note" contenia \citet{...},
+%    comando de natbib que no existe con biblatex. Reescrito como texto.
+%  - aracena2025ovdascore: la nota apuntaba al repositorio antiguo.
+%    Actualizada al repositorio vigente.
+%  - Anadidas allen1978stalta, simonyan2015vgg y he2016resnet, que el
+%    capitulo de requerimientos necesita y no estaban.
+%  - Conservada anderson2001taxonomy: la usa la seccion de objetivos.
+%
+% PENDIENTE: moralesmorales2026tesis tiene campos sin completar. Si no
+% se cita en el texto, biblatex la ignora y no aparece en la
+% bibliografia. Si se cita, completar autor y universidad antes de
+% entregar.
+% =============================================================
+
+% ---------- Detectores clasicos y de aprendizaje profundo ----------
+
+@article{allen1978stalta,
+  author  = {Allen, Rex V.},
+  title   = {Automatic Earthquake Recognition and Timing from Single Traces},
+  journal = {Bulletin of the Seismological Society of America},
+  year    = {1978},
+  volume  = {68},
+  number  = {5},
+  pages   = {1521--1532},
+  doi     = {10.1785/BSSA0680051521}
+}
+
+@article{zhu2019phasenet,
+  author  = {Zhu, Weiqiang and Beroza, Gregory C.},
+  title   = {{PhaseNet}: A Deep-Neural-Network-Based Seismic Arrival-Time Picking Method},
+  journal = {Geophysical Journal International},
+  year    = {2019},
+  volume  = {216},
+  number  = {1},
+  pages   = {261--273},
+  doi     = {10.1093/gji/ggy423}
+}
+
+@article{mousavi2020eqtransformer,
+  author  = {Mousavi, S. Mostafa and Ellsworth, William L. and Zhu, Weiqiang and Chuang, Lindsay Y. and Beroza, Gregory C.},
+  title   = {Earthquake Transformer---An Attentive Deep-Learning Model for Simultaneous Earthquake Detection and Phase Picking},
+  journal = {Nature Communications},
+  year    = {2020},
+  volume  = {11},
+  number  = {1},
+  pages   = {3952},
+  doi     = {10.1038/s41467-020-17591-w}
+}
+
+@article{jiang2021comparacion,
+  author  = {Jiang, Ce and Fang, Lihua and Fan, Liping and Li, Boren},
+  title   = {Comparison of the Earthquake Detection Effects of {PhaseNet} and {EQTransformer} Considering the Yangbi and Maduo Earthquakes},
+  journal = {Earthquake Science},
+  year    = {2021},
+  volume  = {34},
+  number  = {5},
+  pages   = {425--435},
+  doi     = {10.29382/eqs-2021-0038}
+}
+
+@article{sheehan2025eqtlab,
+  author  = {Sheehan, Jack and Zhai, Qiushi and Chuang, Lindsay Yuling and Officer, Timothy and Wang, Yanbin and Zhu, Lupei and Peng, Zhigang},
+  title   = {Applying {EQTransformer} to Laboratory Earthquakes: Detecting and Picking Acoustic Emissions with Machine Learning},
+  journal = {Earth, Planets and Space},
+  year    = {2025},
+  volume  = {77},
+  number  = {1},
+  pages   = {116},
+  doi     = {10.1186/s40623-025-02237-2}
+}
+
+@article{wu2019deepdetect,
+  author  = {Wu, Yue and Lin, Youzuo and Zhou, Zheng and Bolton, David Chas and Liu, Ji and Johnson, Paul},
+  title   = {{DeepDetect}: A Cascaded Region-Based Densely Connected Network for Seismic Event Detection},
+  journal = {IEEE Transactions on Geoscience and Remote Sensing},
+  year    = {2019},
+  volume  = {57},
+  number  = {1},
+  pages   = {62--75},
+  doi     = {10.1109/TGRS.2018.2852302}
+}
+
+@article{huang2018microsismos,
+  author  = {Huang, Liqiang and Li, Jie and Hao, Hong and Li, Xibing},
+  title   = {Micro-Seismic Event Detection and Location in Underground Mines by Using Convolutional Neural Networks ({CNN}) and Deep Learning},
+  journal = {Tunnelling and Underground Space Technology},
+  year    = {2018},
+  volume  = {81},
+  pages   = {265--276},
+  doi     = {10.1016/j.tust.2018.07.006}
+}
+
+@article{fernandezcarabantes2025rnndas,
+  author  = {Fernandez-Carabantes, Javier and Titos, Manuel and D'Auria, Luca and Garcia, Jesus and Garcia, Luz and Benitez, Carmen},
+  title   = {{RNN-DAS}: A New Deep Learning Approach for Detection and Real-Time Monitoring of Volcano-Tectonic Events Using Distributed Acoustic Sensing},
+  journal = {Journal of Geophysical Research: Solid Earth},
+  year    = {2025},
+  volume  = {130},
+  pages   = {e2025JB031756},
+  doi     = {10.1029/2025JB031756}
+}
+
+% ---------- Clasificacion de eventos sismo-volcanicos ----------
+
+@article{espinosacurilem2025ood,
+  author  = {Espinosa-Curilem, Camilo and Basualto, Daniel and Curilem, Millaray and Huenupan, Fernando},
+  title   = {Volcano Seismic Event Recognition and {OOD} Detection Using Multi-Representation Deep Learning: Insights from Nevados del Chillan},
+  journal = {Journal of Volcanology and Geothermal Research},
+  year    = {2025},
+  volume  = {466},
+  pages   = {108406},
+  doi     = {10.1016/j.jvolgeores.2025.108406}
+}
+
+@article{espinosacurilem2026segmentacion,
+  author  = {Espinosa-Curilem, Camilo and Curilem Sald\'ias, Millaray and Basualto Alarc\'on, Daniel},
+  title   = {A Framework for Real-Time Volcano-Seismic Event Recognition Based on Multistation Seismograms and Semantic Segmentation Models},
+  journal = {IEEE Transactions on Geoscience and Remote Sensing},
+  year    = {2026},
+  volume  = {64},
+  pages   = {5902513},
+  doi     = {10.1109/TGRS.2026.3654849}
+}
+
+@article{bueno2020bnn,
+  author  = {Bueno, Angel and Benitez, Carmen and De Angelis, Silvio and Diaz Moreno, Alejandro and Ibanez, Jesus M.},
+  title   = {Volcano-Seismic Transfer Learning and Uncertainty Quantification With Bayesian Neural Networks},
+  journal = {IEEE Transactions on Geoscience and Remote Sensing},
+  year    = {2020},
+  volume  = {58},
+  number  = {2},
+  pages   = {892--902},
+  doi     = {10.1109/TGRS.2019.2941494}
+}
+
+% ---------- Arquitecturas convolucionales comparadas ----------
+
+@inproceedings{simonyan2015vgg,
+  author    = {Simonyan, Karen and Zisserman, Andrew},
+  title     = {Very Deep Convolutional Networks for Large-Scale Image Recognition},
+  booktitle = {3rd International Conference on Learning Representations ({ICLR})},
+  year      = {2015},
+  eprint    = {1409.1556},
+  eprinttype = {arXiv},
+  eprintclass = {cs.CV}
+}
+
+@inproceedings{he2016resnet,
+  author    = {He, Kaiming and Zhang, Xiangyu and Ren, Shaoqing and Sun, Jian},
+  title     = {Deep Residual Learning for Image Recognition},
+  booktitle = {2016 {IEEE} Conference on Computer Vision and Pattern Recognition ({CVPR})},
+  year      = {2016},
+  pages     = {770--778},
+  publisher = {IEEE},
+  doi       = {10.1109/CVPR.2016.90}
+}
+
+% ---------- Datos, sistema base y antecedentes locales ----------
+
+@misc{espinosacurilem2025dataset,
+  author       = {Espinosa-Curilem, Camilo and Curilem, Millaray and Basualto, Daniel},
+  title        = {Chilean Volcanoes Seismic Events Dataset: Multi-Station Seismograms with Temporal Segmentation Masks},
+  year         = {2025},
+  howpublished = {Zenodo, versi\'on 4},
+  doi          = {10.5281/zenodo.17163020},
+  note         = {Conjunto de datos asociado al trabajo de Espinosa-Curilem, Curilem y Basualto (2026). Incluye 9\,102 eventos pre-segmentados del NVChVC en ventanas de 8\,192 muestras y un tramo continuo de 10 horas con 205 eventos catalogados}
+}
+
+@misc{aracena2025ovdascore,
+  author       = {Aracena, Joaqu\'in},
+  title        = {{OVDAS} --- Sistema de Monitoreo Volc\'anico (Microservicios)},
+  year         = {2025},
+  howpublished = {Tesis de Ingenier\'ia Civil Inform\'atica, Universidad de La Frontera},
+  note         = {Repositorio original del sistema \texttt{ovdas-core}, tomado como contexto y l\'inea base en este trabajo}
+}
+
+@mastersthesis{moralesmorales2026tesis,
+  author = {Morales Morales, [Nombre pendiente]},
+  title  = {Detecci\'on de Enjambres {VT} en el Complejo Volc\'anico Laguna del Maule mediante {EQTransformer} y {VolPick}},
+  school = {[Universidad pendiente]},
+  year   = {2026},
+  type   = {Tesis de pregrado}
+}
+
+% ---------- Metodologia academica ----------
+
+@book{anderson2001taxonomy,
+  author    = {Anderson, Lorin W. and Krathwohl, David R.},
+  title     = {A Taxonomy for Learning, Teaching, and Assessing: A Revision of Bloom's Taxonomy of Educational Objectives},
+  year      = {2001},
+  publisher = {Longman}
+}
