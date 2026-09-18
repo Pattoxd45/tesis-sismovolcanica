@@ -13,6 +13,62 @@
 \section{Procedimiento de recorte adaptativo y generación de espectrogramas}
 \label{sec:recorte-espectrogramas}
 
+El procedimiento resuelve la tensión identificada en E5: los detectores y el
+clasificador exigen entradas de extensión acotada, mientras que las duraciones
+observadas van de 3,4\,s a 240,8\,s y la mediana de TR excede la ventana fija
+de 81,92\,s. Lo diseño en tres etapas encadenadas: barrido, fusión y recorte.
+
+\textbf{Barrido con traslape.} Recorreré la traza continua con ventanas de
+análisis de 300\,s y paso de 55\,s. La ventana supera la duración máxima
+observada en el catálogo (240,8\,s) y el paso cumple la condición
+$paso \leq ventana - d_{\max} = 59{,}2$\,s, de modo que, por construcción, todo
+evento del rango observado queda contenido completo en al menos una ventana.
+La ventana de barrido es la unidad de entrega al detector, no la unidad de
+análisis: STA/LTA calcula su estadístico muestra a muestra, y los detectores
+profundos segmentan internamente la entrada en sus tramos nativos, por lo que
+ampliar la ventana de barrido no altera la detectabilidad de los eventos
+cortos. Sobre la traza de 10,18\,horas el barrido produce cerca de 660
+ventanas, ejecutables en CPU.
+
+\textbf{Fusión de intervalos.} Cuando una detección alcance el borde derecho
+de su ventana, buscaré su continuación en la ventana siguiente y fusionaré
+ambos intervalos si se solapan temporalmente o si su separación es inferior a
+un umbral declarado. Con el paso elegido la fusión actúa como red de
+seguridad, no como mecanismo principal: la condición del paso ya garantiza
+una ventana que contiene el evento entero.
+
+\textbf{Recorte y espectrograma.} El clasificador nunca recibe la ventana de
+barrido. Para cada intervalo fusionado recortaré la traza con duración
+adaptada al intervalo, más un margen de contexto previo que tolere el error
+de onset medido (1,7\,s a 2,4\,s, E9), y generaré desde ese recorte el
+espectrograma de dimensiones fijas. Así un evento de 3,4\,s y uno de 240,8\,s
+ocupan por igual la representación de entrada, y la información de duración
+se reinyecta de forma explícita según lo exige RF-13.
+
+\textbf{Normalización.} La amplitud no se normalizará a nivel de ventana de
+barrido: si en una misma ventana coinciden un evento extenso de gran amplitud
+y uno breve de amplitud baja, la normalización conjunta aplastaría al segundo.
+Cada detector conservará la normalización de su tramo nativo y la
+normalización del espectrograma se aplicará por recorte individual.
+
+\textbf{Validación con casos sintéticos.} Antes de aplicar el procedimiento a
+datos reales, lo validaré con tres casos de solución conocida, según exige
+RF-12: un evento de 3,4\,s aislado en una ventana de 300\,s, que debe
+detectarse con el mismo onset que en la configuración de ventana fija; un
+evento de 240,8\,s que cruza el borde entre dos ventanas consecutivas, que la
+fusión debe recuperar entero; y un evento breve de amplitud baja a 30\,s de un
+evento extenso de amplitud diez veces mayor dentro de la misma ventana, que
+deben resolverse como intervalos separados. Si el tercer caso falla, el
+diagnóstico apunta a la normalización y no al umbral de detección.
+
+Este procedimiento garantiza que ningún evento se pierda por truncamiento ni
+por borde de ventana. No garantiza que todo evento sea detectado: el recall
+medido de los detectores (0,542 a 0,581) es una propiedad de los modelos, no
+del recorte, y su relación con la razón señal-ruido de los eventos no
+detectados se analizará por separado. Las detecciones de clases no volcánicas
+no se filtran en esta etapa: llegan al clasificador y es la clase de rechazo
+(RF-14) la que las resuelve, según lo medido en E6.
+
 \section{Clasificador por transferencia de aprendizaje}
 \label{sec:clasificador-transferencia}
 
