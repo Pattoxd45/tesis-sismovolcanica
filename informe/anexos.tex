@@ -9,37 +9,52 @@ criterio medible y el hito de cierre están resumidos en el
 Cuadro~\ref{tab:smart} de la Sección~\ref{subsec:smart}.
 
 \textbf{OE1.} \emph{Específico}: compara tres detectores concretos, STA/LTA,
-PhaseNet y EQTransformer, sobre un conjunto de datos delimitado.
-\emph{Medible}: \emph{recall} y precisión globales y por clase con intervalos
-de confianza del 95\,\% obtenidos por \emph{bootstrap}; distribución de IoU;
-error de onset; frontera de Pareto de los barridos de parámetros.
+EQTransformer y PhaseNet, sobre un conjunto de datos delimitado.
+\emph{Medible}: sensibilidad (\emph{recall}) y tasa de falsos positivos,
+globales y por clase, con intervalos de confianza del 95\,\% obtenidos por
+\emph{bootstrap}; distribución de IoU; error de onset; frontera de Pareto de
+los barridos de parámetros.
 \emph{Alcanzable}: ejecutado en su totalidad con inferencia en CPU sobre
 modelos preentrenados, sin requerir entrenamiento.
 \emph{Relevante}: aborda los aspectos P1 y P2 del problema
 (Cuadro~\ref{tab:trazabilidad}). \emph{Temporizado}: cerrado y documentado
 para la Etapa 2, el 2 de octubre de 2026.
 
-\textbf{OE2.} \emph{Específico}: define un procedimiento de recorte cuya
-extensión depende de la duración detectada, y su transformación a una entrada
-de dimensiones compatibles con una red convolucional. \emph{Medible}: IoU del
-recorte adaptativo contra el recorte de referencia, comparado con la línea
-base de ventana fija y desglosado por clase; fracción de eventos truncados;
-cobertura del rango de duraciones de 3,4\,s a 240,8\,s; número de solapamientos
-resueltos correctamente. \emph{Alcanzable}: opera sobre las salidas ya
+\textbf{OE2.} \emph{Específico}: define un procedimiento de generación de
+espectrogramas cuya extensión de recorte depende de la duración detectada, y
+que tolera los errores de delimitación temporal y el solapamiento entre
+eventos. \emph{Medible}: IoU del recorte adaptativo contra el recorte de
+referencia, comparado con la línea base de ventana fija y desglosado por
+clase; fracción de eventos truncados; cobertura del rango de duraciones de
+3,4\,s a 240,8\,s; número de solapamientos resueltos correctamente; tolerancia
+al error de onset medida con desplazamientos controlados del inicio.
+\emph{Alcanzable}: opera sobre las salidas ya
 generadas por OE1, sin dependencia de hardware especializado.
 \emph{Relevante}: aborda P3 y P1. \emph{Temporizado}: diseñado para la
 Etapa 2 e implementado y medido para la Etapa 3, el 30 de octubre de 2026.
 
-\textbf{OE3.} \emph{Específico}: contrasta un conjunto acotado de tres
-arquitecturas convolucionales sobre los recortes producidos por OE2.
+\textbf{OE3.} \emph{Específico}: ajusta por transferencia de aprendizaje una
+única arquitectura convolucional, VGG16 preentrenada en ImageNet con capa de
+salida de cuatro clases, sobre los espectrogramas producidos por OE2.
 \emph{Medible}: F1 macro y \emph{recall} por clase con intervalos de confianza
-del 95\,\%; matriz de confusión; diferencia de desempeño del mismo modelo
-evaluado sobre recorte de referencia y sobre recorte automático; costo de
-inferencia en CPU. \emph{Alcanzable}: el entrenamiento se realiza en Google
-Colab y la inferencia en CPU local; el conjunto de entrenamiento de 9\,102
-eventos etiquetados ya está disponible. \emph{Relevante}: aborda P4 y P5.
-\emph{Temporizado}: resultados preliminares en la Etapa 3 y validación
-completa en la Etapa 4, el 4 de diciembre de 2026.
+del 95\,\%; matriz de confusión de cuatro clases; protocolo de entrenamiento y
+evaluación reproducible, verificado por re-ejecución con la misma semilla.
+\emph{Alcanzable}: el entrenamiento se realiza en Google Colab y la inferencia
+en CPU local; el conjunto de entrenamiento de 9\,102 eventos etiquetados ya
+está disponible, y ajustar una sola red reduce el presupuesto respecto de la
+comparación de arquitecturas prevista originalmente. \emph{Relevante}: aborda
+P5. \emph{Temporizado}: resultados preliminares en la Etapa 3 y ajuste
+completo en la Etapa 4, el 4 de diciembre de 2026.
+
+\textbf{OE4.} \emph{Específico}: evalúa la cadena completa sobre el registro
+continuo, comparando el desempeño del clasificador en dos condiciones,
+recorte de referencia y recorte automático, para los mismos eventos.
+\emph{Medible}: diferencia de desempeño pareada entre ambas condiciones con su
+intervalo de confianza; resultados desglosados por clase; tiempo de
+procesamiento de la cadena completa en CPU. \emph{Alcanzable}: reutiliza los
+artefactos de OE1 a OE3 y solo requiere inferencia, ejecutable en el equipo
+local. \emph{Relevante}: aborda P4. \emph{Temporizado}: cerrado en la
+Etapa 4, el 4 de diciembre de 2026.
 
 
 \section{Evidencia empírica de la evaluación de detectores}
@@ -154,9 +169,11 @@ D4 & Representación de entrada &
 Forma de onda cruda; espectrograma; escalograma &
 Representación espectral: mantiene comparabilidad con la línea base publicada \\
 \addlinespace
-D5 & Arquitecturas a comparar &
-Una sola arquitectura; comparación de varias &
-Tres arquitecturas: la elección debe quedar respaldada y no ser arbitraria \\
+D5 & Estrategia de entrenamiento del clasificador &
+Entrenar desde cero; transferencia desde ImageNet; transferencia desde los
+pesos de la línea base &
+Transferencia desde ImageNet: mantiene comparable la arquitectura con la línea
+base y cabe en el presupuesto \\
 \addlinespace
 D6 & Uso de detectores profundos &
 Preentrenados; ajuste fino con datos locales &
@@ -211,12 +228,23 @@ y no a la representación. Declaro que la comparación empírica entre
 representaciones queda fuera del alcance por presupuesto de tiempo: es una
 decisión de comparabilidad, no un resultado medido.
 
-\textbf{D5. Arquitecturas a comparar.} Se comparan tres: la arquitectura de la
-línea base publicada, que permite contraste directo con el trabajo previo; una
-red con conexiones residuales, que aporta mayor profundidad efectiva; y una
-arquitectura liviana, que atiende la restricción de inferencia en CPU sin
-aceleración. Una sola arquitectura habría hecho imposible distinguir si el
-desempeño obtenido proviene del recorte adaptativo o de la capacidad del modelo.
+\textbf{D5. Estrategia de entrenamiento del clasificador.} La formulación
+original de esta decisión comparaba tres arquitecturas convolucionales; la
+reformulación de los objetivos en la retroalimentación de la Etapa 1 la
+convierte en una decisión sobre cómo entrenar una sola. Se consideraron tres
+caminos: entrenar la red desde cero, ajustarla por transferencia de
+aprendizaje desde pesos preentrenados en ImageNet, o ajustarla desde los pesos
+de la línea base publicada sobre este mismo complejo volcánico
+\parencite{espinosacurilem2025ood}. Se adopta la transferencia desde ImageNet
+sobre VGG16 con capa de salida de cuatro clases. La arquitectura coincide con
+la de la línea base, lo que mantiene comparables los resultados y permite
+atribuir las diferencias de desempeño al recorte y no al modelo; entrenar
+desde cero exigiría un volumen de datos y un presupuesto de cómputo mayores
+que los disponibles; y la disponibilidad de los pesos de la línea base no está
+confirmada, por lo que esa alternativa se consultará al profesor guía y, de
+obtenerse, se documentará como variante del mismo protocolo. Una sola VGG16
+infiere en CPU sin dificultad, lo que atiende la restricción del entorno de
+ejecución.
 
 \textbf{D6. Uso de los detectores profundos.} Ajustar finamente PhaseNet \parencite{zhu2019phasenet} o EQTransformer \parencite{mousavi2020eqtransformer} con datos locales podría mejorar su desempeño, pero exigiría particionar el
 catálogo continuo, que es el único conjunto con delimitación de referencia y está
@@ -381,9 +409,10 @@ RF-16 & Aplicar y documentar un tratamiento explícito del desbalance entre clas
 Conteos del conjunto &
 Reporte de métricas macro y por clase antes y después del tratamiento \\
 \addlinespace
-RF-17 & Permitir la comparación de tres arquitecturas convolucionales bajo un
-protocolo idéntico & OE3 &
-Los tres modelos se entrenan con la misma partición, semilla y presupuesto \\
+RF-17 & Ajustar por transferencia de aprendizaje una CNN preentrenada, bajo un
+protocolo de entrenamiento y evaluación reproducible & OE3 &
+La re-ejecución con la misma semilla reproduce las métricas dentro de la
+tolerancia declarada \\
 \bottomrule
 \end{longtable}
 }
@@ -406,15 +435,15 @@ Los tres modelos se entrenan con la misma partición, semilla y presupuesto \\
 \bottomrule
 \endlastfoot
 RF-18 & Permitir la evaluación pareada del clasificador sobre recorte de
-referencia y sobre recorte automático, para los mismos eventos & P4, OE3 &
+referencia y sobre recorte automático, para los mismos eventos & P4, OE4 &
 Ambas condiciones se ejecutan sobre el mismo conjunto de eventos \\
 \addlinespace
 RF-19 & Acompañar toda métrica comparativa de su intervalo de confianza estimado
-por remuestreo & Consistencia metodológica &
+por remuestreo & OE4 &
 Cada comparación reporta su intervalo del 95\,\% \\
 \addlinespace
 RF-20 & Persistir resultados y configuración de cada ejecución de forma que
-cualquier cifra reportada pueda regenerarse & RNF-03 &
+cualquier cifra reportada pueda regenerarse & OE4, RNF-03 &
 Regeneración de al menos una tabla de resultados desde el registro almacenado \\
 \bottomrule
 \end{longtable}
@@ -487,12 +516,13 @@ superar, con intervalos de confianza que no se solapen, a un clasificador de
 referencia entrenado sobre la ventana fija actual, en las métricas por clase.
 \item \textbf{CA-02.} La degradación entre recorte de referencia y recorte
 automático debe quedar cuantificada con su intervalo de confianza. No se fija un
-máximo admisible: esa magnitud es el resultado que OE3 busca establecer.
+máximo admisible: esa magnitud es el resultado que OE4 busca establecer.
 \item \textbf{CA-03.} La clase de rechazo debe reducir la proporción de
 detecciones no volcánicas propagadas como eventos volcánicos, respecto de la
 configuración sin rechazo.
-\item \textbf{CA-04.} Toda comparación entre arquitecturas debe realizarse bajo
-partición, semilla y presupuesto idénticos, y reportarse por clase.
+\item \textbf{CA-04.} El ajuste por transferencia debe reportarse con la
+partición, la semilla y el presupuesto de entrenamiento declarados, y con las
+métricas desglosadas por clase.
 \item \textbf{CA-05.} La cadena completa debe ejecutarse sobre la traza de
 evaluación en CPU y reportar su tiempo de procesamiento.
 \end{itemize}
@@ -573,10 +603,10 @@ la disponibilidad real cerca de 15~horas semanales. Con el mismo factor de 0,8
 resultan 12~horas comprometibles por semana y una capacidad revisada cercana a
 157~horas, un 25\,\% menos que la estimación inicial.
 
-El backlog suma 188~horas y por lo tanto excede esa capacidad revisada. En lugar
-de recortar tareas de forma prematura, traslado el ajuste a la prioridad: las 31
-tareas se reparten en 143~horas de prioridad \emph{Debe}, 42 de \emph{Debería} y 3
-de \emph{Podría}. Las 143~horas de prioridad \emph{Debe} caben dentro de las
+El backlog suma 181~horas y por lo tanto excede esa capacidad revisada. En lugar
+de recortar tareas de forma prematura, traslado el ajuste a la prioridad: las 30
+tareas se reparten en 142~horas de prioridad \emph{Debe}, 36 de \emph{Debería} y 3
+de \emph{Podría}. Las 142~horas de prioridad \emph{Debe} caben dentro de las
 157~disponibles y constituyen el compromiso firme de esta planificación; las de
 prioridad \emph{Debería} y \emph{Podría} quedan declaradas como alcance opcional,
 a ejecutar solo si la disponibilidad real supera lo previsto. Las cifras de
@@ -597,9 +627,10 @@ ni por supuestos no verificados. \textbf{EP-2, cadena de detección operativa},
 permite conectar cualquier detector mediante una interfaz única. \textbf{EP-3,
 recorte adaptativo y representación}, resuelve el paso de duración variable a
 entrada fija y responde a OE2. \textbf{EP-4, clasificador de cuatro salidas},
-distingue las clases volcánicas y rechaza el resto. \textbf{EP-5, evaluación
+distingue las clases volcánicas y rechaza el resto, y responde a OE3.
+\textbf{EP-5, evaluación
 integrada}, mide la degradación entre recorte de referencia y automático, y
-responde a OE3. \textbf{EP-6, documentación y cierre}, asegura que cada resultado
+responde a OE4. \textbf{EP-6, documentación y cierre}, asegura que cada resultado
 quede escrito, versionado y reproducible.
 
 Cada épica se descompone en historias de usuario y estas en tareas técnicas
@@ -665,9 +696,9 @@ HU-08 & Como analista del observatorio, quiero que las avalanchas y los sismos d
 hielo no se reporten como eventos volcánicos, para no revisar manualmente falsas
 identificaciones & EP-4 & B-16, B-17, B-27 \\
 \addlinespace
-HU-09 & Como responsable del estudio, quiero comparar tres arquitecturas bajo un
-protocolo idéntico, para que la elección final esté respaldada y no sea
-arbitraria & EP-4 & B-19, B-20, B-22, B-23, B-24 \\
+HU-09 & Como responsable del estudio, quiero ajustar una CNN preentrenada bajo
+un protocolo reproducible, para que el resultado sea replicable & EP-4 & B-19,
+B-20, B-22, B-23 \\
 \addlinespace
 HU-10 & Como analista del observatorio, quiero saber cuánto se degrada el
 desempeño al usar recortes automáticos en vez de manuales, para decidir si la
@@ -698,9 +729,15 @@ registrado en el documento, no solo en el código.
 \subsection{Sprint 1, cierre el 2 de octubre}
 \label{sec:anexo-s1}
 
-Concentra las condiciones habilitantes y el diseño de la cadena. La tarea B-01 es
-bloqueante: mientras no se resuelva la posible superposición entre conjuntos,
-cualquier entrenamiento arriesga producir resultados no interpretables. La columna
+Concentra las condiciones habilitantes y el diseño de la cadena. La tarea B-01
+es bloqueante para el entrenamiento: mientras no se resuelva la posible
+superposición entre conjuntos, cualquier entrenamiento arriesga producir
+resultados no interpretables. Como el entrenamiento es materia de la Etapa 3 y
+las dos primeras semanas del sprint quedaron absorbidas por el inicio de la
+práctica profesional, B-01 se posterga a la primera semana del sprint 2; la
+desviación se declara aquí en lugar de absorberse en silencio. El foco de la
+Etapa 2 son las cuatro tareas de tipo diseño del backlog, B-04, B-05, B-06 y
+B-08. La columna
 \emph{Tipo} distingue diseño, implementación, validación y documentación.
 
 {\small
@@ -813,8 +850,12 @@ B-19 & Entrenar el clasificador de línea base sobre ventana fija & Imp. & CA-01
 \subsection{Sprint 3, cierre el 4 de diciembre}
 \label{sec:anexo-s3}
 
-Cierra OE3 y produce el informe final. Es el más extenso y concentra el trabajo de
-escritura, por lo que su holgura es proporcionalmente mayor.
+Cierra OE3 y OE4 y produce el informe final. Es el más extenso y concentra el
+trabajo de escritura, por lo que su holgura es proporcionalmente mayor. Tras la
+reformulación de los objetivos, las tareas B-23 y B-24 de la Etapa 1 se funden
+en una sola tarea B-23 de ajuste por transferencia; el identificador B-24 se
+retira del backlog y no se reutiliza, para conservar la trazabilidad con la
+numeración de la Etapa 1.
 
 {\small
 \begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{1.2cm}}
@@ -842,14 +883,11 @@ instante de inicio & Val. & RF-11, E9 & 4 & Debería \\
 B-22 & Aplicar el tratamiento del desbalance y medir su efecto por clase & Imp. &
 RF-16, RG-04 & 4 & Debería \\
 \addlinespace
-B-23 & Adaptar las tres arquitecturas convolucionales al protocolo común & Imp. &
-RF-17 & 7 & Debe \\
-\addlinespace
-B-24 & Entrenar y evaluar las tres arquitecturas bajo partición, semilla y
-presupuesto idénticos & Val. & RF-17, CA-04 & 10 & Debe \\
+B-23 & Ajustar VGG16 preentrenada en ImageNet a cuatro clases bajo el protocolo
+común de entrenamiento y evaluación & Imp. & RF-17, CA-04 & 10 & Debe \\
 \addlinespace
 B-25 & Ejecutar la cadena completa sobre la traza de evaluación en CPU y medir su
-tiempo de procesamiento & Val. & RNF-05, CA-05 & 6 & Debería \\
+tiempo de procesamiento & Val. & RNF-05, CA-05, OE4 & 6 & Debe \\
 \addlinespace
 B-26 & Realizar la evaluación pareada entre recorte de referencia y automático, con
 intervalos de confianza & Val. & RF-18, RF-19 & 9 & Debe \\
@@ -868,8 +906,8 @@ B-30 & Redactar el capítulo de resultados & Doc. & --- & 6 & Debe \\
 B-31 & Redactar validación, conclusiones y recomendaciones para trabajo futuro &
 Doc. & --- & 8 & Debe \\
 \midrule
-\multicolumn{4}{r}{\textbf{Comprometido}} & \textbf{72} & \\
-\multicolumn{4}{r}{\textbf{Holgura}} & 8 & \\
+\multicolumn{4}{r}{\textbf{Comprometido}} & \textbf{65} & \\
+\multicolumn{4}{r}{\textbf{Holgura}} & 15 & \\
 \bottomrule
 \end{longtable}
 }
@@ -915,14 +953,14 @@ invalidaría los resultados; si bloquea a otras tareas; y su aporte a la respues
 de un objetivo específico. Las tareas marcadas como \emph{Podría} son las primeras
 candidatas a salir del alcance si la capacidad real resulta inferior a la
 estimada. Si la disponibilidad cae al extremo inferior del rango declarado, la
-capacidad total baja cerca de un 25\,\% y la holgura de 20~horas no alcanza a
+capacidad total baja cerca de un 25\,\% y la holgura de 27~horas no alcanza a
 absorberla, por lo que la reducción debe hacerse por alcance y no por calidad.
 
 Las dependencias que condicionan el orden de ejecución son las siguientes. B-01
-bloquea a B-19 y B-20, porque entrenar antes de resolver la posible superposición
-produciría métricas no interpretables. B-06 bloquea a B-07. B-08 bloquea a B-12, y
-B-12 bloquea a B-14, porque la representación se construye sobre el recorte. B-17
-bloquea a B-19 y B-20. B-23 bloquea a B-24, y B-25 bloquea a B-26.
+bloquea a B-19, B-20 y B-23, porque entrenar antes de resolver la posible
+superposición produciría métricas no interpretables. B-06 bloquea a B-07. B-08
+bloquea a B-12, y B-12 bloquea a B-14, porque la representación se construye
+sobre el recorte. B-17 bloquea a B-19, B-20 y B-23. B-25 bloquea a B-26.
 
 Ante una desviación, si una tarea supera su estimación en más del 50\,\% se
 detiene su ejecución y se reevalúa el alcance, en lugar de absorber la holgura de

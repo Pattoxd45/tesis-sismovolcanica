@@ -223,41 +223,46 @@ medir lo que hasta ahora no se ha medido.
 \subsection{Objetivo general}
 
 \begin{itemize}
-    \item Desarrollar un algoritmo de identificación de eventos
-    sismo-volcánicos mediante detección automática y clasificación con redes
-    neuronales convolucionales, ajustado a la variabilidad del recorte
-    entregado por el detector, sobre registros sísmicos continuos del Complejo
-    Volcánico Nevados de Chillán.
+    \item Desarrollar un sistema de identificación de eventos sismovolcánicos
+    del Complejo Volcánico Nevados de Chillán, basado en la detección
+    automática y la posterior clasificación de los eventos recortados a partir
+    de sus espectrogramas mediante una red neuronal convolucional ajustada por
+    transferencia de aprendizaje.
 \end{itemize}
 
 \subsection{Objetivos específicos}
 \label{subsec:objetivos-especificos}
 
 \begin{itemize}
-    \item \textbf{OE1.} Evaluar el desempeño de detectores automáticos de
-    eventos sismo-volcánicos en dos niveles, identificación del instante del
-    evento y delimitación temporal de su recorte, sobre registros continuos
-    etiquetados del Complejo Volcánico Nevados de Chillán.
-    \item \textbf{OE2.} Construir un procedimiento de recorte adaptativo y de
-    representación espectral de los eventos detectados, ajustado a su duración
-    y a su solapamiento, compatible con la entrada de un clasificador
-    convolucional.
-    \item \textbf{OE3.} Validar el algoritmo integrado de identificación sobre
-    el registro continuo, contrastando arquitecturas convolucionales
-    alternativas y cuantificando la degradación entre el recorte de referencia
-    y el recorte automático.
+    \item \textbf{OE1.} Evaluar el desempeño de STA/LTA, EQTransformer y
+    PhaseNet en la detección de eventos sobre registros continuos etiquetados
+    del Complejo Volcánico Nevados de Chillán, considerando la sensibilidad,
+    la tasa de falsos positivos y la calidad de los recortes mediante la
+    intersección sobre unión (IoU).
+    \item \textbf{OE2.} Implementar un procedimiento de generación de
+    espectrogramas a partir de los eventos identificados por los detectores,
+    que considere la variabilidad de su duración, los errores de delimitación
+    temporal y el solapamiento entre eventos.
+    \item \textbf{OE3.} Ajustar mediante transferencia de aprendizaje una red
+    neuronal convolucional para clasificar los espectrogramas en eventos VT,
+    LP, TR y una categoría de rechazo, utilizando un protocolo de
+    entrenamiento y evaluación reproducible.
+    \item \textbf{OE4.} Evaluar el sistema integrado sobre registros
+    continuos, comparando el desempeño de la clasificación con recortes de
+    referencia y recortes automáticos, y reportando los resultados por clase
+    y el tiempo de procesamiento.
 \end{itemize}
 
 El objetivo general emplea un solo verbo en infinitivo perteneciente al nivel
 \emph{crear}, el más alto de la taxonomía de Bloom revisada
-\parencite{anderson2001taxonomy}. Los tres objetivos específicos se ubican en
-los niveles \emph{evaluar}, \emph{crear} y \emph{evaluar} respectivamente,
-todos iguales o inferiores al del objetivo general.
+\parencite{anderson2001taxonomy}. Los cuatro objetivos específicos se ubican
+en los niveles \emph{evaluar}, \emph{aplicar}, \emph{crear} y \emph{evaluar}
+respectivamente, todos iguales o inferiores al del objetivo general.
 
 \subsection{Criterios SMART}
 \label{subsec:smart}
 
-Los tres objetivos específicos se formularon verificando los cinco criterios
+Los cuatro objetivos específicos se formularon verificando los cinco criterios
 SMART. El Cuadro~\ref{tab:smart} resume, para cada uno, el criterio medible con
 el que se comprobará su cumplimiento y el hito en que queda cerrado; el desglose
 completo de los cinco criterios, con la justificación de por qué cada objetivo es
@@ -280,20 +285,27 @@ específico, alcanzable y relevante, está en el Anexo~\ref{sec:anexo-smart}.
 \endfoot
 \bottomrule
 \endlastfoot
-OE1 & \emph{Recall} y precisión globales y por clase con intervalos de confianza
-del 95\,\% obtenidos por \emph{bootstrap}; distribución de IoU; error de onset;
-frontera de Pareto de los barridos de parámetros &
+OE1 & Sensibilidad (\emph{recall}) y tasa de falsos positivos, globales y por
+clase, con intervalos de confianza del 95\,\% obtenidos por \emph{bootstrap};
+distribución de IoU; error de onset; frontera de Pareto de los barridos de
+parámetros &
 Etapa 2, 2 de octubre de 2026 \\
 \addlinespace
 OE2 & IoU del recorte adaptativo contra el recorte de referencia, comparado con
 la línea base de ventana fija y desglosado por clase; fracción de eventos
 truncados; cobertura del rango de 3,4\,s a 240,8\,s; solapamientos resueltos
-correctamente &
+correctamente; tolerancia al error de onset medida con desplazamientos
+controlados &
 Etapa 3, 30 de octubre de 2026 \\
 \addlinespace
 OE3 & F1 macro y \emph{recall} por clase con intervalos de confianza del
-95\,\%; matriz de confusión; diferencia de desempeño del mismo modelo sobre
-recorte de referencia y sobre recorte automático; costo de inferencia en CPU &
+95\,\%; matriz de confusión de cuatro clases; protocolo reproducible verificado
+por re-ejecución con la misma semilla &
+Etapa 3, resultados preliminares; Etapa 4, completo, 4 de diciembre de 2026 \\
+\addlinespace
+OE4 & Diferencia de desempeño pareada entre recorte de referencia y recorte
+automático con su intervalo de confianza; resultados desglosados por clase;
+tiempo de procesamiento de la cadena completa en CPU &
 Etapa 4, 4 de diciembre de 2026 \\
 \bottomrule
 \end{longtable}
@@ -350,7 +362,7 @@ base de ventana fija \\
 \addlinespace
 P4 & No se ha medido la pérdida de desempeño al pasar de recortes de
 referencia a recortes automáticos &
-OE3 &
+OE4 &
 RF-18, RF-19, RF-20 &
 Diferencia de F1 macro del mismo modelo sobre ambos tipos de recorte \\
 \addlinespace
@@ -447,9 +459,9 @@ problema central del bloque C y la razón de ser del segundo objetivo específic
 
 Cada decisión de diseño se tomó contrastando alternativas viables. Son siete,
 identificadas D1 a D7: la elección del detector, el manejo de las clases no
-volcánicas, la estrategia de recorte, la representación de entrada, las
-arquitecturas a comparar, el uso de detectores preentrenados y el nivel de
-operación. En todas ellas el criterio decisivo es una medición propia y no una
+volcánicas, la estrategia de recorte, la representación de entrada, la
+estrategia de entrenamiento del clasificador, el uso de detectores
+preentrenados y el nivel de operación. En todas ellas el criterio decisivo es una medición propia y no una
 preferencia: se conservan varios detectores porque E1 y E2 muestran que no existe
 un ganador único y E3 que sus recortes difieren de forma medible; se entrena una
 clase de rechazo supervisada, en lugar de elevar el umbral de detección, porque
@@ -472,9 +484,10 @@ clase. El bloque C, de recorte y representación, reúne RF-09 a RF-13 y exige
 duración adaptativa, política para eventos extensos, margen de contexto,
 resolución de solapamientos y entrada de tamaño fijo. El bloque D, de
 clasificación, reúne RF-14 a RF-17 y exige cuatro salidas, entrenamiento
-explícito del rechazo, tratamiento del desbalance y comparación de
-arquitecturas. La evaluación integrada reúne RF-18 a RF-20 y exige comparación
-pareada, intervalos de confianza y persistencia reproducible. Los ocho
+explícito del rechazo, tratamiento del desbalance y ajuste por transferencia
+de aprendizaje bajo un protocolo reproducible. La evaluación integrada, que
+responde a OE4, reúne RF-18 a RF-20 y exige comparación pareada, intervalos de
+confianza y persistencia reproducible. Los ocho
 requerimientos no funcionales, RNF-01 a RNF-08, cubren inferencia en CPU,
 entrenamiento reanudable, reproducibilidad, modularidad, eficiencia y salidas
 revisables.
@@ -526,8 +539,8 @@ adaptativo y su política explícita para eventos que exceden la ventana nominal
 
 El trabajo restante se organiza en tres sprints de cuatro semanas. El inicio de
 mi práctica profesional redujo la capacidad estimada de 208 a unas 157~horas y el
-backlog suma 188, de modo que el compromiso firme queda acotado a las tareas de
-prioridad \emph{Debe}, que suman 143~horas; las de prioridad \emph{Debería} y
+backlog suma 181, de modo que el compromiso firme queda acotado a las tareas de
+prioridad \emph{Debe}, que suman 142~horas; las de prioridad \emph{Debería} y
 \emph{Podría} quedan como alcance opcional. El método de estimación, el detalle
 de ese ajuste y las seis épicas están en el
 Anexo~\ref{sec:anexo-planificacion}; el desglose en historias de usuario, tareas,
@@ -557,8 +570,8 @@ superposición, diagramas de arquitectura y especificación de interfaces & 58 h
 S2 & 30 de octubre & Implementación del recorte adaptativo, de la representación
 espectral y del conjunto de entrenamiento de cuatro clases & 58 h & 6 h \\
 \addlinespace
-S3 & 4 de diciembre & Comparación de arquitecturas, evaluación integrada y
-redacción del informe final & 72 h & 8 h \\
+S3 & 4 de diciembre & Ajuste por transferencia de aprendizaje, evaluación
+integrada y redacción del informe final & 65 h & 15 h \\
 \bottomrule
 \end{longtable}
 }
@@ -570,3 +583,76 @@ desviación aplicaré la política de detener una tarea que supere su estimació
 más del 50\,\% y reevaluar el alcance, en lugar de absorber la holgura de forma
 silenciosa, de modo que la desviación se convierta en información para
 replanificar y no en una deuda invisible.
+
+\section{Registro de cambios respecto de la Etapa 1}
+\label{sec:registro-cambios}
+
+Esta sección registra los cambios introducidos respecto del documento
+entregado en la Etapa 1, con su origen y el lugar del documento donde cada uno
+queda reflejado. El origen principal es la retroalimentación del profesor guía
+del 15 de septiembre de 2026, que reformuló los objetivos; el resto son
+consecuencias de esa reformulación o ajustes de planificación declarados como
+desviación, no absorbidos en silencio. El Cuadro~\ref{tab:registro-cambios}
+los resume.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.8cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{3.1cm}}
+\caption{Registro de cambios respecto de la Etapa 1.}\label{tab:registro-cambios}\\
+\toprule
+\textbf{Cambio} & \textbf{Origen} & \textbf{Dónde se refleja} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Cambio} & \textbf{Origen} & \textbf{Dónde se refleja} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Objetivo general y objetivos específicos reformulados: de tres a cuatro OE, con
+transferencia de aprendizaje y espectrogramas fijados en el objetivo general &
+Retroalimentación del profesor guía, 15 de septiembre de 2026 &
+Sección~\ref{sec:objetivos}, Cuadros~\ref{tab:smart}
+y~\ref{tab:trazabilidad}, Anexo~\ref{sec:anexo-smart} \\
+\addlinespace
+D5 pasa de comparar tres arquitecturas a decidir la estrategia de
+entrenamiento: transferencia desde ImageNet sobre una sola CNN &
+Consecuencia de OE3 &
+Sección~\ref{sec:alternativas}, Anexo~\ref{sec:anexo-alternativas} \\
+\addlinespace
+RF-17, CA-04 y HU-09 se reescriben en términos de ajuste por transferencia;
+B-23 y B-24 se funden en una sola tarea B-23 de 10~h y el identificador B-24 se
+retira sin reutilizarse &
+Consecuencia de OE3 &
+Anexos~\ref{sec:anexo-rf}, \ref{sec:anexo-aceptacion}
+y~\ref{sec:anexo-backlog} \\
+\addlinespace
+La evaluación integrada se separa en un cuarto objetivo; RF-18 a RF-20 y EP-5
+pasan a responder a OE4, y B-25 sube de \emph{Debería} a \emph{Debe} porque el
+tiempo de procesamiento queda dentro del objetivo &
+Retroalimentación del profesor guía (OE4) &
+Cuadro~\ref{tab:trazabilidad}, Anexos~\ref{sec:anexo-rf},
+\ref{sec:anexo-planificacion} y~\ref{sec:anexo-backlog} \\
+\addlinespace
+Los totales del backlog pasan de 188~h (143 \emph{Debe}, 42 \emph{Debería}, 3
+\emph{Podría}) a 181~h (142, 36 y 3) &
+Consecuencia de los dos cambios anteriores &
+Sección~\ref{sec:planificacion}, Anexos~\ref{sec:anexo-planificacion}
+y~\ref{sec:anexo-backlog} \\
+\addlinespace
+B-01 se posterga a la primera semana del sprint 2 &
+Capacidad del sprint 1 reducida por el inicio de la práctica profesional;
+B-01 bloquea el entrenamiento, que es materia de la Etapa 3 &
+Anexo~\ref{sec:anexo-s1} \\
+\addlinespace
+El capítulo 2 pasa de marco teórico a diseño del sistema &
+Decisión de estructura: la teoría quedó integrada en la revisión del estado
+del arte a solicitud del profesor guía; sujeta a confirmación en la reunión
+del 21 de septiembre &
+Capítulo~\ref{cap:diseno} \\
+\bottomrule
+\end{longtable}
+}
