@@ -4,6 +4,150 @@
 \section{Arquitectura de la cadena de procesamiento}
 \label{sec:arquitectura-cadena}
 
+El sistema se organiza como una cadena de cuatro componentes encadenados más
+un componente transversal de evaluación y persistencia, según muestra la
+Figura~\ref{fig:arquitectura}. La notación sigue el diagrama de componentes de
+UML~2: cada componente declara las interfaces que provee y las que requiere, y
+los conectores indican el sentido del flujo de datos. El contrato de datos de
+cada conector se especifica en la Sección~\ref{sec:contrato-datos}.
+
+El \textbf{bloque A, ingesta y preprocesamiento}, lee la traza continua
+multicanal (RF-01), opera solo sobre los canales con señal utilizable (RF-02),
+construye la entrada de tres componentes que exigen los detectores profundos
+con la estrategia de relleno declarada por modelo (RF-03), excluye las guardas
+de unión entre bloques temporales (RF-04) y materializa la partición temporal
+(RF-05). Entrega traza acondicionada, ya lista para el detector que
+corresponda.
+
+El \textbf{bloque B, detección}, contiene dos niveles. El envoltorio de
+barrido recorre la traza con las ventanas de 300\,s y paso de 55\,s de la
+Sección~\ref{sec:recorte-espectrogramas}, invoca al detector activo a través
+de la interfaz común \textsf{IDetector} (RF-06), aplica la expansión de arribo
+a intervalo cuando el detector no delimita (RF-07) y fusiona los intervalos
+que alcanzan bordes de ventana. Detrás de la interfaz se conectan, como
+componentes intercambiables, STA/LTA, EQTransformer y PhaseNet. Sitúo la
+fusión en el envoltorio y no dentro de cada detector por dos razones: la
+fusión corrige un artefacto del barrido, que es mecánica de esta etapa y no
+del algoritmo de detección, y RNF-04 exige que el detector sea sustituible sin
+modificar el resto de la cadena, lo que obliga a que toda lógica común quede
+fuera de los detectores concretos. El bloque entrega intervalos definitivos,
+con inicio, término y puntaje, y sus métricas se reportan por clase (RF-08).
+
+El \textbf{bloque C, recorte y representación}, recorta cada intervalo con
+duración adaptativa (RF-09) y política explícita para eventos extensos
+(RF-10), antepone el margen de contexto que tolera el error de onset (RF-11),
+resuelve solapamientos entre detecciones consecutivas (RF-12) y genera el
+espectrograma de dimensiones fijas con la duración reinyectada de forma
+explícita (RF-13). Entrega espectrogramas con sus metadatos de procedencia.
+
+El \textbf{bloque D, clasificación}, aplica la VGG16 ajustada por
+transferencia bajo el protocolo reproducible (RF-17), entrega cuatro salidas
+con la clase de rechazo entrenada de forma supervisada (RF-14, RF-15) y
+documenta el tratamiento del desbalance (RF-16). Su salida es la etiqueta de
+clase con su puntaje.
+
+El \textbf{componente transversal de evaluación y persistencia} no pertenece
+a la cadena: la observa. Registra la configuración y los resultados de cada
+ejecución de modo que toda cifra sea regenerable (RF-20), ejecuta la
+evaluación pareada entre recorte de referencia y automático (RF-18), acompaña
+cada comparación de su intervalo de confianza por remuestreo (RF-19) y produce
+el archivo tabular y las figuras de inspección para revisión manual (RNF-08).
+Separarlo de la cadena evita que la lógica de medición contamine a los
+componentes medidos.
+
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize,
+  bloque/.style={draw, rectangle, align=center, minimum height=1.05cm,
+    minimum width=3.3cm, inner sep=3pt},
+  sub/.style={draw, rectangle, align=center, inner sep=2.5pt,
+    font=\scriptsize, minimum width=2.3cm, minimum height=0.55cm},
+  flujo/.style={-{Stealth[length=2.5mm]}, thick},
+  etiq/.style={font=\scriptsize, align=left},
+  >=Stealth]
+% Cadena principal, vertical
+\node[bloque] (A) {Bloque A\\Ingesta y preprocesamiento};
+\node[bloque, below=1.0cm of A] (B) {Bloque B\\Detección};
+\node[bloque, below=1.0cm of B] (C) {Bloque C\\Recorte y representación};
+\node[bloque, below=1.0cm of C] (D) {Bloque D\\Clasificación};
+% Flechas de la cadena con el dato que fluye
+\node[above=0.7cm of A, etiq, align=center] (traza) {traza continua};
+\draw[flujo] (traza) -- (A);
+\draw[flujo] (A) -- node[etiq, right=2pt] {traza acondicionada} (B);
+\draw[flujo] (B) -- node[etiq, right=2pt] {intervalos definitivos} (C);
+\draw[flujo] (C) -- node[etiq, right=2pt] {espectrogramas + metadatos} (D);
+\node[below=0.7cm of D, etiq, align=center] (out) {etiqueta + puntaje};
+\draw[flujo] (D) -- (out);
+% Interfaz IDetector: la bola la proveen los detectores, la copa la
+% requiere el envoltorio del bloque B
+\coordinate (ifz) at ($(B.west)+(-0.72,0)$);
+\draw[thick] (ifz) circle (1.6mm);
+\node[etiq, above=3mm of ifz, align=center] {\textsf{IDetector}\\(RF-06)};
+% Copa (interfaz requerida) desde el bloque B, abrazando la bola
+\draw[thick] (B.west) -- ($(ifz)+(0.42,0)$)
+  arc[start angle=-70, end angle=-290, radius=2.6mm];
+% Detectores intercambiables, columna a la izquierda: proveen la bola
+\node[sub] (eqt) at ($(ifz)+(-2.25,0)$) {EQTransformer};
+\node[sub, above=0.35cm of eqt] (sta) {STA/LTA};
+\node[sub, below=0.35cm of eqt] (pn) {PhaseNet};
+\coordinate (junta) at ($(ifz)+(-0.75,0)$);
+\draw[thick] (eqt.east) -- (junta);
+\draw[thick] (sta.east) -- ++(0.30,0) |- (junta);
+\draw[thick] (pn.east)  -- ++(0.30,0) |- (junta);
+\draw[thick] (junta) -- ($(ifz)+(-0.16,0)$);
+% Componente transversal de evaluacion, a la derecha
+\node[bloque, rotate=90, minimum width=5.6cm, minimum height=0.85cm]
+  (ev) at ($(C.east)+(3.35,0.7)$) {Evaluación y persistencia};
+\draw[dashed, ->] (ev.north |- B.east) -- (B.east);
+\draw[dashed, ->] (ev.north |- C.east) -- (C.east);
+\draw[dashed, ->] (ev.north |- D.east) -- (D.east);
+\end{tikzpicture}
+\caption{Diagrama de componentes de la cadena de procesamiento. Los tres
+detectores son intercambiables tras la interfaz \textsf{IDetector}; el
+componente de evaluación observa las salidas de los bloques B, C y D sin
+pertenecer a la cadena.}
+\label{fig:arquitectura}
+\end{figure}
+
+El Cuadro~\ref{tab:rf-componente} indica el punto exacto de la arquitectura
+donde se aplica cada requerimiento funcional, según exige el criterio de
+aceptación de esta tarea de diseño.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{6.7cm}}
+\caption{Asignación de requerimientos a los componentes de la arquitectura.}\label{tab:rf-componente}\\
+\toprule
+\textbf{Componente} & \textbf{Requerimientos que materializa} \\
+\midrule
+\endfirsthead
+\multicolumn{2}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Componente} & \textbf{Requerimientos que materializa} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Bloque A, ingesta y preprocesamiento & RF-01, RF-02, RF-03, RF-04, RF-05 \\
+\addlinespace
+Bloque B, envoltorio de barrido y fusión & RF-07, RF-08 y la fusión de
+intervalos de la Sección~\ref{sec:recorte-espectrogramas} \\
+\addlinespace
+Bloque B, interfaz \textsf{IDetector} y detectores & RF-06; la
+intercambiabilidad materializa RNF-04 \\
+\addlinespace
+Bloque C, recorte y representación & RF-09, RF-10, RF-11, RF-12, RF-13 \\
+\addlinespace
+Bloque D, clasificación & RF-14, RF-15, RF-16, RF-17 \\
+\addlinespace
+Evaluación y persistencia & RF-18, RF-19, RF-20; RNF-08 \\
+\bottomrule
+\end{longtable}
+}
+
 \section{Contrato de datos entre bloques}
 \label{sec:contrato-datos}
 
