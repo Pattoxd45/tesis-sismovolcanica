@@ -151,6 +151,55 @@ Evaluación y persistencia & RF-18, RF-19, RF-20; RNF-08 \\
 \section{Contrato de datos entre bloques}
 \label{sec:contrato-datos}
 
+Cada conector de la Figura~\ref{fig:arquitectura} transporta una estructura
+con campos, tipos y unidades fijos. Especificarlos por separado del código
+persigue un objetivo concreto: que cualquiera de los cuatro bloques pueda
+reimplementarse leyendo solo este contrato, sin inspeccionar la
+implementación del bloque anterior. Tres convenciones rigen los tres
+conectores.
+
+La primera es la representación del tiempo. Toda referencia temporal viaja
+por duplicado: como índice de muestra, entero, y como marca de tiempo Unix en
+segundos. El índice de muestra es la referencia canónica y el tiempo Unix es
+derivado, porque la traza continua concatena tres segmentos de fechas no
+consecutivas, según se documentó en la Sección~\ref{sec:restricciones}: el
+índice crece de forma continua a lo largo del archivo, mientras que la marca
+de tiempo salta en las muestras 2.160.000 y 3.240.001. Toda aritmética de
+duración y de solapamiento se realiza sobre índices; el tiempo Unix se emplea
+únicamente para reportar. Como salvaguarda, cada estructura declara el
+identificador del bloque temporal al que pertenece, y ningún intervalo puede
+declarar índices de dos bloques distintos.
+
+La segunda es el puntaje de detección. STA/LTA entrega una razón de energía
+no acotada superiormente, mientras que los detectores profundos entregan
+probabilidades en el intervalo unitario. El contrato transporta ambos: el
+puntaje crudo tal como lo produce el detector y el puntaje normalizado al
+intervalo unitario mediante la transformación declarada por cada
+implementación. Declaro la limitación que esto impone: el puntaje normalizado
+permite ordenar detecciones dentro de un mismo detector, pero no es
+comparable entre detectores, y ninguna decisión del sistema puede apoyarse en
+esa comparación.
+
+La tercera es la procedencia. Cada estructura arrastra el identificador del
+detector o del modelo que la produjo y el de la configuración empleada, de
+modo que cualquier cifra reportada pueda regenerarse desde el registro
+almacenado, según exige RF-20.
+
+El detalle campo por campo de los tres conectores, con su tipo, su unidad y
+su restricción de validez, está en el Anexo~\ref{sec:anexo-contrato}.
+
+La salida del bloque D agrega al registro del último conector el vector de
+cuatro puntajes, uno por clase VT, LP, TR y rechazo, la etiqueta de máximo puntaje y
+el identificador del modelo empleado. Ese registro completo es la unidad que
+el componente de evaluación persiste y que alimenta el archivo tabular de
+inspección exigido por RNF-08.
+
+Dos reglas de validación acompañan al contrato y se comprobarán con casos
+sintéticos antes de conectar bloques reales: ninguna estructura puede declarar
+índices pertenecientes a dos bloques temporales distintos, y todo campo
+derivado, como \texttt{duracion} o \texttt{tiempo\_inicio}, debe poder
+recalcularse desde los índices y la frecuencia sin discrepancia.
+
 \section{Interfaz común de detección}
 \label{sec:interfaz-deteccion}
 

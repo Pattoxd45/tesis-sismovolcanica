@@ -503,6 +503,157 @@ de inspección visual, para permitir la revisión manual de casos \\
 \end{longtable}
 }
 
+\section{Contrato de datos entre bloques}
+\label{sec:anexo-contrato}
+
+Se especifican aquí los tres conectores de la cadena descritos en la
+Sección~\ref{sec:contrato-datos}, con el nombre, el tipo, la unidad y la
+restricción de cada campo. El detalle es suficiente para reimplementar
+cualquier bloque sin inspeccionar la implementación del anterior.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{5.9cm}}
+\caption{Contrato del conector A\,$\rightarrow$\,B, traza acondicionada.}\label{tab:contrato-ab}\\
+\toprule
+\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+\texttt{datos} & arreglo real, cuentas & Matriz de $c \times n$ muestras, con
+$c$ componentes y $n$ muestras. Sin normalizar \\
+\addlinespace
+\texttt{frecuencia} & real, Hz & Frecuencia de muestreo, 100 en todos los
+casos \\
+\addlinespace
+\texttt{canal} & entero & Fila de origen en el archivo, restringida a los
+canales utilizables 1, 2, 3, 5 y 6 \\
+\addlinespace
+\texttt{bloque} & entero & Segmento temporal de procedencia, 1 a 3 \\
+\addlinespace
+\texttt{muestra\_inicial} & entero & Índice de la primera muestra respecto del
+archivo completo \\
+\addlinespace
+\texttt{tiempo\_inicial} & real, s & Marca de tiempo Unix de la primera
+muestra, derivada de la fila 0 \\
+\addlinespace
+\texttt{relleno} & cadena & Estrategia de relleno de componentes aplicada
+(RF-03); \texttt{ninguno} cuando el detector opera sobre un solo canal \\
+\bottomrule
+\end{longtable}
+}
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{5.9cm}}
+\caption{Contrato del conector B\,$\rightarrow$\,C, intervalos definitivos.}\label{tab:contrato-bc}\\
+\toprule
+\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+\texttt{id} & cadena & Identificador único de la detección dentro de la
+ejecución \\
+\addlinespace
+\texttt{muestra\_inicio} & entero & Índice de inicio del intervalo \\
+\addlinespace
+\texttt{muestra\_fin} & entero & Índice de término; debe cumplir
+\texttt{muestra\_fin} $>$ \texttt{muestra\_inicio} y pertenecer al mismo
+bloque \\
+\addlinespace
+\texttt{tiempo\_inicio} & real, s & Marca Unix derivada del índice de inicio \\
+\addlinespace
+\texttt{duracion} & real, s & Diferencia de índices dividida por la frecuencia;
+campo derivado, incluido por conveniencia de lectura \\
+\addlinespace
+\texttt{canal}, \texttt{bloque} & entero & Heredados de la traza de origen \\
+\addlinespace
+\texttt{puntaje\_crudo} & real & Valor tal como lo entrega el detector, sin
+acotar \\
+\addlinespace
+\texttt{puntaje} & real, $[0,1]$ & Puntaje normalizado; comparable solo dentro
+de un mismo detector \\
+\addlinespace
+\texttt{detector} & cadena & Identificador del detector que produjo la
+detección \\
+\addlinespace
+\texttt{config} & cadena & Identificador de la configuración empleada, para
+RF-20 \\
+\addlinespace
+\texttt{origen\_intervalo} & cadena & \texttt{directo} cuando el detector
+delimita, \texttt{expandido} cuando se aplicó la regla de expansión de arribo
+(RF-07) \\
+\addlinespace
+\texttt{fusionado} & booleano & Verdadero si el intervalo resulta de fusionar
+detecciones de ventanas de barrido contiguas \\
+\bottomrule
+\end{longtable}
+}
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{5.9cm}}
+\caption{Contrato del conector C\,$\rightarrow$\,D, espectrogramas y metadatos.}\label{tab:contrato-cd}\\
+\toprule
+\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+\texttt{id} & cadena & Heredado del intervalo que originó el recorte \\
+\addlinespace
+\texttt{espectrograma} & arreglo real & Matriz de dimensiones fijas,
+frecuencia por tiempo, idénticas para todo evento \\
+\addlinespace
+\texttt{duracion\_real} & real, s & Duración del recorte antes de llevarlo a
+dimensiones fijas; es la información que RF-13 exige preservar de forma
+explícita \\
+\addlinespace
+\texttt{margen\_previo} & real, s & Contexto antepuesto al inicio estimado
+para tolerar el error de onset (RF-11) \\
+\addlinespace
+\texttt{truncado} & booleano & Verdadero si se aplicó la política para
+eventos que exceden la ventana nominal (RF-10) \\
+\addlinespace
+\texttt{solapa\_con} & lista de cadenas & Identificadores de detecciones
+cuyo intervalo se solapa con este, tras aplicar la regla de resolución
+(RF-12); lista vacía en el caso habitual \\
+\addlinespace
+\texttt{normalizacion} & cadena & Procedimiento de normalización aplicado al
+recorte individual \\
+\addlinespace
+\texttt{detector}, \texttt{config}, \texttt{canal}, \texttt{bloque} & cadena y
+entero & Heredados del intervalo, para conservar la procedencia hasta la
+salida \\
+\bottomrule
+\end{longtable}
+}
+
+
+
 \section{Criterios de aceptación}
 \label{sec:anexo-aceptacion}
 
