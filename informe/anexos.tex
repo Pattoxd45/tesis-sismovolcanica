@@ -654,6 +654,38 @@ salida \\
 
 
 
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{5.3cm}}
+\caption{Encaje de los detectores evaluados en la interfaz \textsf{IDetector}.}\label{tab:idetector}\\
+\toprule
+\textbf{Implementación} & \textbf{Delimita} & \textbf{Compon.} & \textbf{Puntaje crudo y su normalización} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Implementación} & \textbf{Delimita} & \textbf{Compon.} & \textbf{Puntaje crudo y su normalización} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+STA/LTA & Sí & 1 & Razón de energía, no acotada superiormente; se normaliza
+respecto del umbral de disparo configurado \\
+\addlinespace
+EQTransformer & Sí & 3 & Probabilidad de detección en $[0,1]$; la
+normalización es la identidad \\
+\addlinespace
+PhaseNet & No & 3 & Probabilidad de arribo en $[0,1]$; la normalización es la
+identidad y el envoltorio expande el arribo a intervalo \\
+\addlinespace
+Detector sintético & Sí & 1 & Puntaje fijo declarado en el caso de prueba;
+la normalización es la identidad \\
+\bottomrule
+\end{longtable}
+}
+
 \section{Criterios de aceptación}
 \label{sec:anexo-aceptacion}
 

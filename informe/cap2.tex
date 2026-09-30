@@ -203,6 +203,61 @@ recalcularse desde los índices y la frecuencia sin discrepancia.
 \section{Interfaz común de detección}
 \label{sec:interfaz-deteccion}
 
+La interfaz \textsf{IDetector} es la que permite sustituir el detector sin
+modificar el resto de la cadena, según exige RNF-04, y la que hace posible que
+la variabilidad del recorte entre detectores sea el objeto de estudio y no un
+obstáculo. La especifico sin referencia a ningún detector concreto: describe
+qué debe entregar una implementación, no cómo obtenerlo.
+
+El reparto de responsabilidades es la decisión central. Una implementación de
+\textsf{IDetector} resuelve únicamente la detección local sobre el fragmento
+de traza que recibe. Todo lo demás vive en el envoltorio de barrido del
+bloque B: el recorrido con ventanas de 300\,s, la expansión de arribo a
+intervalo, la fusión de detecciones en bordes de ventana y el ensamblado del
+registro que exige el contrato de datos. Concentrar esa lógica fuera de los
+detectores es lo que evita reimplementarla tres veces y lo que garantiza que
+los tres se evalúen bajo el mismo criterio.
+
+La interfaz declara cuatro operaciones. \texttt{describir} entrega los
+metadatos de la implementación: su identificador, su versión y dos
+declaraciones de capacidad que el envoltorio necesita conocer de antemano, a
+saber, si el detector delimita eventos o solo entrega arribos, y cuántas
+componentes exige su entrada. \texttt{configurar} recibe los parámetros
+propios del detector y devuelve el identificador de configuración que el
+contrato de datos arrastra hasta la salida. \texttt{detectar} recibe un
+fragmento de traza acondicionada y devuelve la lista de detecciones locales,
+cada una con su índice de inicio, su índice de término cuando el detector
+delimita, su índice de arribo cuando no lo hace, y su puntaje crudo.
+\texttt{normalizar\_puntaje} convierte el puntaje crudo al intervalo unitario
+mediante la transformación propia de cada implementación, que es la única
+forma de reconciliar una razón de energía no acotada con una probabilidad.
+
+Las dos declaraciones de capacidad no son adornos: determinan el
+comportamiento del envoltorio. Si la implementación declara que no delimita,
+el envoltorio aplica la regla de expansión de arribo a intervalo (RF-07) y
+marca el resultado como \texttt{expandido} en el contrato. Si declara que
+exige tres componentes, el bloque A aplica la estrategia de relleno declarada
+para ese modelo (RF-03), cuyo efecto sobre el techo de recall quedó medido en
+E8. Así, las dos particularidades que diferencian a los detectores evaluados
+quedan resueltas por declaración y no por casos especiales dentro del código
+del envoltorio.
+
+El Cuadro~\ref{tab:idetector} del Anexo~\ref{sec:anexo-contrato} demuestra
+que los tres detectores evaluados encajan en la interfaz sin excepciones, que
+es el criterio de aceptación de esta tarea de diseño. Incluye además el
+detector sintético con el que se validará la implementación: al producir
+intervalos conocidos de antemano, permite comprobar que la cadena entrega
+exactamente lo esperado antes de conectar un detector real, según la
+definición de terminado del backlog.
+
+
+Declaro una consecuencia de este diseño que conviene no ocultar. La interfaz
+uniforma la forma de la salida, no su significado: el puntaje normalizado de
+STA/LTA y el de EQTransformer son ambos números en el intervalo unitario, pero
+no miden lo mismo, de modo que la comparación entre detectores debe hacerse
+sobre métricas de desempeño y nunca sobre sus puntajes, tal como se estableció
+en la Sección~\ref{sec:contrato-datos}.
+
 \section{Procedimiento de recorte adaptativo y generación de espectrogramas}
 \label{sec:recorte-espectrogramas}
 
