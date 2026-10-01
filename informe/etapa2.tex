@@ -175,12 +175,11 @@ Las cuatro tareas de diseño del sprint 1 están completas: arquitectura (B-04),
 flujo de procesamiento y contrato de datos (B-05), interfaz de detección
 (B-06) y recorte adaptativo (B-08). Dos implementaciones no se iniciaron y
 pasan al sprint 2: la partición por bloque temporal (B-03) y la interfaz con su
-detector sintético de prueba (B-07); también pasa B-01, la verificación de
-superposición entre entrenamiento y evaluación, cuya postergación ya estaba
-declarada. En sentido contrario, se adelantó el núcleo del recorte adaptativo
-(B-12, del sprint 2), y quedaron hechos, fuera de lo planificado, la
-evaluación por tramo, el barrido de sensibilidad, la razón señal-ruido y la
-verificación de los datos crudos. Con estos ajustes, el compromiso
+detector sintético de prueba (B-07). En sentido contrario, se adelantaron el
+núcleo del recorte adaptativo (B-12, del sprint 2) y buena parte de B-01, la
+verificación de superposición entre entrenamiento y evaluación, y quedaron
+hechos, fuera de lo planificado, la evaluación por tramo, el barrido de
+sensibilidad, la razón señal-ruido y la verificación de los datos crudos. Con estos ajustes, el compromiso
 \emph{Debe} del sprint 2 queda en 55 de sus 64~h. No registré el esfuerzo
 real del sprint 1; lo registraré desde el sprint 2. El código y los commits
 comentados de la etapa están en
@@ -481,8 +480,20 @@ incluye, permitirían darle a esa estación una entrada real de tres
 componentes en lugar del relleno con ceros. La diferencia del tramo 1 se
 concentra en 17 de sus 19 AV: en esos instantes la fila 1 no se parece al
 registro crudo de FRE (correlación entre $-0{,}08$ y 0,14), mientras el resto
-del tramo coincide. Hasta aclarar su origen, los resultados de la clase AV
-deben leerse con cautela.
+del tramo coincide.
+
+Al buscar las ventanas del conjunto de entrenamiento dentro de la traza
+(B-01), 16 de esos 17 AV coinciden, con correlación normalizada de al menos
+0,985, con ventanas AV del conjunto de entrenamiento de otras fechas, casi
+siempre en la fila de FRE. Lo más probable es que esos segmentos se hayan
+reemplazado por eventos del conjunto de entrenamiento al armar la traza,
+aunque no está confirmado. La misma búsqueda encontró dentro de la traza 11
+ventanas del conjunto de entrenamiento (5 AV, 3 IC y 3 VT), con correlación
+cercana a 1: el riesgo de superposición declarado en la Etapa 1 queda
+confirmado, y esas ventanas se excluirán del entrenamiento. La búsqueda
+abarcó las ventanas cuya fecha coincide con la traza y todos los AV; falta el
+resto del conjunto. Mientras tanto, los resultados de la clase AV deben
+leerse con cautela.
 
 \section{Estrategia de detección}
 \label{sec:det-estrategia}
