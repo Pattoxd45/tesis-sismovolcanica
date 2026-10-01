@@ -47,7 +47,9 @@
 \usepackage{float}
 \usepackage{graphicx}
 \usepackage{tikz}
-\usetikzlibrary{positioning,fit,arrows.meta,calc}
+% shapes.geometric: nodos de decision del diagrama de actividad (agregarlo
+% tambien a main.tex al integrar este informe)
+\usetikzlibrary{positioning,fit,arrows.meta,calc,shapes.geometric}
 
 % --- Algoritmos ---
 \usepackage{algorithm}
@@ -139,7 +141,7 @@ retroalimentación recibida desde entonces y dónde se refleja.
 \endfoot
 \bottomrule
 \endlastfoot
-Objetivos reformulados (15 de septiembre): cuatro objetivos específicos y
+Objetivos reformulados: cuatro objetivos específicos y
 clasificación de espectrogramas con una CNN ajustada por transferencia &
 El diseño de la cadena responde a los cuatro objetivos
 (Capítulo~\ref{cap:diseno}). OE3 pasa de comparar tres arquitecturas a ajustar
@@ -327,8 +329,86 @@ Evaluación y persistencia & RF-18, RF-19, RF-20; RNF-08 \\
 \end{longtable}
 }
 
-\section{Contrato de datos entre bloques}
+\section{Flujo de procesamiento y contrato de datos entre bloques}
 \label{sec:contrato-datos}
+
+La Figura~\ref{fig:flujo} muestra el flujo de procesamiento como diagrama de
+actividad de UML~2, con una partición por bloque. El bloque B itera sobre las
+ventanas de barrido: cada ventana pasa por \textsf{IDetector}, los arribos de
+un detector que no delimita se expanden a intervalo, y solo cuando no quedan
+ventanas se fusionan los intervalos y se consolidan entre estaciones. Los datos
+que cruzan cada frontera entre particiones son los que especifica el contrato
+de esta sección.
+
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[
+  accion/.style={draw, rounded corners=3pt, align=center, font=\scriptsize,
+                 text width=3.6cm, minimum height=0.7cm, inner sep=2pt},
+  decision/.style={draw, diamond, minimum size=0.42cm, inner sep=0pt},
+  inicio/.style={circle, fill, minimum size=0.28cm, inner sep=0pt},
+  fin/.style={circle, draw, minimum size=0.36cm, inner sep=0pt,
+              path picture={\fill (path picture bounding box.center) circle (0.11cm);}},
+  flujo/.style={-{Stealth[length=1.6mm]}, thin},
+  guarda/.style={font=\scriptsize},
+  particion/.style={draw, gray, dashed, rounded corners=2pt, inner sep=5pt},
+  titulo/.style={font=\scriptsize\bfseries, anchor=south west, inner sep=1pt}]
+% --- columna izquierda: bloques A y B ---
+\node[inicio] (ini) at (0,0) {};
+\node[accion, below=0.8cm of ini] (a1) {Leer traza y catálogo; separar tramos y excluir guardas de unión};
+\node[accion, below=0.3cm of a1] (a2) {Acondicionar los canales 1, 2, 3, 5 y 6 y el relleno de cada detector};
+\node[decision, below=0.95cm of a2] (m0) {};
+\node[accion, below=0.3cm of m0] (b1) {Tomar la siguiente ventana de 300~s, con paso de 55~s};
+\node[accion, below=0.3cm of b1] (b2) {Detectar en la ventana mediante \textsf{IDetector}};
+\node[decision, below=0.35cm of b2] (d1) {};
+\node[accion, text width=2.0cm, right=2.1cm of d1] (b3) {Expandir arribo a intervalo};
+\node[decision, below=0.55cm of d1] (m1) {};
+\node[accion, below=0.3cm of m1] (b4) {Trasladar los intervalos a índices globales};
+\node[decision, below=0.35cm of b4] (d2) {};
+\node[accion, below=0.55cm of d2] (b5) {Fusionar intervalos y consolidar por coincidencia entre estaciones};
+\coordinate (lz) at ($(b1.west)+(-1.0,0)$);
+% --- columna derecha: bloques C y D ---
+\node[accion] (c1) at ($(b2)+(7.6,0.4)$) {Recorte adaptativo con margen previo de 2,5~s; resolver solapamientos};
+\node[accion, below=0.3cm of c1] (c2) {Normalizar por recorte y generar el espectrograma};
+\node[accion, below=0.95cm of c2] (e1) {Clasificar con la VGG16: VT, LP, TR o rechazo};
+\node[accion, below=0.3cm of e1] (e2) {Registrar la salida con su procedencia};
+\node[fin, below=0.35cm of e2] (fin) {};
+% --- particiones ---
+\node[particion, fit=(a1)(a2)] (pA) {};
+\node[titulo] at (pA.north west) {A. Ingesta};
+\node[particion, fit=(m0)(b1)(b2)(b3)(b5)(lz)] (pB) {};
+\node[titulo] at (pB.north west) {B. Detección};
+\node[particion, fit=(c1)(c2)] (pC) {};
+\node[titulo] at (pC.north west) {C. Recorte};
+\coordinate (dzi) at ($(e1.west)+(-0.3,0)$);
+\node[particion, fit=(e1)(e2)(fin)(dzi)] (pD) {};
+\node[titulo] at (pD.north west) {D. Clasificación};
+% --- flujos ---
+\draw[flujo] (ini) -- (a1);
+\draw[flujo] (a1) -- (a2);
+\draw[flujo] (a2) -- (m0);
+\draw[flujo] (m0) -- (b1);
+\draw[flujo] (b1) -- (b2);
+\draw[flujo] (b2) -- (d1);
+\draw[flujo] (d1) -- node[guarda, left] {[delimita]} (m1);
+\draw[flujo] (d1) -- node[guarda, above] {[no delimita]} (b3);
+\draw[flujo] (b3) |- (m1);
+\draw[flujo] (m1) -- (b4);
+\draw[flujo] (b4) -- (d2);
+\draw[flujo] (d2) -- node[guarda, right] {[no quedan ventanas]} (b5);
+\draw[flujo] (d2.west) -- node[guarda, above] {[quedan]} (d2.west -| lz) |- (m0.west);
+\draw[flujo] (b5.east) -- ($(b5.east -| pB.east)+(0.35,0)$) |- (c1.west);
+\draw[flujo] (c1) -- (c2);
+\draw[flujo] (c2) -- (e1);
+\draw[flujo] (e1) -- (e2);
+\draw[flujo] (e2) -- (fin);
+\end{tikzpicture}
+\caption{Diagrama de actividad de UML~2 del flujo de procesamiento, con una
+partición por bloque: A, ingesta y preprocesamiento; B, detección; C, recorte
+y representación; D, clasificación. El bloque B repite la detección para cada
+ventana de barrido antes de fusionar.}
+\label{fig:flujo}
+\end{figure}
 
 Cada conector de la Figura~\ref{fig:arquitectura} transporta una estructura
 con campos, tipos y unidades fijos. Especificarlos por separado del código
@@ -532,7 +612,7 @@ Evalúo sobre la traza continua de diez horas del conjunto de datos de Zenodo,
 que concatena tres tramos de fechas no consecutivas. El
 Cuadro~\ref{tab:tramos} muestra su posición en la traza y su hora de inicio y
 término. Las horas provienen de los nombres de los archivos crudos que el
-profesor guía compartió el 22 de septiembre de 2026, que codifican en tiempo
+profesor guía entregó, que codifican en tiempo
 Unix el inicio y el término de cada tramo, y la fila de tiempo de la propia
 traza las confirma con diferencias de a lo más un segundo. En las tres fechas
 la hora local de Chile era la UTC menos tres horas.
@@ -940,16 +1020,15 @@ incluye una segunda señal unos 20~s después del VT.}
 \label{sec:desviaciones}
 B-01, que verifica si el conjunto de entrenamiento comparte eventos con la
 traza de evaluación, se postergó a la primera semana del sprint 2, como se
-declaró al reformular los objetivos.
-% REVISAR antes de entregar: estado de B-05. Si el diagrama de flujo entra
-% antes del viernes, declararla completa; si no, declararla aqui como
-% desviacion.
+declaró al reformular los objetivos. B-05 quedó completa: al contrato de
+datos se sumó el diagrama de actividad del flujo de procesamiento
+(Figura~\ref{fig:flujo}).
 En sentido contrario, el núcleo de B-12, la implementación del recorte
 adaptativo prevista para el sprint 2, se adelantó: el barrido, la fusión y el
 recorte están implementados y validados con casos sintéticos y sobre la traza
 real (Sección~\ref{sec:det-ventanas}).
 
-La retroalimentación del 21 de septiembre y los resultados del
+La retroalimentación del profesor guía y los resultados del
 Capítulo~\ref{cap:detectores} agregan tres tareas al sprint 2:
 
 \begin{itemize}
@@ -974,45 +1053,44 @@ El Cuadro~\ref{tab:commits} lista los commits de esta etapa, con la tarea del
 backlog a la que responde cada uno y la sección del informe donde se refleja.
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{5.6cm}}
-\caption{Commits de la Etapa 2 en el repositorio del proyecto.}\label{tab:commits}\\
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{1.3cm}>{\raggedright\arraybackslash}p{8.8cm}}
+\caption{Commits de la Etapa 2 en el repositorio del proyecto, en orden cronológico.}\label{tab:commits}\\
 \toprule
-\textbf{Commit} & \textbf{Fecha} & \textbf{Tarea} & \textbf{Contenido} \\
+\textbf{Commit} & \textbf{Tarea} & \textbf{Contenido} \\
 \midrule
 \endfirsthead
-\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
 \toprule
-\textbf{Commit} & \textbf{Fecha} & \textbf{Tarea} & \textbf{Contenido} \\
+\textbf{Commit} & \textbf{Tarea} & \textbf{Contenido} \\
 \midrule
 \endhead
 \midrule
-\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
+\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
 \endfoot
 \bottomrule
 \endlastfoot
-\texttt{8d7c709} & 2026-09-18 & --- &
-Incorpora la retroalimentación del 15 de septiembre: objetivos reformulados y
-sus consecuencias en requerimientos, alternativas y backlog
-(Capítulo~\ref{cap:retroalimentacion}) \\
+\texttt{8d7c709} & --- & Objetivos reformulados y sus consecuencias en
+requerimientos, alternativas y backlog (Capítulo~\ref{cap:retroalimentacion}) \\
 \addlinespace
-\texttt{6648b5f} & 2026-09-18 & B-08 &
-Procedimiento de barrido con ventanas de 300~s, fusión y recorte adaptativo
-(Sección~\ref{sec:recorte-espectrogramas}) \\
+\texttt{6648b5f} & B-08 & Procedimiento de barrido con ventanas de 300~s,
+fusión y recorte adaptativo (Sección~\ref{sec:recorte-espectrogramas}) \\
 \addlinespace
-\texttt{f25e071} & 2026-09-18 & B-04 &
-Diagrama de componentes UML de la cadena de procesamiento
-(Sección~\ref{sec:arquitectura-cadena}) \\
+\texttt{f25e071} & B-04 & Diagrama de componentes UML de la cadena de
+procesamiento (Sección~\ref{sec:arquitectura-cadena}) \\
 \addlinespace
-\texttt{98ebf4c} & 2026-09-19 & B-05 &
-Contrato de datos entre bloques (Sección~\ref{sec:contrato-datos} y
-Anexo~\ref{sec:anexo-contrato}) \\
+\texttt{98ebf4c} & B-05 & Contrato de datos entre bloques
+(Sección~\ref{sec:contrato-datos} y Anexo~\ref{sec:anexo-contrato}) \\
 \addlinespace
-\texttt{0377d0b} & 2026-09-30 & B-06 &
-Interfaz común de detección \texttt{IDetector}
+\texttt{0377d0b} & B-06 & Interfaz común de detección \texttt{IDetector}
 (Sección~\ref{sec:interfaz-deteccion}) \\
 \addlinespace
-\texttt{2ea3b8b} & 2026-09-30 & --- &
-Primera versión de este informe \\
+\texttt{2ea3b8b} & B-10 & Primera versión de este informe \\
+\addlinespace
+\texttt{3a2bc5f} & B-12 & Implementación del barrido, la fusión y el recorte
+adaptativo, con su validación sintética (Sección~\ref{sec:det-ventanas}) \\
+\addlinespace
+\texttt{b8fddc1} & B-10 & Evaluación de los detectores por tramo y por clase,
+y resultados del barrido sobre la traza real (Capítulo~\ref{cap:detectores}) \\
 % Agregar aqui los commits que sigan.
 \end{longtable}
 }
