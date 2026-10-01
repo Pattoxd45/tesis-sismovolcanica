@@ -1011,38 +1011,104 @@ incluye una segunda señal unos 20~s después del VT.}
 \chapter{Registro de avance del backlog}
 \label{cap:registro}
 
-\section{Tareas de diseño del sprint 1}
+\section{Estado del backlog del sprint 1}
 \label{sec:esfuerzo}
-% Pendiente: horas reales de B-04, B-05, B-06 y B-08 (estimadas 6, 6, 5 y 6)
-% contra el backlog completo.
 
-\section{Desviaciones y tareas nuevas}
+El Cuadro~\ref{tab:estado-s1} compara el estado de cada tarea del sprint 1 con
+lo planificado. No registré el esfuerzo real de estas tareas, por lo que el
+cuadro compara estados y no horas; desde el sprint 2 registraré las horas de
+cada tarea al cerrarla.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{4.1cm}>{\raggedleft\arraybackslash}p{0.6cm}>{\raggedright\arraybackslash}p{1.4cm}>{\raggedright\arraybackslash}p{4.0cm}}
+\caption{Estado de las tareas del sprint 1. Las horas son las estimadas en la planificación.}\label{tab:estado-s1}\\
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{h} & \textbf{Prior.} & \textbf{Estado} \\
+\midrule
+\endfirsthead
+\multicolumn{5}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{h} & \textbf{Prior.} & \textbf{Estado} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+B-01 & Verificar superposición entre entrenamiento y evaluación & 10 & Debe & Postergada al sprint 2 \\
+B-02 & Auditar estaciones con señal en el conjunto de entrenamiento & 5 & Debería & No iniciada; pasa al sprint 2 \\
+B-03 & Partición por bloque temporal & 4 & Debe & No iniciada; pasa al sprint 2 \\
+B-04 & Diagrama de arquitectura & 6 & Debe & Completa (Sección~\ref{sec:arquitectura-cadena}) \\
+B-05 & Diagrama de flujo y contrato de datos & 6 & Debe & Completa (Sección~\ref{sec:contrato-datos}) \\
+B-06 & Interfaz común de detección & 5 & Debe & Completa (Sección~\ref{sec:interfaz-deteccion}) \\
+B-07 & Implementar la interfaz y validarla con un detector sintético & 7 & Debe & No iniciada; pasa al sprint 2 \\
+B-08 & Diseño del recorte adaptativo & 6 & Debe & Completa (Sección~\ref{sec:recorte-espectrogramas}) e implementada (Sección~\ref{sec:det-ventanas}) \\
+B-09 & Orden del repositorio, \texttt{.gitignore} y convención de commits & 4 & Debe & Parcial: \texttt{.gitignore} y convención en uso; falta ordenar por etapa \\
+B-10 & Avance documental del sprint & 5 & Debe & Completa: este informe \\
+\end{longtable}
+}
+
+Las cuatro tareas de diseño están completas. De las 53~h comprometidas como
+\emph{Debe}, las tareas completas suman 28~h; las que no se iniciaron son
+implementaciones (B-03 y B-07) y B-01, cuya postergación ya estaba declarada.
+Fuera de lo planificado quedaron hechas la evaluación por tramo de los tres
+detectores (Capítulo~\ref{cap:detectores}) y el núcleo de B-12, la
+implementación del recorte adaptativo prevista para el sprint 2
+(Sección~\ref{sec:det-ventanas}).
+
+\section{Tareas nuevas y replanificación del sprint 2}
 \label{sec:desviaciones}
-B-01, que verifica si el conjunto de entrenamiento comparte eventos con la
-traza de evaluación, se postergó a la primera semana del sprint 2, como se
-declaró al reformular los objetivos. B-05 quedó completa: al contrato de
-datos se sumó el diagrama de actividad del flujo de procesamiento
-(Figura~\ref{fig:flujo}).
-En sentido contrario, el núcleo de B-12, la implementación del recorte
-adaptativo prevista para el sprint 2, se adelantó: el barrido, la fusión y el
-recorte están implementados y validados con casos sintéticos y sobre la traza
-real (Sección~\ref{sec:det-ventanas}).
 
 La retroalimentación del profesor guía y los resultados del
-Capítulo~\ref{cap:detectores} agregan tres tareas al sprint 2:
+Capítulo~\ref{cap:detectores} agregan tres tareas, con horas estimadas:
 
 \begin{itemize}
-\item \textbf{Barrido hacia una sensibilidad de 0,95.} Barrido de umbrales
-de PhaseNet y EQTransformer, partiendo de PhaseNet con la componente vertical
-duplicada (Sección~\ref{sec:det-comparacion}).
-\item \textbf{Razón señal-ruido.} Estimarla en los eventos del catálogo y
-cruzarla con su condición de detectado o no detectado; prioridad
-\emph{Debería}, 4~h estimadas.
-\item \textbf{Diagnóstico del tramo 3.} Explicar las dos detecciones que el
-barrido agrega en ese tramo, que tiene huecos y dos estaciones sin datos.
+\item \textbf{Barrido hacia una sensibilidad de 0,95} (\emph{Debe}, 6~h).
+Barrido de umbrales de PhaseNet y EQTransformer, partiendo de PhaseNet con la
+componente vertical duplicada, y medición de la sensibilidad y de los falsos
+positivos de combinar detectores, dado que sus diferencias por clase son de
+signo opuesto (Sección~\ref{sec:det-comparacion}).
+\item \textbf{Razón señal-ruido} (\emph{Debería}, 4~h). Estimarla en los
+eventos del catálogo y cruzarla con su condición de detectado o no detectado.
+\item \textbf{Diagnóstico del tramo 3} (\emph{Debería}, 2~h). Explicar las dos
+detecciones que el barrido agrega en ese tramo, que tiene huecos y dos
+estaciones sin datos.
 \end{itemize}
-% PENDIENTE: estimacion en horas del barrido hacia 0,95 y del diagnostico
-% del tramo 3, y su prioridad.
+
+El Cuadro~\ref{tab:replanificacion} recalcula las horas \emph{Debe} del sprint
+2. Con el arrastre del sprint 1 y la tarea nueva, el compromiso queda en 61~h
+de las 64~h de capacidad, con 3~h de holgura. Las tareas \emph{Debería} del
+sprint 2, 16~h originales y 11~h nuevas, incluido B-02, quedan fuera del
+compromiso firme, como establece la planificación.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{9.0cm}>{\raggedleft\arraybackslash}p{1.6cm}}
+\caption{Horas \emph{Debe} del sprint 2 tras la replanificación.}\label{tab:replanificacion}\\
+\toprule
+\textbf{Concepto} & \textbf{Horas} \\
+\midrule
+\endfirsthead
+\multicolumn{2}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Concepto} & \textbf{Horas} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Compromiso \emph{Debe} original del sprint 2 & 42 \\
+B-12 adelantada al sprint 1 & $-10$ \\
+Arrastre del sprint 1: B-01, B-03 y B-07 & $+21$ \\
+Resto de B-09: ordenar el repositorio por etapa & $+2$ \\
+Barrido hacia una sensibilidad de 0,95 & $+6$ \\
+\midrule
+\textbf{Compromiso \emph{Debe} replanificado} & \textbf{61} \\
+Capacidad del sprint & 64 \\
+\end{longtable}
+}
 
 \section{Repositorio y registro de commits}
 \label{sec:repositorio}
@@ -1091,6 +1157,9 @@ adaptativo, con su validación sintética (Sección~\ref{sec:det-ventanas}) \\
 \addlinespace
 \texttt{b8fddc1} & B-10 & Evaluación de los detectores por tramo y por clase,
 y resultados del barrido sobre la traza real (Capítulo~\ref{cap:detectores}) \\
+\addlinespace
+\texttt{01ad74f} & B-05 & Diagrama de actividad del flujo de procesamiento
+(Figura~\ref{fig:flujo}) \\
 % Agregar aqui los commits que sigan.
 \end{longtable}
 }
