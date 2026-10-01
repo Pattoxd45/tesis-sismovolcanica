@@ -22,7 +22,7 @@ coincidencia de red y las metricas son las de evaluar_detectores.py.
 
 DOS CONFIGURACIONES
 -------------------
-Los valores globales que cita CLAUDE.local.md no salen de los valores por
+Los valores globales que cita el informe no salen de los valores por
 omision de evaluar_detectores.py, sino de los puntos de operacion
 "mejor F1" que fija significancia.py en OP_NIVEL1 y OP_NIVEL2. Para que
 quede a la vista, este script calcula los globales con las DOS
@@ -58,7 +58,7 @@ import significancia as sig            # noqa: E402
 FS = ed.FS
 CACHE_STALTA = os.path.join(ed.SALIDA, "cache_stalta")
 
-# Valores citados en CLAUDE.local.md que hay que reproducir antes de
+# Valores citados en el informe que hay que reproducir antes de
 # reportar cualquier cosa por tramo.
 OBJETIVO_N1 = {"stalta": 0.542, "phasenet": 0.527, "eqtransformer": 0.581}
 OBJETIVO_N2_EQT = {"recall": 0.330, "iou_medio": 0.479}
@@ -205,7 +205,7 @@ def globales(cfg, a, catalogo, valida, horas, canales, usar_cache):
 def verificar(todo, cfgs):
     """Compara los globales de cada configuracion con los valores citados."""
     print("=" * 78)
-    print("  VERIFICACION CONTRA LOS VALORES CITADOS EN CLAUDE.local.md")
+    print("  VERIFICACION CONTRA LOS VALORES CITADOS EN EL INFORME")
     print("=" * 78)
 
     for clave in ("ed", "op"):

@@ -53,7 +53,7 @@ VERIFICACION PREVIA
 -------------------
 Antes de reportar cualquier cosa, el script reconstruye el nivel 1 de los
 puntos de operacion de significancia.py y lo compara contra los valores
-citados en CLAUDE.local.md (0,542 STA/LTA, 0,527 PhaseNet, 0,581
+citados en el informe (0,542 STA/LTA, 0,527 PhaseNet, 0,581
 EQTransformer). Si no reproduce, se detiene: medir sobre una base que no
 empata con el documento no sirve de nada.
 
@@ -104,7 +104,7 @@ MIN_EST = [1, 2]
 MODOS = ["ceros", "duplicar"]
 MODELOS = ["phasenet", "eqtransformer"]
 
-# Valores citados en CLAUDE.local.md que hay que reproducir antes de
+# Valores citados en el informe que hay que reproducir antes de
 # reportar. Son los del nivel 1 de significancia.py.
 OBJETIVO_N1 = ept.OBJETIVO_N1
 TOL_REPRODUCE = ept.TOL_REPRODUCE
