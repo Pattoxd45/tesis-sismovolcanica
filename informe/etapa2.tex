@@ -1,18 +1,10 @@
-%% Informe de avance de la Etapa 2 del trabajo de titulo (entrega del 2 de
-%% octubre de 2026). Documento autocontenido en un solo archivo, por decision
-%% del profesor guia: contiene solo los avances de esta etapa, sin repetir lo
-%% entregado en la Etapa 1.
-%%
-%% Vive en la carpeta informe/ para usar el mismo logo (images/) y el mismo
-%% referencias.bib que el documento general. En Overleaf se compila eligiendo
-%% este archivo en Menu > Main document.
-%%
-%% El capitulo 2 y el anexo son copia de cap2.tex y de la seccion del
-%% contrato de datos de anexos.tex en el commit 0377d0b, con dos ajustes: la
-%% referencia al capitulo 1 apunta al cuadro de tramos de este informe y las
-%% secciones 2.5 y 2.6 declaran que se desarrollan en el sprint 3. Desde ahora
-%% los cambios de diseno se hacen aqui y se llevan a cap2.tex al integrar este
-%% informe al documento general.
+%% Informe de avance de la Etapa 2 del trabajo de titulo. Documento
+%% autocontenido en un solo archivo, con solo los avances de esta etapa.
+%% Vive en informe/ para usar el mismo logo (images/) y el mismo
+%% referencias.bib que el documento general. En Overleaf se compila
+%% eligiendo este archivo en Menu > Main document.
+%% Al integrarlo al documento general, el capitulo 2 reemplaza el
+%% contenido de diseno de cap2.tex y se agrega shapes.geometric a main.tex.
 
 \documentclass[12pt,oneside,spanish,oldfontcommands]{memoir}
 
@@ -68,6 +60,13 @@
 \providecommand{\definitionname}{Definición}
 \providecommand{\theoremname}{Teorema}
 
+% Formato compacto para el informe de avance: los capitulos no abren pagina
+% nueva y su titulo ocupa poco espacio (no afecta a main.tex).
+\chapterstyle{hangnum}
+\setlength{\beforechapskip}{0pt}
+\setlength{\afterchapskip}{1.2\onelineskip}
+\renewcommand{\clearforchapter}{\par\bigskip}
+
 \begin{document}
 
 \sloppy
@@ -114,18 +113,18 @@ Profesor guía: Ricardo Soto
 \setcounter{page}{1}
 
 % ======================================================================
-% CAPITULO 1. Incorporacion de la retroalimentacion (rubrica: 20 %)
+% CAPITULO 1. Incorporacion de la retroalimentacion y avance
 % ======================================================================
-\chapter{Incorporación de la retroalimentación}
+\chapter{Retroalimentación y avance}
 \label{cap:retroalimentacion}
 
-Este informe reúne solo los avances de la Etapa 2; lo entregado en la Etapa 1
-no se repite, y los códigos de requerimientos (RF, RNF), hallazgos (E) y tareas
-(B) remiten a ese documento. El Cuadro~\ref{tab:retroalimentacion} resume la
-retroalimentación recibida desde entonces y dónde se refleja.
+Este informe reúne solo los avances de la Etapa 2; los códigos de
+requerimientos (RF, RNF), hallazgos (E) y tareas (B) remiten al documento de
+la Etapa 1. El Cuadro~\ref{tab:retroalimentacion} resume la retroalimentación
+recibida y dónde se refleja.
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{7.0cm}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{7.6cm}}
 \caption{Retroalimentación del profesor guía y cambios que produjo.}\label{tab:retroalimentacion}\\
 \toprule
 \textbf{Retroalimentación} & \textbf{Cambio y dónde se refleja} \\
@@ -141,101 +140,84 @@ retroalimentación recibida desde entonces y dónde se refleja.
 \endfoot
 \bottomrule
 \endlastfoot
-Objetivos reformulados: cuatro objetivos específicos y
-clasificación de espectrogramas con una CNN ajustada por transferencia &
-El diseño de la cadena responde a los cuatro objetivos
-(Capítulo~\ref{cap:diseno}). OE3 pasa de comparar tres arquitecturas a ajustar
-una sola, la VGG16 con pesos de ImageNet
-(Sección~\ref{sec:clasificador-transferencia}) \\
+Objetivos reformulados: cuatro objetivos específicos y una CNN ajustada por
+transferencia &
+El diseño responde a los cuatro objetivos (Capítulo~\ref{cap:diseno}); OE3
+ajusta una sola red, la VGG16 (Sección~\ref{sec:clasificador-transferencia}) \\
 \addlinespace
-Evaluar por tramo de la traza, con hora de inicio y término &
-Horas UTC de cada tramo (Cuadro~\ref{tab:tramos}) y resultados desglosados por
-tramo (Capítulo~\ref{cap:detectores}) \\
+Evaluar por tramo, con hora de inicio y término &
+Horas UTC de cada tramo y resultados por tramo de los tres detectores
+(Capítulo~\ref{cap:detectores}) \\
 \addlinespace
-Estrategia de detección: esquema, descripción y resultados de cada técnica &
-Capítulo~\ref{cap:detectores} \\
+Estrategia de detección: esquema, descripción y desempeño de cada técnica &
+Sección~\ref{sec:det-estrategia} y Sección~\ref{sec:det-resultados} \\
 \addlinespace
 Ventanas de 5 minutos &
-Barrido con ventanas de 300~s, paso de 55~s y fusión en los bordes
-(Sección~\ref{sec:recorte-espectrogramas}), validado con casos sintéticos
-(Sección~\ref{sec:det-ventanas}) \\
+Diseño en la Sección~\ref{sec:recorte-espectrogramas}; implementación y
+validación en la Sección~\ref{sec:det-ventanas} \\
 \addlinespace
 Barrido de umbrales hacia una sensibilidad del 95\,\% con la menor tasa de
 falsos positivos &
-Criterio de operación de los detectores (Sección~\ref{sec:det-comparacion});
-barrido planificado en el sprint 2 (Capítulo~\ref{cap:registro}) \\
+Barrido y combinación de detectores medidos (Sección~\ref{sec:det-meta}) \\
 \addlinespace
-Razón señal-ruido, opcional &
-Tarea nueva del sprint 2 (Capítulo~\ref{cap:registro}) \\
+Razón señal-ruido &
+Medida y cruzada con la detección (Sección~\ref{sec:det-meta}) \\
 \addlinespace
-Ajustes de planificación &
-B-01, que verifica si el conjunto de entrenamiento comparte eventos con la
-traza de evaluación, pasa al sprint 2; B-25, tiempo de procesamiento, sube a
-prioridad \emph{Debe} (Capítulo~\ref{cap:registro}) \\
+Datos crudos y filtro de la traza &
+Filtro verificado contra la traza (Sección~\ref{sec:datos-evaluacion}) \\
 \end{longtable}
 }
 
+\section{Avance respecto de lo planificado}
+\label{sec:avance}
+
+Las cuatro tareas de diseño del sprint 1 están completas: arquitectura (B-04),
+flujo de procesamiento y contrato de datos (B-05), interfaz de detección
+(B-06) y recorte adaptativo (B-08). Dos implementaciones no se iniciaron y
+pasan al sprint 2: la partición por bloque temporal (B-03) y la interfaz con su
+detector sintético de prueba (B-07); también pasa B-01, la verificación de
+superposición entre entrenamiento y evaluación, cuya postergación ya estaba
+declarada. En sentido contrario, se adelantó el núcleo del recorte adaptativo
+(B-12, del sprint 2), y quedaron hechos, fuera de lo planificado, la
+evaluación por tramo, el barrido de sensibilidad, la razón señal-ruido y la
+verificación de los datos crudos. Con estos ajustes, el compromiso
+\emph{Debe} del sprint 2 queda en 55 de sus 64~h. No registré el esfuerzo
+real del sprint 1; lo registraré desde el sprint 2. El código y los commits
+comentados de la etapa están en
+\url{https://github.com/Pattoxd45/tesis-sismovolcanica}.
 
 % ======================================================================
 % CAPITULO 2. Diseno del sistema (rubrica: 10 % y 55 %)
 % ======================================================================
-
 \chapter{Diseño del sistema}
 \label{cap:diseno}
 
 \section{Arquitectura de la cadena de procesamiento}
 \label{sec:arquitectura-cadena}
 
-El sistema se organiza como una cadena de cuatro componentes encadenados más
-un componente transversal de evaluación y persistencia, según muestra la
-Figura~\ref{fig:arquitectura}. La notación sigue el diagrama de componentes de
-UML~2: cada componente declara las interfaces que provee y las que requiere, y
-los conectores indican el sentido del flujo de datos. El contrato de datos de
-cada conector se especifica en la Sección~\ref{sec:contrato-datos}.
+El sistema es una cadena de cuatro bloques más un componente transversal de
+evaluación (Figura~\ref{fig:arquitectura}, diagrama de componentes de UML~2):
 
-El \textbf{bloque A, ingesta y preprocesamiento}, lee la traza continua
-multicanal (RF-01), opera solo sobre los canales con señal utilizable (RF-02),
-construye la entrada de tres componentes que exigen los detectores profundos
-con la estrategia de relleno declarada por modelo (RF-03), excluye las guardas
-de unión entre bloques temporales (RF-04) y materializa la partición temporal
-(RF-05). Entrega traza acondicionada, ya lista para el detector que
-corresponda.
-
-El \textbf{bloque B, detección}, contiene dos niveles. El envoltorio de
-barrido recorre la traza con las ventanas de 300\,s y paso de 55\,s de la
-Sección~\ref{sec:recorte-espectrogramas}, invoca al detector activo a través
-de la interfaz común \textsf{IDetector} (RF-06), aplica la expansión de arribo
-a intervalo cuando el detector no delimita (RF-07) y fusiona los intervalos
-que alcanzan bordes de ventana. Detrás de la interfaz se conectan, como
-componentes intercambiables, STA/LTA, EQTransformer y PhaseNet. Sitúo la
-fusión en el envoltorio y no dentro de cada detector por dos razones: la
-fusión corrige un artefacto del barrido, que es mecánica de esta etapa y no
-del algoritmo de detección, y RNF-04 exige que el detector sea sustituible sin
-modificar el resto de la cadena, lo que obliga a que toda lógica común quede
-fuera de los detectores concretos. El bloque entrega intervalos definitivos,
-con inicio, término y puntaje, y sus métricas se reportan por clase (RF-08).
-
-El \textbf{bloque C, recorte y representación}, recorta cada intervalo con
-duración adaptativa (RF-09) y política explícita para eventos extensos
-(RF-10), antepone el margen de contexto que tolera el error de onset (RF-11),
-resuelve solapamientos entre detecciones consecutivas (RF-12) y genera el
-espectrograma de dimensiones fijas con la duración reinyectada de forma
-explícita (RF-13). Entrega espectrogramas con sus metadatos de procedencia.
-
-El \textbf{bloque D, clasificación}, aplica la VGG16 ajustada por
-transferencia bajo el protocolo reproducible (RF-17), entrega cuatro salidas
-con la clase de rechazo entrenada de forma supervisada (RF-14, RF-15) y
-documenta el tratamiento del desbalance (RF-16). Su salida es la etiqueta de
-clase con su puntaje.
-
-El \textbf{componente transversal de evaluación y persistencia} no pertenece
-a la cadena: la observa. Registra la configuración y los resultados de cada
-ejecución de modo que toda cifra sea regenerable (RF-20), ejecuta la
-evaluación pareada entre recorte de referencia y automático (RF-18), acompaña
-cada comparación de su intervalo de confianza por remuestreo (RF-19) y produce
-el archivo tabular y las figuras de inspección para revisión manual (RNF-08).
-Separarlo de la cadena evita que la lógica de medición contamine a los
-componentes medidos.
+\begin{itemize}
+\item \textbf{A, ingesta y preprocesamiento.} Lee la traza continua, usa solo
+los canales con señal, arma la entrada de tres componentes que exigen los
+detectores profundos y excluye las guardas de unión entre tramos (RF-01 a
+RF-05).
+\item \textbf{B, detección.} Un envoltorio de barrido recorre la traza en
+ventanas de 300~s, invoca al detector a través de la interfaz
+\textsf{IDetector}, expande los arribos a intervalos cuando el detector no
+delimita y fusiona las detecciones (RF-06 a RF-08). La fusión vive en el
+envoltorio y no en cada detector para que el detector sea sustituible sin
+tocar el resto de la cadena (RNF-04).
+\item \textbf{C, recorte y representación.} Recorta cada intervalo con
+duración adaptativa y margen previo, resuelve solapamientos y genera el
+espectrograma con la duración como dato explícito (RF-09 a RF-13).
+\item \textbf{D, clasificación.} Aplica la VGG16 ajustada por transferencia,
+con cuatro salidas: VT, LP, TR y rechazo (RF-14 a RF-17).
+\item \textbf{Evaluación y persistencia.} Observa la cadena sin pertenecer a
+ella: registra configuración y resultados para que toda cifra sea
+regenerable y compara recortes de referencia y automáticos (RF-18 a RF-20).
+\end{itemize}
 
 \begin{figure}[!ht]
 \centering
@@ -292,53 +274,27 @@ pertenecer a la cadena.}
 \label{fig:arquitectura}
 \end{figure}
 
-El Cuadro~\ref{tab:rf-componente} indica el punto exacto de la arquitectura
-donde se aplica cada requerimiento funcional, según exige el criterio de
-aceptación de esta tarea de diseño.
-
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{6.7cm}}
-\caption{Asignación de requerimientos a los componentes de la arquitectura.}\label{tab:rf-componente}\\
-\toprule
-\textbf{Componente} & \textbf{Requerimientos que materializa} \\
-\midrule
-\endfirsthead
-\multicolumn{2}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Componente} & \textbf{Requerimientos que materializa} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{2}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-Bloque A, ingesta y preprocesamiento & RF-01, RF-02, RF-03, RF-04, RF-05 \\
-\addlinespace
-Bloque B, envoltorio de barrido y fusión & RF-07, RF-08 y la fusión de
-intervalos de la Sección~\ref{sec:recorte-espectrogramas} \\
-\addlinespace
-Bloque B, interfaz \textsf{IDetector} y detectores & RF-06; la
-intercambiabilidad materializa RNF-04 \\
-\addlinespace
-Bloque C, recorte y representación & RF-09, RF-10, RF-11, RF-12, RF-13 \\
-\addlinespace
-Bloque D, clasificación & RF-14, RF-15, RF-16, RF-17 \\
-\addlinespace
-Evaluación y persistencia & RF-18, RF-19, RF-20; RNF-08 \\
-\end{longtable}
-}
-
-\section{Flujo de procesamiento y contrato de datos entre bloques}
+\section{Flujo de procesamiento y contrato de datos}
 \label{sec:contrato-datos}
 
-La Figura~\ref{fig:flujo} muestra el flujo de procesamiento como diagrama de
-actividad de UML~2, con una partición por bloque. El bloque B itera sobre las
-ventanas de barrido: cada ventana pasa por \textsf{IDetector}, los arribos de
-un detector que no delimita se expanden a intervalo, y solo cuando no quedan
-ventanas se fusionan los intervalos y se consolidan entre estaciones. Los datos
-que cruzan cada frontera entre particiones son los que especifica el contrato
-de esta sección.
+La Figura~\ref{fig:flujo} muestra el flujo como diagrama de actividad de
+UML~2, con una partición por bloque. El bloque B itera sobre las ventanas de
+barrido y solo cuando no quedan ventanas fusiona los intervalos y los
+consolida entre estaciones. Los datos que cruzan cada frontera siguen tres
+convenciones:
+
+\begin{itemize}
+\item \textbf{Tiempo.} La referencia canónica es el índice de muestra; el
+tiempo Unix solo se usa para reportar, porque la traza concatena tramos de
+fechas distintas y su tiempo salta en los cortes. Ningún intervalo puede
+declarar índices de dos tramos.
+\item \textbf{Puntaje.} Se transporta el puntaje crudo del detector y uno
+normalizado al intervalo unitario. El normalizado ordena detecciones de un
+mismo detector, pero no es comparable entre detectores.
+\item \textbf{Procedencia.} Cada registro arrastra el detector, el modelo y la
+configuración que lo produjeron, de modo que toda cifra pueda regenerarse
+(RF-20).
+\end{itemize}
 
 \begin{figure}[!ht]
 \centering
@@ -410,305 +366,150 @@ ventana de barrido antes de fusionar.}
 \label{fig:flujo}
 \end{figure}
 
-Cada conector de la Figura~\ref{fig:arquitectura} transporta una estructura
-con campos, tipos y unidades fijos. Especificarlos por separado del código
-persigue un objetivo concreto: que cualquiera de los cuatro bloques pueda
-reimplementarse leyendo solo este contrato, sin inspeccionar la
-implementación del bloque anterior. Tres convenciones rigen los tres
-conectores.
-
-La primera es la representación del tiempo. Toda referencia temporal viaja
-por duplicado: como índice de muestra, entero, y como marca de tiempo Unix en
-segundos. El índice de muestra es la referencia canónica y el tiempo Unix es
-derivado, porque la traza continua concatena tres segmentos de fechas no
-consecutivas, según se detalla en el Cuadro~\ref{tab:tramos}: el
-índice crece de forma continua a lo largo del archivo, mientras que la marca
-de tiempo salta en las muestras 2.160.000 y 3.240.001. Toda aritmética de
-duración y de solapamiento se realiza sobre índices; el tiempo Unix se emplea
-únicamente para reportar. Como salvaguarda, cada estructura declara el
-identificador del bloque temporal al que pertenece, y ningún intervalo puede
-declarar índices de dos bloques distintos.
-
-La segunda es el puntaje de detección. STA/LTA entrega una razón de energía
-no acotada superiormente, mientras que los detectores profundos entregan
-probabilidades en el intervalo unitario. El contrato transporta ambos: el
-puntaje crudo tal como lo produce el detector y el puntaje normalizado al
-intervalo unitario mediante la transformación declarada por cada
-implementación. Declaro la limitación que esto impone: el puntaje normalizado
-permite ordenar detecciones dentro de un mismo detector, pero no es
-comparable entre detectores, y ninguna decisión del sistema puede apoyarse en
-esa comparación.
-
-La tercera es la procedencia. Cada estructura arrastra el identificador del
-detector o del modelo que la produjo y el de la configuración empleada, de
-modo que cualquier cifra reportada pueda regenerarse desde el registro
-almacenado, según exige RF-20.
-
-El detalle campo por campo de los tres conectores, con su tipo, su unidad y
-su restricción de validez, está en el Anexo~\ref{sec:anexo-contrato}.
-
-La salida del bloque D agrega al registro del último conector el vector de
-cuatro puntajes, uno por clase VT, LP, TR y rechazo, la etiqueta de máximo puntaje y
-el identificador del modelo empleado. Ese registro completo es la unidad que
-el componente de evaluación persiste y que alimenta el archivo tabular de
-inspección exigido por RNF-08.
-
-Dos reglas de validación acompañan al contrato y se comprobarán con casos
-sintéticos antes de conectar bloques reales: ninguna estructura puede declarar
-índices pertenecientes a dos bloques temporales distintos, y todo campo
-derivado, como \texttt{duracion} o \texttt{tiempo\_inicio}, debe poder
-recalcularse desde los índices y la frecuencia sin discrepancia.
-
 \section{Interfaz común de detección}
 \label{sec:interfaz-deteccion}
 
-La interfaz \textsf{IDetector} es la que permite sustituir el detector sin
-modificar el resto de la cadena, según exige RNF-04, y la que hace posible que
-la variabilidad del recorte entre detectores sea el objeto de estudio y no un
-obstáculo. La especifico sin referencia a ningún detector concreto: describe
-qué debe entregar una implementación, no cómo obtenerlo.
+\textsf{IDetector} es lo que permite cambiar de detector sin modificar la
+cadena. Una implementación resuelve solo la detección local sobre el
+fragmento que recibe; el barrido, la expansión de arribos, la fusión y el
+armado del registro viven en el envoltorio, de modo que los tres detectores se
+evalúan bajo el mismo criterio. La interfaz tiene cuatro operaciones:
+\texttt{describir}, \texttt{configurar}, \texttt{detectar} y
+\texttt{normalizar\_puntaje}. \texttt{describir} incluye dos declaraciones de
+capacidad que gobiernan el envoltorio: si el detector delimita eventos, y
+cuántas componentes exige. Si no delimita, el envoltorio expande sus arribos a
+intervalos; si exige tres componentes, el bloque A aplica el relleno
+declarado para ese modelo. Los tres detectores encajan sin excepciones:
+STA/LTA delimita con una componente, EQTransformer delimita con su curva de
+detección y exige tres, y PhaseNet exige tres y solo entrega arribos.
 
-El reparto de responsabilidades es la decisión central. Una implementación de
-\textsf{IDetector} resuelve únicamente la detección local sobre el fragmento
-de traza que recibe. Todo lo demás vive en el envoltorio de barrido del
-bloque B: el recorrido con ventanas de 300\,s, la expansión de arribo a
-intervalo, la fusión de detecciones en bordes de ventana y el ensamblado del
-registro que exige el contrato de datos. Concentrar esa lógica fuera de los
-detectores es lo que evita reimplementarla tres veces y lo que garantiza que
-los tres se evalúen bajo el mismo criterio.
-
-La interfaz declara cuatro operaciones. \texttt{describir} entrega los
-metadatos de la implementación: su identificador, su versión y dos
-declaraciones de capacidad que el envoltorio necesita conocer de antemano, a
-saber, si el detector delimita eventos o solo entrega arribos, y cuántas
-componentes exige su entrada. \texttt{configurar} recibe los parámetros
-propios del detector y devuelve el identificador de configuración que el
-contrato de datos arrastra hasta la salida. \texttt{detectar} recibe un
-fragmento de traza acondicionada y devuelve la lista de detecciones locales,
-cada una con su índice de inicio, su índice de término cuando el detector
-delimita, su índice de arribo cuando no lo hace, y su puntaje crudo.
-\texttt{normalizar\_puntaje} convierte el puntaje crudo al intervalo unitario
-mediante la transformación propia de cada implementación, que es la única
-forma de reconciliar una razón de energía no acotada con una probabilidad.
-
-Las dos declaraciones de capacidad no son adornos: determinan el
-comportamiento del envoltorio. Si la implementación declara que no delimita,
-el envoltorio aplica la regla de expansión de arribo a intervalo (RF-07) y
-marca el resultado como \texttt{expandido} en el contrato. Si declara que
-exige tres componentes, el bloque A aplica la estrategia de relleno declarada
-para ese modelo (RF-03), cuyo efecto sobre el techo de recall quedó medido en
-E8. Así, las dos particularidades que diferencian a los detectores evaluados
-quedan resueltas por declaración y no por casos especiales dentro del código
-del envoltorio.
-
-El Cuadro~\ref{tab:idetector} del Anexo~\ref{sec:anexo-contrato} demuestra
-que los tres detectores evaluados encajan en la interfaz sin excepciones, que
-es el criterio de aceptación de esta tarea de diseño. Incluye además el
-detector sintético con el que se validará la implementación: al producir
-intervalos conocidos de antemano, permite comprobar que la cadena entrega
-exactamente lo esperado antes de conectar un detector real, según la
-definición de terminado del backlog.
-
-
-Declaro una consecuencia de este diseño que conviene no ocultar. La interfaz
-uniforma la forma de la salida, no su significado: el puntaje normalizado de
-STA/LTA y el de EQTransformer son ambos números en el intervalo unitario, pero
-no miden lo mismo, de modo que la comparación entre detectores debe hacerse
-sobre métricas de desempeño y nunca sobre sus puntajes, tal como se estableció
-en la Sección~\ref{sec:contrato-datos}.
-
-\section{Procedimiento de recorte adaptativo y generación de espectrogramas}
+\section{Recorte adaptativo}
 \label{sec:recorte-espectrogramas}
 
-El procedimiento resuelve la tensión identificada en E5: los detectores y el
-clasificador exigen entradas de extensión acotada, mientras que las duraciones
-observadas van de 3,4\,s a 240,8\,s y la mediana de TR excede la ventana fija
-de 81,92\,s. Lo diseño en tres etapas encadenadas: barrido, fusión y recorte.
+Las duraciones del catálogo van de 3,4 a 240,8~s, y la mediana de los TR
+supera la ventana fija de 81,92~s. El procedimiento tiene tres pasos:
 
-\textbf{Barrido con traslape.} Recorreré la traza continua con ventanas de
-análisis de 300\,s y paso de 55\,s. La ventana supera la duración máxima
-observada en el catálogo (240,8\,s) y el paso cumple la condición
-$paso \leq ventana - d_{\max} = 59{,}2$\,s, de modo que, por construcción, todo
-evento del rango observado queda contenido completo en al menos una ventana.
-La ventana de barrido es la unidad de entrega al detector, no la unidad de
-análisis: STA/LTA calcula su estadístico muestra a muestra, y los detectores
-profundos segmentan internamente la entrada en sus tramos nativos, por lo que
-ampliar la ventana de barrido no altera la detectabilidad de los eventos
-cortos. Sobre la traza de 10,18\,horas el barrido produce cerca de 660
-ventanas, ejecutables en CPU.
+\begin{itemize}
+\item \textbf{Barrido.} Ventanas de 300~s con paso de 55~s. Como el paso
+cumple $paso \leq ventana - d_{\max} = 59{,}2$~s, todo evento del catálogo
+cabe entero en al menos una ventana.
+\item \textbf{Fusión.} Las detecciones que se solapan o están separadas por
+menos de 5~s se unen, de modo que una detección cortada en un borde se
+completa con su continuación.
+\item \textbf{Recorte.} El clasificador nunca recibe la ventana de barrido:
+recibe un recorte con la duración del intervalo más un margen previo de
+2,5~s, que cubre el error medio de onset medido (1,7 a 2,4~s). La amplitud se normaliza por
+recorte y nunca por ventana, para que un evento débil junto a uno fuerte no
+quede aplastado.
+\end{itemize}
 
-\textbf{Fusión de intervalos.} Cuando una detección alcance el borde derecho
-de su ventana, buscaré su continuación en la ventana siguiente y fusionaré
-ambos intervalos si se solapan temporalmente o si su separación es inferior a
-un umbral declarado. Con el paso elegido la fusión actúa como red de
-seguridad, no como mecanismo principal: la condición del paso ya garantiza
-una ventana que contiene el evento entero.
-
-\textbf{Recorte y espectrograma.} El clasificador nunca recibe la ventana de
-barrido. Para cada intervalo fusionado recortaré la traza con duración
-adaptada al intervalo, más un margen de contexto previo que tolere el error
-de onset medido (1,7\,s a 2,4\,s, E9), y generaré desde ese recorte el
-espectrograma de dimensiones fijas. Así un evento de 3,4\,s y uno de 240,8\,s
-ocupan por igual la representación de entrada, y la información de duración
-se reinyecta de forma explícita según lo exige RF-13.
-
-\textbf{Normalización.} La amplitud no se normalizará a nivel de ventana de
-barrido: si en una misma ventana coinciden un evento extenso de gran amplitud
-y uno breve de amplitud baja, la normalización conjunta aplastaría al segundo.
-Cada detector conservará la normalización de su tramo nativo y la
-normalización del espectrograma se aplicará por recorte individual.
-
-\textbf{Validación con casos sintéticos.} Antes de aplicar el procedimiento a
-datos reales, lo validaré con tres casos de solución conocida, según exige
-RF-12: un evento de 3,4\,s aislado en una ventana de 300\,s, que debe
-detectarse con el mismo onset que en la configuración de ventana fija; un
-evento de 240,8\,s que cruza el borde entre dos ventanas consecutivas, que la
-fusión debe recuperar entero; y un evento breve de amplitud baja a 30\,s de un
-evento extenso de amplitud diez veces mayor dentro de la misma ventana, que
-deben resolverse como intervalos separados. Si el tercer caso falla, el
-diagnóstico apunta a la normalización y no al umbral de detección.
-
-Este procedimiento garantiza que ningún evento se pierda por truncamiento ni
-por borde de ventana. No garantiza que todo evento sea detectado: el recall
-medido de los detectores (0,542 a 0,581) es una propiedad de los modelos, no
-del recorte, y su relación con la razón señal-ruido de los eventos no
-detectados se analizará por separado. Las detecciones de clases no volcánicas
-no se filtran en esta etapa: llegan al clasificador y es la clase de rechazo
-(RF-14) la que las resuelve, según lo medido en E6.
-
-\section{Clasificador por transferencia de aprendizaje}
+\section{Clasificador}
 \label{sec:clasificador-transferencia}
 
-Desarrollaré esta sección en el sprint 3, junto con la tarea B-23, que ajusta
-la VGG16 preentrenada en ImageNet a las cuatro clases de salida bajo el
-protocolo común de entrenamiento y evaluación.
-
-\section{Protocolo de evaluación integrada}
-\label{sec:protocolo-evaluacion}
-
-Desarrollaré esta sección en el sprint 3, junto con las tareas B-25, que mide
-el tiempo de procesamiento de la cadena completa en CPU, y B-26, que compara
-la clasificación sobre recortes de referencia y automáticos con intervalos
-de confianza.
+OE3 pide ajustar por transferencia una red convolucional. Elijo la VGG16
+\parencite{simonyan2015vgg} con pesos de ImageNet porque es la arquitectura
+que \textcite{espinosacurilem2025ood} usaron sobre eventos de este mismo
+volcán. Mantener la arquitectura de la referencia permite atribuir las
+diferencias de desempeño a lo que esta tesis cambia, los recortes
+automáticos de duración variable y la clase de rechazo, y no a la red. El
+costo es computacional: la VGG16 tiene unos 138 millones de parámetros,
+frente a unos 25 millones de una ResNet-50 \parencite{he2016resnet}, lo que
+encarece la inferencia en CPU; su efecto quedará medido en el tiempo de
+procesamiento que reporta OE4. Comparar arquitecturas queda fuera del
+alcance de OE3. El entrenamiento y el protocolo de evaluación integrada se
+desarrollarán en los sprints 2 y 3.
 
 % ======================================================================
 % CAPITULO 3. Estrategia y resultados de los detectores (OE1)
-% Cifras reproducibles con scripts/evaluacion/significancia.py,
-% scripts/evaluacion/evaluar_por_tramo.py,
-% scripts/diagnostico/diagnostico_tramos.py y scripts/ventanas/.
+% Cifras reproducibles con scripts/evaluacion/ (significancia.py,
+% evaluar_por_tramo.py, barrido_sensibilidad.py), scripts/diagnostico/
+% (snr_eventos.py, verificar_crudos.py) y scripts/ventanas/.
 % ======================================================================
 \chapter[Estrategia y resultados de los detectores][Resultados de los detectores]{Estrategia y resultados de los detectores}
 \label{cap:detectores}
 
-Este capítulo responde a OE1. Evalúo los detectores en dos niveles: la
-detección del instante (nivel 1), en que un evento cuenta como detectado si un
-onset de red cae a menos de 5~s de su inicio, y la calidad del recorte (nivel
-2), en que cuenta si una detección lo cubre con una IoU de al menos 0,30.
+Este capítulo responde a OE1. Evalúo en dos niveles: la detección del
+instante (nivel 1), en que un evento cuenta como detectado si un onset de red
+cae a menos de 5~s de su inicio, y la calidad del recorte (nivel 2), en que
+cuenta si una detección lo cubre con una IoU de al menos 0,30.
 
 \section{Datos de evaluación}
 \label{sec:datos-evaluacion}
 
-Evalúo sobre la traza continua de diez horas del conjunto de datos de Zenodo,
-que concatena tres tramos de fechas no consecutivas. El
-Cuadro~\ref{tab:tramos} muestra su posición en la traza y su hora de inicio y
-término. Las horas provienen de los nombres de los archivos crudos que el
-profesor guía entregó, que codifican en tiempo
-Unix el inicio y el término de cada tramo, y la fila de tiempo de la propia
-traza las confirma con diferencias de a lo más un segundo. En las tres fechas
-la hora local de Chile era la UTC menos tres horas.
+La traza continua de Zenodo \parencite{espinosacurilem2025dataset}
+concatena tres tramos de fechas distintas, con 127, 44 y 32 eventos
+catalogados (Cuadro~\ref{tab:tramos}). Los tramos no son comparables: el
+tramo 1 concentra los LP y TR, el 2 es mayoritariamente VT y el 3 tiene 28 IC
+entre sus 32 eventos, solo tres estaciones con datos y huecos que suman el
+26\,\% de su duración.
 
+\needspace{16\baselineskip}
 {\small
-\begin{longtable}{>{\centering\arraybackslash}p{1.2cm}>{\raggedleft\arraybackslash}p{1.7cm}>{\raggedleft\arraybackslash}p{1.7cm}>{\centering\arraybackslash}p{1.9cm}>{\centering\arraybackslash}p{1.6cm}>{\centering\arraybackslash}p{1.6cm}}
-\caption{Tramos de la traza continua de evaluación, con su hora de inicio y término en UTC.}\label{tab:tramos}\\
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{lcccrrrrrr}
+\caption{Tramos de la traza de evaluación: fecha, hora UTC de inicio y término, eventos del catálogo por clase y estaciones con datos.}\label{tab:tramos}\\
 \toprule
-\textbf{Tramo} & \textbf{Muestra inicial} & \textbf{Muestras} & \textbf{Fecha} & \textbf{Inicio} & \textbf{Término} \\
+\textbf{Tramo} & \textbf{Fecha} & \textbf{Inicio} & \textbf{Término} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{AV} & \textbf{IC} & \textbf{Est.} \\
 \midrule
 \endfirsthead
-\multicolumn{6}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\multicolumn{10}{l}{\itshape Cuadro \thetable{} (continuación)}\\
 \toprule
-\textbf{Tramo} & \textbf{Muestra inicial} & \textbf{Muestras} & \textbf{Fecha} & \textbf{Inicio} & \textbf{Término} \\
+\textbf{Tramo} & \textbf{Fecha} & \textbf{Inicio} & \textbf{Término} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{AV} & \textbf{IC} & \textbf{Est.} \\
 \midrule
 \endhead
 \midrule
-\multicolumn{6}{r}{\itshape Continúa en la página siguiente}\\
+\multicolumn{10}{r}{\itshape Continúa en la página siguiente}\\
 \endfoot
 \bottomrule
 \endlastfoot
-1 & 0 & 2.160.000 & 2018-02-09 & 04:06:58 & 10:06:58 \\
-2 & 2.160.000 & 1.080.001 & 2020-01-14 & 01:06:58 & 04:06:58 \\
-3 & 3.240.001 & 424.192 & 2017-01-10 & 06:06:58 & 07:17:40 \\
+1 & 2018-02-09 & 04:06:58 & 10:06:58 & 12 & 50 & 33 & 19 & 13 & 5 \\*
+2 & 2020-01-14 & 01:06:58 & 04:06:58 & 24 & 5 & 4 & 2 & 9 & 5 \\*
+3 & 2017-01-10 & 06:06:58 & 07:17:40 & 2 & 0 & 0 & 2 & 28 & 3 \\*
+\midrule\nopagebreak
+Total & & & & 38 & 55 & 37 & 23 & 50 & \\
 \end{longtable}
 }
 
-Los tramos no son comparables entre sí (Cuadro~\ref{tab:composicion}). El
-tramo 1 concentra 50 de los 55 LP y 33 de los 37 TR; el tramo 2 es
-mayoritariamente VT, y el tramo 3 tiene 28 IC entre sus 32 eventos. Además, en
-el tramo 3 los canales 5 y 6 no tienen datos, y los otros tres comparten huecos
-que suman 1.111~s, el 26\,\% del tramo; en los tramos 1 y 2 los huecos comunes
-a todos los canales suman 27 y 89~s. Todo resultado por tramo debe leerse con
-esta composición a la vista.
-
-{\small
-\begin{longtable}{lrrrrrrr}
-\caption{Eventos del catálogo por tramo y clase, y estaciones con datos.}\label{tab:composicion}\\
-\toprule
-\textbf{Tramo} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{AV} & \textbf{IC} & \textbf{Total} & \textbf{Estaciones} \\
-\midrule
-\endfirsthead
-\multicolumn{8}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Tramo} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{AV} & \textbf{IC} & \textbf{Total} & \textbf{Estaciones} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{8}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-1 & 12 & 50 & 33 & 19 & 13 & 127 & 5 \\
-2 & 24 & 5 & 4 & 2 & 9 & 44 & 5 \\
-3 & 2 & 0 & 0 & 2 & 28 & 32 & 3 \\
-\midrule
-Total & 38 & 55 & 37 & 23 & 50 & 203 & \\
-\end{longtable}
-}
-
-Según el profesor guía, la traza de Zenodo equivale a los archivos crudos
-filtrados con un pasabanda Butterworth de orden 5 entre 1 y 15~Hz, aplicado en
-fase cero. Como los tramos 2 y 3 difieren de su duración nominal a 100~Hz en
-una muestra de más y ocho de menos, no asumiré que traza y archivos crudos
-están alineados muestra a muestra: verificaré la alineación y el filtro canal
-por canal antes de usar los archivos crudos.
+Los archivos crudos que entregó el profesor guía corresponden a una sola
+estación, FRE, con sus tres componentes. Filtrada con un pasabanda Butterworth
+de orden 5 entre 1 y 15~Hz en fase cero, su componente vertical reproduce la
+fila 1 de la traza: es idéntica en el tramo 2, coincide con una muestra de
+desfase en el tramo 3 y tiene correlación 0,9986 en el tramo 1. Esto confirma
+el filtrado de la traza e identifica por primera vez la estación de una de
+sus filas; además, las componentes horizontales de FRE, que la traza no
+incluye, permitirían darle a esa estación una entrada real de tres
+componentes en lugar del relleno con ceros. La diferencia del tramo 1 se
+concentra en 17 de sus 19 AV: en esos instantes la fila 1 no se parece al
+registro crudo de FRE (correlación entre $-0{,}08$ y 0,14), mientras el resto
+del tramo coincide. Hasta aclarar su origen, los resultados de la clase AV
+deben leerse con cautela.
 
 \section{Estrategia de detección}
 \label{sec:det-estrategia}
 
-Los tres detectores reciben la misma entrada: la componente vertical de las
-estaciones de los canales 1, 2, 3, 5 y 6. La Figura~\ref{fig:esquema-deteccion}
-resume cómo detecta cada uno.
+Los tres detectores reciben la componente vertical de los canales 1, 2, 3, 5
+y 6, y sus salidas por estación se consolidan en detecciones de red por
+coincidencia entre estaciones (Figura~\ref{fig:esquema-deteccion}):
 
 \begin{itemize}
-\item \textbf{STA/LTA} \parencite{allen1978stalta}. Filtra la traza entre 1 y
-20~Hz y calcula, muestra a muestra, la razón entre la energía media de una
-ventana corta (STA, 2~s) y la de una larga (LTA). Dispara cuando la razón supera
-un umbral y se apaga cuando cae bajo otro; cada disparo es un intervalo, así
-que delimita el evento.
+\item \textbf{STA/LTA} \parencite{allen1978stalta}. Filtra entre 1 y 20~Hz y
+dispara cuando la razón entre la energía de una ventana corta (2~s) y una
+larga supera un umbral; cada disparo es un intervalo, así que delimita.
 \item \textbf{EQTransformer} \parencite{mousavi2020eqtransformer}. Red con
-codificador convolucional, capas recurrentes y de atención que procesa tramos
-de 60~s de tres componentes. Entrega, muestra a muestra, la probabilidad de que
-haya un evento (curva de detección) y la de los arribos P y S. Los intervalos
-salen de la curva de detección y los onsets, de los arribos.
-\item \textbf{PhaseNet} \parencite{zhu2019phasenet}. Red U-Net que procesa
-tramos de 30~s y entrega la probabilidad de arribo P y S. No tiene curva de
-detección: entrega instantes y no delimita eventos, por lo que queda fuera del
-nivel 2, y esa exclusión es un resultado.
+codificador convolucional, capas recurrentes y de atención sobre tramos de
+60~s; entrega una curva de probabilidad de evento, de la que salen los
+intervalos, y los arribos P y S, de los que salen los onsets.
+\item \textbf{PhaseNet} \parencite{zhu2019phasenet}. Red U-Net sobre tramos de
+30~s que entrega arribos P y S. No delimita eventos, por lo que queda fuera
+del nivel 2, y esa exclusión es un resultado.
 \end{itemize}
 
-Las dos redes se usan con sus pesos originales, sin reentrenar, mediante
-SeisBench \parencite{woollam2022seisbench}. Como la traza tiene una sola
-componente, las componentes horizontales se rellenan con ceros. En los tres
-casos, las salidas de cada estación se consolidan en detecciones de red por
-coincidencia entre estaciones.
+Las redes se usan con sus pesos originales mediante SeisBench
+\parencite{woollam2022seisbench}, con las componentes horizontales en cero.
+Cada detector se evalúa en su punto de operación de mejor F1
+(Cuadro~\ref{tab:puntos-operacion}), elegido con el mismo criterio para los
+tres sobre la propia traza, por lo que las cifras son optimistas frente a un
+conjunto independiente.
 
 \begin{figure}[!ht]
 \centering
@@ -746,15 +547,7 @@ estación se consolidan en detecciones de red; PhaseNet solo aporta instantes.}
 \label{fig:esquema-deteccion}
 \end{figure}
 
-Cada detector se evalúa en su punto de operación de mejor F1, elegido con el
-mismo criterio para los tres a partir de barridos de parámetros
-(Cuadro~\ref{tab:puntos-operacion}). Como esos barridos se hicieron sobre la
-misma traza que se evalúa, las cifras son optimistas frente a un conjunto
-independiente. Las cifras de este capítulo se reproducen con
-\texttt{significancia.py} y \texttt{evaluar\_por\_tramo.py}; los valores por
-omisión de \texttt{evaluar\_detectores.py} corresponden a otros puntos de
-operación y no las reproducen.
-
+\needspace{16\baselineskip}
 {\small
 \begin{longtable}{>{\raggedright\arraybackslash}p{2.7cm}>{\centering\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{7.6cm}}
 \caption{Puntos de operación evaluados. STA/LTA usa STA de 2~s, banda de 1 a 20~Hz y fusión de 5~s; las redes rellenan las componentes horizontales con ceros.}\label{tab:puntos-operacion}\\
@@ -772,24 +565,28 @@ operación y no las reproducen.
 \endfoot
 \bottomrule
 \endlastfoot
-STA/LTA & 1 & LTA de 30~s; disparo en 5,0 y apagado en 1,05; al menos 2 estaciones \\
-STA/LTA & 2 & LTA de 60~s; disparo en 4,0 y apagado en 1,05; al menos 2 estaciones \\
-PhaseNet & 1 & Arribos con confianza de al menos 0,05; al menos 2 estaciones \\
-EQTransformer & 1 & Arribos con confianza de al menos 0,30; 1 estación \\
+STA/LTA & 1 & LTA de 30~s; disparo en 5,0 y apagado en 1,05; al menos 2 estaciones \\*
+STA/LTA & 2 & LTA de 60~s; disparo en 4,0 y apagado en 1,05; al menos 2 estaciones \\*
+PhaseNet & 1 & Arribos con confianza de al menos 0,05; al menos 2 estaciones \\*
+EQTransformer & 1 & Arribos con confianza de al menos 0,30; 1 estación \\*
 EQTransformer & 2 & Curva de detección sobre 0,05; fusión de 15~s; al menos 2 estaciones \\
 \end{longtable}
 }
 
-\section{Detección del instante}
-\label{sec:det-nivel1}
+\section{Resultados por nivel, tramo y clase}
+\label{sec:det-resultados}
 
-Globalmente, las sensibilidades de 0,542, 0,527 y 0,581 son estadísticamente
-indistinguibles: sus intervalos de confianza del 95\,\% por bootstrap se
-solapan (Cuadro~\ref{tab:nivel1}). Por tramo el orden cambia: PhaseNet encabeza
-el tramo 1, EQTransformer el tramo 2, y en el tramo 3 los tres caen, con
-EQTransformer en 0,281 y los otros dos bajo 0,1. El error medio de onset va de
-1,74~s en EQTransformer a 2,36~s en STA/LTA.
+En el nivel 1, las sensibilidades globales de 0,542, 0,527 y 0,581 son
+estadísticamente indistinguibles: sus intervalos de confianza del 95\,\% por
+bootstrap se solapan (Cuadro~\ref{tab:nivel1}). El orden cambia por tramo y
+por clase: PhaseNet es el mejor en LP y TR, y EQTransformer en VT, AV e IC
+(Cuadro~\ref{tab:por-clase}). En el nivel 2, STA/LTA supera a EQTransformer
+en sensibilidad y en IoU en los tres tramos (Cuadro~\ref{tab:nivel2}), y
+globalmente el orden se mantiene para umbrales de IoU entre 0,10 y 0,50. El
+tramo 3 rinde menos en los tres detectores, en buena parte por su
+composición: 28 de sus 32 eventos son IC, la clase de menor sensibilidad.
 
+\needspace{16\baselineskip}
 {\small
 \setlength{\tabcolsep}{4pt}
 \begin{longtable}{lrrrrrrr}
@@ -810,60 +607,13 @@ EQTransformer en 0,281 y los otros dos bajo 0,1. El error medio de onset va de
 \endfoot
 \bottomrule
 \endlastfoot
-STA/LTA & 0,542 & 0,598 & 0,705 & 0,094 & 0,601 & 7,20 & 2,36 \\
-PhaseNet & 0,527 & 0,638 & 0,545 & 0,062 & 0,598 & 7,10 & 1,99 \\
+STA/LTA & 0,542 & 0,598 & 0,705 & 0,094 & 0,601 & 7,20 & 2,36 \\*
+PhaseNet & 0,527 & 0,638 & 0,545 & 0,062 & 0,598 & 7,10 & 1,99 \\*
 EQTransformer & 0,581 & 0,591 & 0,773 & 0,281 & 0,615 & 7,29 & 1,74 \\
 \end{longtable}
 }
 
-Por clase aparecen diferencias de signo opuesto que se cancelan al promediar
-(Cuadro~\ref{tab:por-clase}): PhaseNet es el mejor en LP y TR, y EQTransformer
-en VT, AV e IC. Ningún detector supera 0,36 en IC, la clase que domina el tramo
-3, lo que explica en parte su caída; el resto puede deberse a las estaciones
-sin datos y a los huecos del tramo, sin verificar.
-
-{\small
-\begin{longtable}{llrrrrr}
-\caption{Desempeño por clase. Nivel 1: sensibilidad. Nivel 2: sensibilidad e IoU medio de los eventos recuperados.}\label{tab:por-clase}\\
-\toprule
-\textbf{Detector} & \textbf{Medida} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{AV} & \textbf{IC} \\
-\midrule
-\endfirsthead
-\multicolumn{7}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Detector} & \textbf{Medida} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{AV} & \textbf{IC} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{7}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-STA/LTA & N1 sensib. & 0,763 & 0,873 & 0,432 & 0,478 & 0,120 \\
-PhaseNet & N1 sensib. & 0,553 & 0,945 & 0,649 & 0,304 & 0,060 \\
-EQTransformer & N1 sensib. & 0,842 & 0,745 & 0,270 & 0,739 & 0,360 \\
-\midrule
-STA/LTA & N2 sensib. & 0,868 & 0,873 & 0,432 & 0,783 & 0,240 \\
-STA/LTA & N2 IoU & 0,578 & 0,496 & 0,541 & 0,721 & 0,586 \\
-EQTransformer & N2 sensib. & 0,211 & 0,600 & 0,486 & 0,304 & 0,020 \\
-EQTransformer & N2 IoU & 0,426 & 0,506 & 0,451 & 0,499 & 0,355 \\
-\midrule
-\multicolumn{2}{l}{Eventos del catálogo} & 38 & 55 & 37 & 23 & 50 \\
-\end{longtable}
-}
-
-\section{Calidad del recorte}
-\label{sec:det-nivel2}
-
-STA/LTA supera a EQTransformer en sensibilidad (0,626 contra 0,330) y en IoU
-medio (0,563 contra 0,479) en los tres tramos (Cuadro~\ref{tab:nivel2}), y,
-globalmente, el orden se mantiene para umbrales de IoU entre 0,10 y 0,50. EQTransformer cae
-fuera del tramo 1, y su brecha con el nivel 1 es grande en VT: detecta el
-instante de 0,842 de los VT, pero delimita bien solo 0,211. En el tramo 3, si
-se pondera la sensibilidad de STA/LTA en cada clase por la composición del
-tramo, se esperaría 0,31; la medida es 0,25, de modo que la composición
-explica la mayor parte de la caída.
-
+\needspace{16\baselineskip}
 {\small
 \setlength{\tabcolsep}{4pt}
 \begin{longtable}{lrrrrrrrr}
@@ -884,151 +634,78 @@ explica la mayor parte de la caída.
 \endfoot
 \bottomrule
 \endlastfoot
-STA/LTA & 0,626 & 0,693 & 0,705 & 0,250 & 0,545 & 0,583 & 10,45 & 0,563 \\
+STA/LTA & 0,626 & 0,693 & 0,705 & 0,250 & 0,545 & 0,583 & 10,45 & 0,563 \\*
 EQTransformer & 0,330 & 0,441 & 0,227 & 0,031 & 0,465 & 0,386 & 7,59 & 0,479 \\
 \end{longtable}
 }
 
-La excepción por clase es TR: EQTransformer recupera 18 de los 37 TR y
-STA/LTA 16, aunque con menor IoU (0,451 contra 0,541). Dos eventos de
-diferencia no permiten afirmar que EQTransformer sea mejor en TR, pero tampoco
-descartarlo, y es una razón para que la interfaz \texttt{IDetector} admita más
-de un detector.
-
-Ninguno de los dos delimita completos los TR largos. Ninguna de las 233
-detecciones de STA/LTA dura más de 81,92~s, aunque 19 de los 37 TR superan esa
-duración; para ellos la IoU queda acotada por la razón entre ambas duraciones,
-y un TR de 240,8~s no puede superar 0,34. EQTransformer emite 6 detecciones de
-más de 81,92~s, todas en el tramo 1, pero dos no corresponden a ningún evento y
-la más larga, de 240,7~s, abarca cinco eventos a la vez.
-
-\section{Criterio de operación}
-\label{sec:det-comparacion}
-
-Para el sistema adopto el criterio que fijó el profesor guía: una sensibilidad
-de al menos 0,95 y, entre los detectores que la alcancen, el de menor tasa de
-falsos positivos. Ningún punto de operación medido llega a 0,95 en el nivel 1.
-El más cercano es PhaseNet con la componente vertical duplicada en lugar de
-rellenar con ceros, que alcanza 0,946 al costo de 9.559 arribos; con ese mismo
-relleno y confianza mínima de 0,20 alcanza 0,734, con una tasa de falsos
-positivos aún no medida. El barrido de umbrales hacia 0,95 queda planificado
-para el sprint 2 (Capítulo~\ref{cap:registro}), precedido por el análisis de
-razón señal-ruido, que permitirá distinguir los eventos que un detector pierde
-de los que están enterrados en ruido.
-
-\section{Barrido con ventanas de 5 minutos}
-\label{sec:det-ventanas}
-
-Validé el procedimiento de la Sección~\ref{sec:recorte-espectrogramas} con
-casos sintéticos de solución conocida antes de aplicarlo a la traza real. Para
-separar el procedimiento del detector, los casos usan un detector oráculo, un
-umbral fijo sobre la envolvente de la señal, que sobre la traza completa
-delimita bien cada evento: el barrido es correcto si reproduce ese resultado.
-Las 20 comprobaciones pasan:
-
-\begin{itemize}
-\item \textbf{Cobertura.} La traza real produce 654 ventanas y ninguna cruza un
-corte entre tramos. Todo evento de 240,8~s cabe entero en al menos una
-ventana; con un paso de 65~s, que viola la condición de diseño, 285 de 3.000
-posiciones quedan sin ventana que las contenga.
-\item \textbf{Evento de 3,4~s aislado.} El barrido lo detecta con el mismo
-onset que la traza completa.
-\item \textbf{Evento de 240,8~s que cruza bordes.} Tres ventanas lo cortan en
-su borde derecho y la fusión lo recupera entero; si se quitan las ventanas que
-lo contienen, la fusión lo reconstruye igual a partir de los trozos
-(Figura~\ref{fig:barrido-sintetico}).
-\item \textbf{Evento débil a 30~s de uno diez veces mayor, en una misma
-ventana.} Salen como dos intervalos separados. Como control, normalizar la
-ventana por su máximo hace perder el evento débil, lo que confirma por qué el
-diseño normaliza por recorte y no por ventana.
-\item \textbf{Evento de 81,92~s.} El recorte adaptativo lo contiene entero; la
-ventana fija de 81,92~s, con el margen previo de 2,5~s, deja fuera sus últimos
-2,58~s.
-\end{itemize}
-
-\begin{figure}[!ht]
-\centering
-\includegraphics[width=\textwidth]{images/barrido_sintetico.png}
-\caption{Evento sintético de 240,8~s barrido con ventanas de 300~s y paso de
-55~s. Abajo, una barra por ventana: solo la marcada con asterisco lo contiene
-entero; en las demás la detección queda cortada en un borde (naranja). Arriba,
-la fusión recupera el evento completo y el recorte adaptativo lo cubre,
-mientras la ventana fija de 81,92~s lo trunca.}
-\label{fig:barrido-sintetico}
-\end{figure}
-
-Sobre la traza real, el barrido con STA/LTA coincide con la corrida sobre la
-traza completa en 231 de sus 233 detecciones, y una más difiere en una sola
-muestra; la sensibilidad y la IoU no cambian en ninguna clase ni tramo. Las
-diferencias restantes están en el tramo 3: el barrido emite dos detecciones de
-unos 200~s, una sin evento asociado y otra que absorbe una detección de 45~s y
-empeora su solape con un IC. Son el único efecto del barrido en toda la traza,
-ocurren en el tramo con huecos y con dos estaciones sin datos, y su mecanismo
-no está verificado.
-
-La Sección~\ref{sec:recorte-espectrogramas} supone que la detección entrega el
-intervalo completo del evento, de modo que un evento de 3,4~s y uno de 240,8~s
-ocupen por igual la entrada del clasificador. Para los TR largos, con
-STA/LTA, ese supuesto no se cumple. La Figura~\ref{fig:barrido-tr} lo muestra en un TR real de 240,8~s: STA/LTA
-delimita solo dos fragmentos breves, y el recorte adaptativo resultante, de
-26,6~s, deja fuera 214,2~s del evento, mientras la ventana fija deja fuera
-158,9~s. En los 200~s previos hay eventos de gran amplitud, y es plausible,
-aunque no está verificado, que inflen la LTA y enmascaren el inicio del TR. La
-prueba sintética apunta en la misma dirección: en cinco eventos estacionarios
-de más de 150~s, STA/LTA delimitó solo su primer minuto, con IoU entre 0,25 y
-0,31, mientras el barrido reproducía exactamente la traza completa.
-
-\begin{figure}[!ht]
-\centering
-\includegraphics[width=\textwidth]{images/barrido_tr_real.png}
-\caption{TR de 240,8~s de la traza real (tramo 1, canal 2) con el barrido de
-300~s y paso de 55~s. STA/LTA delimita solo dos fragmentos (verde), por lo que
-el recorte adaptativo (azul) cubre 26,6~s del evento.}
-\label{fig:barrido-tr}
-\end{figure}
-
-Para los eventos cortos el recorte adaptativo sí cumple su función. La
-Figura~\ref{fig:recorte-vt} compara, para un VT de 7,5~s, el recorte
-adaptativo de 11,9~s con la ventana fija de 81,92~s: la ventana fija incluye
-una segunda señal de amplitud comparable unos 20~s después, y su espectrograma
-mezcla ambas, mientras el recorte adaptativo aísla el VT. En estos ejemplos,
-el aporte del recorte adaptativo está en separar eventos cercanos; aprovechar
-la garantía de cobertura en los TR largos exige un detector que los delimite
-completos.
-
-\begin{figure}[!ht]
-\centering
-\includegraphics[width=\textwidth]{images/recortes_vt_real.png}
-\caption{VT de 7,5~s de la traza real (tramo 2, canal 1). Izquierda: recorte
-adaptativo de 11,9~s y su espectrograma. Derecha: ventana fija de 81,92~s, que
-incluye una segunda señal unos 20~s después del VT.}
-\label{fig:recorte-vt}
-\end{figure}
-
-% ======================================================================
-% CAPITULO 4. Registro de avance del backlog (rubrica: 10 % y 15 %)
-% ======================================================================
-\chapter{Registro de avance del backlog}
-\label{cap:registro}
-
-\section{Estado del backlog del sprint 1}
-\label{sec:esfuerzo}
-
-El Cuadro~\ref{tab:estado-s1} compara el estado de cada tarea del sprint 1 con
-lo planificado. No registré el esfuerzo real de estas tareas, por lo que el
-cuadro compara estados y no horas; desde el sprint 2 registraré las horas de
-cada tarea al cerrarla.
-
+\needspace{16\baselineskip}
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{4.1cm}>{\raggedleft\arraybackslash}p{0.6cm}>{\raggedright\arraybackslash}p{1.4cm}>{\raggedright\arraybackslash}p{4.0cm}}
-\caption{Estado de las tareas del sprint 1. Las horas son las estimadas en la planificación.}\label{tab:estado-s1}\\
+\begin{longtable}{llrrrrr}
+\caption{Desempeño por clase. Nivel 1: sensibilidad. Nivel 2: sensibilidad e IoU medio de los eventos recuperados.}\label{tab:por-clase}\\
 \toprule
-\textbf{ID} & \textbf{Tarea} & \textbf{h} & \textbf{Prior.} & \textbf{Estado} \\
+\textbf{Detector} & \textbf{Medida} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{AV} & \textbf{IC} \\
+\midrule
+\endfirsthead
+\multicolumn{7}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Detector} & \textbf{Medida} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{AV} & \textbf{IC} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{7}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+STA/LTA & N1 sensib. & 0,763 & 0,873 & 0,432 & 0,478 & 0,120 \\*
+PhaseNet & N1 sensib. & 0,553 & 0,945 & 0,649 & 0,304 & 0,060 \\*
+EQTransformer & N1 sensib. & 0,842 & 0,745 & 0,270 & 0,739 & 0,360 \\*
+\midrule\nopagebreak
+STA/LTA & N2 sensib. & 0,868 & 0,873 & 0,432 & 0,783 & 0,240 \\*
+STA/LTA & N2 IoU & 0,578 & 0,496 & 0,541 & 0,721 & 0,586 \\*
+EQTransformer & N2 sensib. & 0,211 & 0,600 & 0,486 & 0,304 & 0,020 \\*
+EQTransformer & N2 IoU & 0,426 & 0,506 & 0,451 & 0,499 & 0,355 \\*
+\midrule\nopagebreak
+\multicolumn{2}{l}{Eventos del catálogo} & 38 & 55 & 37 & 23 & 50 \\
+\end{longtable}
+}
+
+Ningún detector delimita completos los TR largos. Ninguna de las 233
+detecciones de STA/LTA dura más de 81,92~s, aunque 19 de los 37 TR superan esa
+duración, de modo que un TR de 240,8~s no puede superar una IoU de 0,34.
+EQTransformer recupera 18 de los 37 TR en el nivel 2, frente a 16 de STA/LTA,
+pero con menor IoU (0,451 contra 0,541), y de sus seis detecciones de más de
+81,92~s, dos no corresponden a ningún evento y la más larga abarca cinco.
+
+\section{Hacia una sensibilidad de 0,95}
+\label{sec:det-meta}
+
+Ningún detector por sí solo llega a 0,95 en el nivel 1, ni bajando la
+confianza mínima de las redes hasta 0,02, el mínimo con que se guardaron sus
+arribos: el máximo es 0,946, de PhaseNet con la componente vertical duplicada
+en lugar de ceros. El Cuadro~\ref{tab:metas} muestra la configuración que
+alcanza cada meta con menos falsos positivos. Llegar a 0,95 exige unir
+PhaseNet y EQTransformer en su punto de mayor sensibilidad, a unos 170 falsos
+positivos por hora, y depende de cómo se fusionan sus onsets: tomando el más
+temprano de cada grupo se alcanza; con la mediana, no. En los puntos de mejor
+F1, en cambio, combinar sí rinde: la unión de PhaseNet y EQTransformer sube la
+sensibilidad a 0,734 con 12 falsos positivos por hora, porque sus fortalezas
+por clase son complementarias. Cuántos falsos positivos son tolerables
+depende de cuántos descarte la clase de rechazo del clasificador, por lo que
+fijaré el punto de operación al evaluar el sistema integrado (OE4).
+
+\needspace{16\baselineskip}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.1cm}>{\raggedright\arraybackslash}p{6.6cm}rrr}
+\caption{Configuración con menos falsos positivos que alcanza cada meta de sensibilidad en el nivel 1.}\label{tab:metas}\\
+\toprule
+\textbf{Meta} & \textbf{Configuración} & \textbf{Sensib.} & \textbf{FP/h} & \textbf{Prec.} \\
 \midrule
 \endfirsthead
 \multicolumn{5}{l}{\itshape Cuadro \thetable{} (continuación)}\\
 \toprule
-\textbf{ID} & \textbf{Tarea} & \textbf{h} & \textbf{Prior.} & \textbf{Estado} \\
+\textbf{Meta} & \textbf{Configuración} & \textbf{Sensib.} & \textbf{FP/h} & \textbf{Prec.} \\
 \midrule
 \endhead
 \midrule
@@ -1036,318 +713,102 @@ cada tarea al cerrarla.
 \endfoot
 \bottomrule
 \endlastfoot
-B-01 & Verificar superposición entre entrenamiento y evaluación & 10 & Debe & Postergada al sprint 2 \\
-B-02 & Auditar estaciones con señal en el conjunto de entrenamiento & 5 & Debería & No iniciada; pasa al sprint 2 \\
-B-03 & Partición por bloque temporal & 4 & Debe & No iniciada; pasa al sprint 2 \\
-B-04 & Diagrama de arquitectura & 6 & Debe & Completa (Sección~\ref{sec:arquitectura-cadena}) \\
-B-05 & Diagrama de flujo y contrato de datos & 6 & Debe & Completa (Sección~\ref{sec:contrato-datos}) \\
-B-06 & Interfaz común de detección & 5 & Debe & Completa (Sección~\ref{sec:interfaz-deteccion}) \\
-B-07 & Implementar la interfaz y validarla con un detector sintético & 7 & Debe & No iniciada; pasa al sprint 2 \\
-B-08 & Diseño del recorte adaptativo & 6 & Debe & Completa (Sección~\ref{sec:recorte-espectrogramas}) e implementada (Sección~\ref{sec:det-ventanas}) \\
-B-09 & Orden del repositorio, \texttt{.gitignore} y convención de commits & 4 & Debe & Parcial: \texttt{.gitignore} y convención en uso; falta ordenar por etapa \\
-B-10 & Avance documental del sprint & 5 & Debe & Completa: este informe \\
+0,80 & STA/LTA con LTA de 30~s, disparo en 5,0 y 1 estación & 0,842 & 29,0 & 0,368 \\*
+0,90 & PhaseNet con la vertical duplicada, confianza 0,25 y 1 estación & 0,911 & 73,0 & 0,200 \\*
+0,95 & Unión de PhaseNet y EQTransformer en su máxima sensibilidad & 0,951 & 170,0 & 0,101 \\*
+\midrule\nopagebreak
+--- & Unión de PhaseNet y EQTransformer en sus puntos de mejor F1 & 0,734 & 12,1 & 0,548 \\
 \end{longtable}
 }
 
-Las cuatro tareas de diseño están completas. De las 53~h comprometidas como
-\emph{Debe}, las tareas completas suman 28~h; las que no se iniciaron son
-implementaciones (B-03 y B-07) y B-01, cuya postergación ya estaba declarada.
-Fuera de lo planificado quedaron hechas la evaluación por tramo de los tres
-detectores (Capítulo~\ref{cap:detectores}) y el núcleo de B-12, la
-implementación del recorte adaptativo prevista para el sprint 2
-(Sección~\ref{sec:det-ventanas}).
+La razón señal-ruido explica buena parte de lo que se pierde. La mido como el
+pico del evento sobre el valor eficaz de los 60~s previos, sin contar en ese
+ruido otros eventos ni huecos. Validé el estimador con casos sintéticos; sobre
+ruido puro mide entre 9,9 y 12,3~dB según la duración, y ese es su piso. La
+mediana va de 27,3~dB en LP a 10,5~dB en IC, que queda justo en el piso: con
+este estimador, los IC no se distinguen del ruido de su misma duración, y el
+tramo 3 tiene la mediana más baja (11,1~dB). Los eventos que STA/LTA y
+PhaseNet no detectan tienen una razón mediana unos 10~dB menor que los que
+detectan; en EQTransformer la diferencia es de 4,4~dB, y es el único que
+recupera una fracción apreciable de los eventos de 5 a 10~dB
+(Cuadro~\ref{tab:snr}). La meta de 0,95, entonces, choca con eventos cercanos
+al piso de ruido, en su mayoría IC.
 
-\section{Tareas nuevas y replanificación del sprint 2}
-\label{sec:desviaciones}
+\needspace{16\baselineskip}
+{\small
+\begin{longtable}{lrrrr}
+\caption{Sensibilidad de nivel 1 por rango de razón señal-ruido, sobre los 196 eventos con ruido válido.}\label{tab:snr}\\
+\toprule
+\textbf{Razón} & \textbf{Eventos} & \textbf{STA/LTA} & \textbf{PhaseNet} & \textbf{EQTransformer} \\
+\midrule
+\endfirsthead
+\multicolumn{5}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Razón} & \textbf{Eventos} & \textbf{STA/LTA} & \textbf{PhaseNet} & \textbf{EQTransformer} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+5 a 10~dB & 24 & 0,000 & 0,042 & 0,292 \\*
+10 a 20~dB & 94 & 0,415 & 0,298 & 0,564 \\*
+Más de 20~dB & 78 & 0,859 & 0,923 & 0,667 \\
+\end{longtable}
+}
 
-La retroalimentación del profesor guía y los resultados del
-Capítulo~\ref{cap:detectores} agregan tres tareas, con horas estimadas:
+\section{Barrido con ventanas de 5 minutos}
+\label{sec:det-ventanas}
 
-\begin{itemize}
-\item \textbf{Barrido hacia una sensibilidad de 0,95} (\emph{Debe}, 6~h).
-Barrido de umbrales de PhaseNet y EQTransformer, partiendo de PhaseNet con la
-componente vertical duplicada, y medición de la sensibilidad y de los falsos
-positivos de combinar detectores, dado que sus diferencias por clase son de
-signo opuesto (Sección~\ref{sec:det-comparacion}).
-\item \textbf{Razón señal-ruido} (\emph{Debería}, 4~h). Estimarla en los
-eventos del catálogo y cruzarla con su condición de detectado o no detectado.
-\item \textbf{Diagnóstico del tramo 3} (\emph{Debería}, 2~h). Explicar las dos
-detecciones que el barrido agrega en ese tramo, que tiene huecos y dos
+Validé el procedimiento de la Sección~\ref{sec:recorte-espectrogramas} con 20
+casos sintéticos de solución conocida, usando un detector de referencia que
+delimita bien cada evento. Las 654 ventanas de la traza no cruzan cortes entre
+tramos, y todo evento de 240,8~s cabe entero en alguna; con un paso de 65~s,
+que viola la condición de diseño, 285 de 3.000 posiciones quedan sin ventana.
+La fusión recupera entero un evento de 240,8~s cortado por los bordes, incluso
+sin la ventana que lo contiene; un evento débil a 30~s de uno diez veces mayor
+sale separado, y se pierde si se normaliza por ventana; y un evento de
+81,92~s queda entero en el recorte adaptativo, mientras la ventana fija le
+trunca 2,58~s.
+
+Sobre la traza real, el barrido con STA/LTA no pierde eventos: coincide con la
+corrida sobre la traza completa en 231 de sus 233 detecciones, con la misma
+sensibilidad e IoU en todas las clases y tramos. Las únicas diferencias son
+dos detecciones de unos 200~s en el tramo 3, el que tiene huecos y dos
 estaciones sin datos.
-\end{itemize}
 
-El Cuadro~\ref{tab:replanificacion} recalcula las horas \emph{Debe} del sprint
-2. Con el arrastre del sprint 1 y la tarea nueva, el compromiso queda en 61~h
-de las 64~h de capacidad, con 3~h de holgura. Las tareas \emph{Debería} del
-sprint 2, 16~h originales y 11~h nuevas, incluido B-02, quedan fuera del
-compromiso firme, como establece la planificación.
+El diseño supone que el detector entrega el intervalo completo del evento.
+Para los TR largos, con STA/LTA, eso no ocurre: la
+Figura~\ref{fig:barrido-tr} muestra un TR de 240,8~s del que STA/LTA delimita
+solo dos fragmentos, de modo que el recorte adaptativo cubre 26,6~s. La prueba
+sintética mostró el mismo límite en eventos estacionarios largos, con IoU de
+0,25 a 0,31. En los eventos cortos, en cambio, el recorte adaptativo cumple su
+función: en la Figura~\ref{fig:recorte-vt}, el recorte de 11,9~s aísla un VT
+de 7,5~s, mientras la ventana fija de 81,92~s incluye una segunda señal y
+mezcla ambas en el espectrograma.
 
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{9.0cm}>{\raggedleft\arraybackslash}p{1.6cm}}
-\caption{Horas \emph{Debe} del sprint 2 tras la replanificación.}\label{tab:replanificacion}\\
-\toprule
-\textbf{Concepto} & \textbf{Horas} \\
-\midrule
-\endfirsthead
-\multicolumn{2}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Concepto} & \textbf{Horas} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{2}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-Compromiso \emph{Debe} original del sprint 2 & 42 \\
-B-12 adelantada al sprint 1 & $-10$ \\
-Arrastre del sprint 1: B-01, B-03 y B-07 & $+21$ \\
-Resto de B-09: ordenar el repositorio por etapa & $+2$ \\
-Barrido hacia una sensibilidad de 0,95 & $+6$ \\
-\midrule
-\textbf{Compromiso \emph{Debe} replanificado} & \textbf{61} \\
-Capacidad del sprint & 64 \\
-\end{longtable}
-}
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=0.92\textwidth]{images/barrido_tr_real.png}
+\caption{TR de 240,8~s de la traza real (tramo 1, canal 2) con el barrido de
+300~s y paso de 55~s. STA/LTA delimita solo dos fragmentos (verde), por lo que
+el recorte adaptativo (azul) cubre 26,6~s del evento.}
+\label{fig:barrido-tr}
+\end{figure}
 
-\section{Repositorio y registro de commits}
-\label{sec:repositorio}
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=0.85\textwidth]{images/recortes_vt_real.png}
+\caption{VT de 7,5~s de la traza real (tramo 2, canal 1). Izquierda: recorte
+adaptativo de 11,9~s y su espectrograma. Derecha: ventana fija de 81,92~s, que
+incluye una segunda señal unos 20~s después del VT.}
+\label{fig:recorte-vt}
+\end{figure}
 
-El código y las fuentes de este informe se versionan en el repositorio público
-\url{https://github.com/Pattoxd45/tesis-sismovolcanica}, rama \texttt{main}.
-El Cuadro~\ref{tab:commits} lista los commits de esta etapa, con la tarea del
-backlog a la que responde cada uno y la sección del informe donde se refleja.
-
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{1.3cm}>{\raggedright\arraybackslash}p{8.8cm}}
-\caption{Commits de la Etapa 2 en el repositorio del proyecto, en orden cronológico.}\label{tab:commits}\\
-\toprule
-\textbf{Commit} & \textbf{Tarea} & \textbf{Contenido} \\
-\midrule
-\endfirsthead
-\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Commit} & \textbf{Tarea} & \textbf{Contenido} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-\texttt{8d7c709} & --- & Objetivos reformulados y sus consecuencias en
-requerimientos, alternativas y backlog (Capítulo~\ref{cap:retroalimentacion}) \\
-\addlinespace
-\texttt{6648b5f} & B-08 & Procedimiento de barrido con ventanas de 300~s,
-fusión y recorte adaptativo (Sección~\ref{sec:recorte-espectrogramas}) \\
-\addlinespace
-\texttt{f25e071} & B-04 & Diagrama de componentes UML de la cadena de
-procesamiento (Sección~\ref{sec:arquitectura-cadena}) \\
-\addlinespace
-\texttt{98ebf4c} & B-05 & Contrato de datos entre bloques
-(Sección~\ref{sec:contrato-datos} y Anexo~\ref{sec:anexo-contrato}) \\
-\addlinespace
-\texttt{0377d0b} & B-06 & Interfaz común de detección \texttt{IDetector}
-(Sección~\ref{sec:interfaz-deteccion}) \\
-\addlinespace
-\texttt{2ea3b8b} & B-10 & Primera versión de este informe \\
-\addlinespace
-\texttt{3a2bc5f} & B-12 & Implementación del barrido, la fusión y el recorte
-adaptativo, con su validación sintética (Sección~\ref{sec:det-ventanas}) \\
-\addlinespace
-\texttt{b8fddc1} & B-10 & Evaluación de los detectores por tramo y por clase,
-y resultados del barrido sobre la traza real (Capítulo~\ref{cap:detectores}) \\
-\addlinespace
-\texttt{01ad74f} & B-05 & Diagrama de actividad del flujo de procesamiento
-(Figura~\ref{fig:flujo}) \\
-% Agregar aqui los commits que sigan.
-\end{longtable}
-}
-
-% Sin efecto mientras el informe no tenga citas.
+% Las figuras pendientes se ubican antes de la bibliografia.
+\clearpage
+\renewcommand*{\bibfont}{\small}
 \printbibliography
-
-\appendix
-\chapter{Anexos}
-\label{cap:anexos}
-
-\section{Contrato de datos entre bloques}
-\label{sec:anexo-contrato}
-
-Se especifican aquí los tres conectores de la cadena descritos en la
-Sección~\ref{sec:contrato-datos}, con el nombre, el tipo, la unidad y la
-restricción de cada campo. El detalle es suficiente para reimplementar
-cualquier bloque sin inspeccionar la implementación del anterior.
-
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{5.9cm}}
-\caption{Contrato del conector A\,$\rightarrow$\,B, traza acondicionada.}\label{tab:contrato-ab}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
-\midrule
-\endfirsthead
-\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-\texttt{datos} & arreglo real, cuentas & Matriz de $c \times n$ muestras, con
-$c$ componentes y $n$ muestras. Sin normalizar \\
-\addlinespace
-\texttt{frecuencia} & real, Hz & Frecuencia de muestreo, 100 en todos los
-casos \\
-\addlinespace
-\texttt{canal} & entero & Fila de origen en el archivo, restringida a los
-canales utilizables 1, 2, 3, 5 y 6 \\
-\addlinespace
-\texttt{bloque} & entero & Segmento temporal de procedencia, 1 a 3 \\
-\addlinespace
-\texttt{muestra\_inicial} & entero & Índice de la primera muestra respecto del
-archivo completo \\
-\addlinespace
-\texttt{tiempo\_inicial} & real, s & Marca de tiempo Unix de la primera
-muestra, derivada de la fila 0 \\
-\addlinespace
-\texttt{relleno} & cadena & Estrategia de relleno de componentes aplicada
-(RF-03); \texttt{ninguno} cuando el detector opera sobre un solo canal \\
-\end{longtable}
-}
-
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{5.9cm}}
-\caption{Contrato del conector B\,$\rightarrow$\,C, intervalos definitivos.}\label{tab:contrato-bc}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
-\midrule
-\endfirsthead
-\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-\texttt{id} & cadena & Identificador único de la detección dentro de la
-ejecución \\
-\addlinespace
-\texttt{muestra\_inicio} & entero & Índice de inicio del intervalo \\
-\addlinespace
-\texttt{muestra\_fin} & entero & Índice de término; debe cumplir
-\texttt{muestra\_fin} $>$ \texttt{muestra\_inicio} y pertenecer al mismo
-bloque \\
-\addlinespace
-\texttt{tiempo\_inicio} & real, s & Marca Unix derivada del índice de inicio \\
-\addlinespace
-\texttt{duracion} & real, s & Diferencia de índices dividida por la frecuencia;
-campo derivado, incluido por conveniencia de lectura \\
-\addlinespace
-\texttt{canal}, \texttt{bloque} & entero & Heredados de la traza de origen \\
-\addlinespace
-\texttt{puntaje\_crudo} & real & Valor tal como lo entrega el detector, sin
-acotar \\
-\addlinespace
-\texttt{puntaje} & real, $[0,1]$ & Puntaje normalizado; comparable solo dentro
-de un mismo detector \\
-\addlinespace
-\texttt{detector} & cadena & Identificador del detector que produjo la
-detección \\
-\addlinespace
-\texttt{config} & cadena & Identificador de la configuración empleada, para
-RF-20 \\
-\addlinespace
-\texttt{origen\_intervalo} & cadena & \texttt{directo} cuando el detector
-delimita, \texttt{expandido} cuando se aplicó la regla de expansión de arribo
-(RF-07) \\
-\addlinespace
-\texttt{fusionado} & booleano & Verdadero si el intervalo resulta de fusionar
-detecciones de ventanas de barrido contiguas \\
-\end{longtable}
-}
-
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{5.9cm}}
-\caption{Contrato del conector C\,$\rightarrow$\,D, espectrogramas y metadatos.}\label{tab:contrato-cd}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
-\midrule
-\endfirsthead
-\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-\texttt{id} & cadena & Heredado del intervalo que originó el recorte \\
-\addlinespace
-\texttt{espectrograma} & arreglo real & Matriz de dimensiones fijas,
-frecuencia por tiempo, idénticas para todo evento \\
-\addlinespace
-\texttt{duracion\_real} & real, s & Duración del recorte antes de llevarlo a
-dimensiones fijas; es la información que RF-13 exige preservar de forma
-explícita \\
-\addlinespace
-\texttt{margen\_previo} & real, s & Contexto antepuesto al inicio estimado
-para tolerar el error de onset (RF-11) \\
-\addlinespace
-\texttt{truncado} & booleano & Verdadero si se aplicó la política para
-eventos que exceden la ventana nominal (RF-10) \\
-\addlinespace
-\texttt{solapa\_con} & lista de cadenas & Identificadores de detecciones
-cuyo intervalo se solapa con este, tras aplicar la regla de resolución
-(RF-12); lista vacía en el caso habitual \\
-\addlinespace
-\texttt{normalizacion} & cadena & Procedimiento de normalización aplicado al
-recorte individual \\
-\addlinespace
-\texttt{detector}, \texttt{config}, \texttt{canal}, \texttt{bloque} & cadena y
-entero & Heredados del intervalo, para conservar la procedencia hasta la
-salida \\
-\end{longtable}
-}
-
-
-
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{5.3cm}}
-\caption{Encaje de los detectores evaluados en la interfaz \textsf{IDetector}.}\label{tab:idetector}\\
-\toprule
-\textbf{Implementación} & \textbf{Delimita} & \textbf{Compon.} & \textbf{Puntaje crudo y su normalización} \\
-\midrule
-\endfirsthead
-\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Implementación} & \textbf{Delimita} & \textbf{Compon.} & \textbf{Puntaje crudo y su normalización} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-STA/LTA & Sí & 1 & Razón de energía, no acotada superiormente; se normaliza
-respecto del umbral de disparo configurado \\
-\addlinespace
-EQTransformer & Sí & 3 & Probabilidad de detección en $[0,1]$; la
-normalización es la identidad \\
-\addlinespace
-PhaseNet & No & 3 & Probabilidad de arribo en $[0,1]$; la normalización es la
-identidad y el envoltorio expande el arribo a intervalo \\
-\addlinespace
-Detector sintético & Sí & 1 & Puntaje fijo declarado en el caso de prueba;
-la normalización es la identidad \\
-\end{longtable}
-}
 
 \end{document}
