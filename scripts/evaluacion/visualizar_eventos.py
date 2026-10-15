@@ -1,31 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-visualizar_eventos.py
-=====================
+Figuras de validacion (onda con el intervalo del catalogo y las detecciones) y de
+la entrada del clasificador (espectrograma y onda). Los parametros del
+espectrograma no estan verificados contra el codigo de Curilem.
 
-Dos cosas distintas, ambas necesarias:
-
-(A) FIGURA DE VALIDACION -- forma de onda con el intervalo del catalogo y
-    lo que detecto cada detector encima. Sirve para ver con los ojos si
-    los numeros de la evaluacion significan lo que uno cree, y para las
-    figuras del capitulo de resultados.
-
-(B) REPRESENTACION DE ENTRADA DEL CLASIFICADOR -- espectrograma + forma
-    de onda, que es lo que realmente consume el VGG16 (representacion
-    tipo 2 del codigo de Curilem). El clasificador no ve la senal: ve
-    una imagen.
-
-    IMPORTANTE: los parametros del espectrograma aqui son razonables pero
-    NO estan verificados contra el codigo de Curilem. Antes de generar el
-    conjunto de entrenamiento hay que copiarlos exactamente de su
-    repositorio, o el clasificador se entrenaria sobre imagenes distintas
-    de las que uso el trabajo de referencia.
-
-Uso:
-    python visualizar_eventos.py                      # 1 evento por clase
-    python visualizar_eventos.py --clases TR IC
-    python visualizar_eventos.py --n 3 --canal 2
+Uso: python visualizar_eventos.py [--clases ...] [--n N] [--canal N]
 """
 
 import argparse
@@ -55,15 +35,7 @@ NOVERLAP = 128
 
 
 def stalta_ventana(x, cfg=STALTA, descartar=0):
-    """
-    STA/LTA sobre una ventana. Devuelve intervalos relativos a la muestra
-    `descartar` (el contexto previo se usa solo para calentar la LTA).
-
-    OJO: la LTA de 60 s necesita al menos ese tiempo de senal antes de dar
-    una razon valida. Calcular STA/LTA sobre una ventana corta centrada en
-    el evento produce CERO disparos, aunque el detector si funcione sobre
-    la traza completa. Por eso hay que alimentarlo con contexto previo.
-    """
+    """STA/LTA sobre una ventana, con contexto previo para calentar la LTA."""
     from obspy.signal.trigger import classic_sta_lta, trigger_onset
     from obspy.signal.filter import bandpass
 
@@ -122,9 +94,8 @@ def figura_validacion(a, ev, canal, destino, catalogo=None):
                                                                "gray"),
                alpha=0.25, label=f"catalogo {ev.event_type} ({dur / FS:.1f} s)")
 
-    # otros eventos del catalogo dentro de la ventana: si aparece energia
-    # sin sombrear, el catalogo no es exhaustivo y eso cambia la lectura
-    # de la precision de todos los detectores
+    # otros eventos del catalogo en la ventana (energia sin sombrear = catalogo no
+    # exhaustivo)
     otros = 0
     if catalogo is not None:
         vecinos = catalogo[(catalogo.idx_end > ini) &

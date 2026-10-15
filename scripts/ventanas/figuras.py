@@ -1,20 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-figuras.py
-==========
-
-Figura del barrido de 5 minutos, compartida por test_barrido.py (casos
-sinteticos) y ventanas_traza_real.py (traza real).
-
-Arriba: la onda, el intervalo de referencia, la deteccion fusionada, el
-recorte adaptativo y la ventana fija de 81,92 s.
-Abajo: una barra por cada ventana de 300 s que toca el evento, con los
-disparos del detector dentro de esa ventana. Azul si el disparo cae entero
-dentro de la ventana; naranja si esta cortado en un borde.
-
-Todos los tiempos se dibujan en segundos relativos al inicio del evento de
-referencia.
+Figura del barrido de 5 minutos, usada por test_barrido.py y ventanas_traza_real.py.
 """
 
 import numpy as np
@@ -25,15 +12,7 @@ AZUL, NARANJA, VERDE, GRIS = "#1f77b4", "#ff7f0e", "#2ca02c", "0.55"
 def figura_barrido(t, x, ref, color_ref, etiqueta_ref, ventanas, disparos,
                    contenedoras, fusionados, recorte_adapt, recorte_fijo,
                    titulo, destino):
-    """
-    t, x          : tiempo relativo (s) y senal del tramo visible.
-    ref           : (ini_s, fin_s) del evento de referencia, relativo.
-    ventanas      : lista de (k, ini_s, fin_s) de las ventanas que lo tocan.
-    disparos      : dict k -> lista de (ini_s, fin_s, cortado).
-    contenedoras  : conjunto de k que contienen el evento entero.
-    fusionados    : lista de (ini_s, fin_s) tras la fusion.
-    recorte_adapt, recorte_fijo : (ini_s, fin_s) o None.
-    """
+    """Dibuja la figura del barrido de 5 minutos para un evento."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -42,7 +21,7 @@ def figura_barrido(t, x, ref, color_ref, etiqueta_ref, ventanas, disparos,
         2, 1, figsize=(10, 3.2 + 0.28 * len(ventanas)), sharex=True,
         gridspec_kw={"height_ratios": [2.2, 0.35 * len(ventanas) + 0.6]})
 
-    # --- panel superior: onda y resultado ------------------------------
+    # panel superior: onda y resultado
     esc = float(np.percentile(np.abs(x), 99.5)) or 1.0
     ax.plot(t, np.clip(x, -esc, esc), lw=0.3, color="0.25")
     ax.axvspan(ref[0], ref[1], color=color_ref, alpha=0.15, label=etiqueta_ref)
@@ -61,7 +40,7 @@ def figura_barrido(t, x, ref, color_ref, etiqueta_ref, ventanas, disparos,
     ax.legend(loc="lower right", fontsize=7, ncol=2, framealpha=0.9)
     ax.set_title(titulo, fontsize=8)
 
-    # --- panel inferior: una barra por ventana -------------------------
+    # panel inferior: una barra por ventana
     for fila, (k, a, b) in enumerate(ventanas):
         y = len(ventanas) - 1 - fila
         bx.barh(y, b - a, left=a, height=0.62, color="0.93",

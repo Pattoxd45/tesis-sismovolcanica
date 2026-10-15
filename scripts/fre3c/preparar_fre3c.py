@@ -1,39 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-preparar_fre3c.py
-=================
+Prepara FRE (Z, N, E) desde los crudos sobre la grilla de la traza de Zenodo,
+filtrada en 1-15 y 1-45 Hz, y marca los eventos del catalogo.
 
-Prepara la estacion FRE con sus tres componentes reales (Z, N, E) a partir
-de los datos crudos (datos/crudos/FRE_*.npy), sobre la grilla de muestras
-de la traza de Zenodo, para que el catalogo de referencia se use tal cual.
-
-Pasos:
-  1. Alinea cada componente cruda a la grilla de Zenodo con a_grilla() de
-     verificar_crudos.py (la misma logica ya validada: los huecos se
-     rellenan por interpolacion lineal solo para que el filtro no vea
-     escalones, y se marcan como no validos con un margen de 20 s).
-  2. Mide el desfase de cada tramo por correlacion cruzada de Z filtrada
-     1-15 Hz contra la fila 1 de Zenodo y lo corrige (esperado: 0, 0 y 1
-     muestra). Si el desfase supera 5 muestras se detiene.
-  3. Filtra las tres componentes con cada filtro (1-15 y 1-45 Hz;
-     Butterworth orden 5, fase cero, sosfiltfilt sobre el tramo completo,
-     igual que verificar_crudos.py).
-  4. Marca cada evento del catalogo: guarda de union, si la fila 1 de
-     Zenodo coincide con el crudo dentro del evento (los AV insertados en
-     la traza no estan en el crudo), y si su inicio cae en zona valida.
-  5. V1: valida que Z filtrada 1-15 Hz reproduce la fila 1 de Zenodo en
-     cada tramo (fuera de los eventos que no coinciden). Si la correlacion
-     de algun tramo es menor que 0,99, se detiene.
-
-Salidas en ~/tesis/resultados/fre3c/:
-    fre3c_f1_15.npz, fre3c_f1_45.npz   Z, N, E (float32), valida (bool)
-    eventos_fre3c.csv                  catalogo con banderas e inclusion
-
-Uso:
-    python preparar_fre3c.py
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
+Uso: python preparar_fre3c.py
 """
 
 import os
@@ -46,18 +17,17 @@ from scipy.signal import sosfiltfilt
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 sys.path.insert(0, os.path.join(AQUI, "..", "diagnostico"))
-import fre3c_lib as lib            # noqa: E402
-import verificar_crudos as vc      # noqa: E402
+import fre3c_lib as lib
+import verificar_crudos as vc
 
 FS = lib.FS
 COMPONENTES = ("Z", "N", "E")
-LAG_BUSQUEDA = 50          # +-0,5 s para el desfase por tramo
-LAG_MAX_ACEPTADO = 5       # mas que esto es un problema de alineacion
+LAG_BUSQUEDA = 50          # +-0,5 s
+LAG_MAX_ACEPTADO = 5
 R_MIN_V1 = 0.99            # correlacion minima Z(1-15 Hz) vs fila 1
-BORDE = vc.MARGEN_HUECO     # 20 s excluidos en los bordes de cada tramo para V1
-# Mismos umbrales que verificar_crudos.py para decidir si un evento coincide
-ERR_COINCIDE = vc.ERR_COINCIDE        # 0,05
-ERR_NO_COINCIDE = vc.ERR_NO_COINCIDE  # 0,5
+BORDE = vc.MARGEN_HUECO     # 20 s
+ERR_COINCIDE = vc.ERR_COINCIDE
+ERR_NO_COINCIDE = vc.ERR_NO_COINCIDE
 
 
 def cargar_crudo(nombre):
@@ -66,7 +36,6 @@ def cargar_crudo(nombre):
 
 
 def preparar_tramo(nombre, n_tramo, ini, fin, zen, sos15):
-    """Alinea las tres componentes de un tramo y mide su desfase."""
     d = cargar_crudo(nombre)
     t0 = float(zen[0, ini])
     n = fin - ini
@@ -79,7 +48,6 @@ def preparar_tramo(nombre, n_tramo, ini, fin, zen, sos15):
         info[f"faltantes_{c}"] = n_falt
         info[f"fuera_{c}"] = n_fuera
 
-    # Desfase de Z filtrada 1-15 Hz contra la fila 1 de Zenodo
     zf = sosfiltfilt(sos15, crudo["Z"])
     z1 = np.asarray(zen[1, ini:fin], dtype=float)
     v1 = z1 != 0
@@ -99,12 +67,7 @@ def preparar_tramo(nombre, n_tramo, ini, fin, zen, sos15):
 
 
 def marcar_eventos(cat, z15_global, zen, valida_global):
-    """
-    Compara, evento por evento, Z filtrada 1-15 Hz con la fila 1 de Zenodo,
-    sin factor de escala, igual que por_evento() de verificar_crudos.py (el
-    procedimiento que encontro los AV insertados). Un factor ajustado sobre el
-    tramo completo se sesga con esos mismos AV y ensucia la comparacion.
-    """
+    """Compara cada evento con la fila 1 de Zenodo, sin escala, como verificar_crudos.py."""
     guarda = lib.mascara_guardas()
     tol = int(lib.TOL_S * FS)
     filas = []
@@ -147,7 +110,6 @@ def main():
     if zen.shape[-1] != lib.N_TOTAL:
         raise SystemExit(f"DETENIDO: la traza tiene {zen.shape[-1]} muestras, "
                          f"se esperaban {lib.N_TOTAL}.")
-    # Cortes leidos desde la fila 0, no supuestos
     saltos = np.where(np.abs(np.diff(np.asarray(zen[0])) - 1 / FS) > 1.0)[0] + 1
     print(f"\nCortes leidos de la fila 0: {saltos.tolist()} (esperados {lib.CORTES})")
     if saltos.tolist() != lib.CORTES:
@@ -172,7 +134,6 @@ def main():
 
     valida_g &= lib.mascara_guardas()
 
-    # Filtrado por tramo para cada filtro
     filtrados = {}
     for nombre_f, banda in lib.FILTROS.items():
         sos = lib.sos_filtro(banda)
@@ -183,7 +144,7 @@ def main():
                 y[a:b] = sosfiltfilt(sos, crudo_g[c][a:b]).astype(np.float32)
             filtrados[nombre_f][c] = y
 
-    # Sanidad de N y E: no deben ser copias de Z ni ceros
+    # N y E no deben ser cero ni copia de Z
     print("\nSanidad de componentes (f1_15, muestras validas):")
     z15 = filtrados["f1_15"]
     for k, (a, b) in enumerate(lib.LIMITES_TRAMO, 1):
@@ -199,7 +160,6 @@ def main():
     cat = pd.read_csv(lib.CSV_CATALOGO)
     ev = marcar_eventos(cat, z15["Z"], zen, valida_g)
 
-    # V1: correlacion por tramo fuera de los eventos que no coinciden
     print("\nV1. Z filtrada 1-15 Hz contra la fila 1 de Zenodo "
           "(fuera de los eventos que no coinciden):")
     fuera = np.ones(lib.N_TOTAL, dtype=bool)
@@ -210,7 +170,7 @@ def main():
         z1 = np.asarray(zen[1, a:b], dtype=float)
         x = z15["Z"][a:b].astype(float)
         m = valida_g[a:b] & (z1 != 0) & fuera[a:b]
-        # se excluyen los transitorios del filtro en los bordes del tramo
+        # transitorio del filtro en los bordes
         m[:BORDE] = False
         m[-BORDE:] = False
         rr = float(np.corrcoef(x[m], z1[m])[0, 1])
@@ -223,7 +183,6 @@ def main():
     if not v1_ok:
         raise SystemExit("DETENIDO: V1 no pasa. No se guardan salidas.")
 
-    # Eventos
     print("\nEventos por clase (incluidos / total) y motivos de exclusion:")
     print(pd.crosstab(ev.clase, ev.motivo_exclusion.replace("", "incluido"),
                       margins=True).to_string())
@@ -236,7 +195,6 @@ def main():
     print(f"\nAV sin senal en el crudo: {len(av)} (esperado 17, todos del tramo 1; "
           f"tramos: {sorted(av.tramo.unique().tolist())})")
 
-    # Guardado
     for nombre_f, comps in filtrados.items():
         np.savez(lib.ruta_datos(nombre_f), Z=comps["Z"], N=comps["N"], E=comps["E"],
                  valida=valida_g, banda=np.array(lib.FILTROS[nombre_f]),

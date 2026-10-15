@@ -1,30 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-barrido_modelos.py
-==================
+Barrido de umbrales de PhaseNet y EQTransformer en el nivel 1. La inferencia se
+hace una vez y los picks quedan en cache.
 
-Barre los umbrales de PhaseNet y EQTransformer para que la comparacion
-contra STA/LTA sea justa.
-
-MOTIVO: STA/LTA tiene sus parametros optimizados sobre 324 combinaciones,
-mientras que los modelos profundos corrian con un umbral de confianza
-elegido a ojo. Comparar un detector calibrado contra dos sin calibrar no
-es una comparacion, es un artefacto del ajuste.
-
-ESTRATEGIA DE COSTO: la inferencia (lo caro) se hace UNA vez por
-combinacion modelo x modo, con umbrales muy bajos para capturar todos los
-picks posibles junto con su confianza. Los picks se guardan en disco. El
-barrido de umbrales despues es aritmetica sobre esa tabla y es instantaneo.
-Reejecutar el script reutiliza la cache.
-
-Salida: curva precision-recall del Nivel 1 (deteccion del momento) para
-cada modelo y modo de relleno de componentes.
-
-Uso:
-    python barrido_modelos.py                      # todo
-    python barrido_modelos.py --modelos phasenet
-    python barrido_modelos.py --recalcular         # ignora la cache
+Uso: python barrido_modelos.py [--modelos ...] [--modos ...] [--recalcular]
 """
 
 import argparse

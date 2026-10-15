@@ -1,37 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-anotar_fre3c.py
-===============
+Corre PhaseNet y EQTransformer sobre FRE y guarda las curvas de probabilidad.
 
-Corre PhaseNet y EQTransformer (pesos "original" de SeisBench, los mismos
-de la evaluacion anterior) sobre FRE con sus tres componentes reales, para
-cada filtro preparado por preparar_fre3c.py, y guarda las CURVAS de
-probabilidad completas alineadas a la grilla de Zenodo.
-
-Por que curvas y no picks: ver fre3c_lib.py (punto 1). Con las curvas,
-cada umbral se extrae exacto y sin volver a correr los modelos.
-
-Antes de anotar, el script informa la configuracion base de cada modelo
-tal como la carga SeisBench: default_args, filter_args y filter_kwargs
-(si el modelo filtra por su cuenta), normalizacion, orden de componentes
-y largo de ventana. Eso responde la pregunta "como viene configurado
-EQTransformer" con lo que realmente corre, no con lo que dice el articulo.
-
-Verificacion (V4): en el tramo 2 compara los disparos extraidos de las
-curvas guardadas con los de classify() de SeisBench al umbral 0,3. Deben
-coincidir muestra a muestra; si no, la extraccion propia no es fiel.
-
-Salidas en ~/tesis/resultados/fre3c/:
-    anot_<modelo>_<filtro>.npz   curvas P, S (y Detection en EQTransformer)
-    anot_<modelo>_<filtro>.json  configuracion del modelo y tiempos
-
-Uso:
-    python anotar_fre3c.py                       # ambos modelos y filtros
-    python anotar_fre3c.py --modelos phasenet --filtros f1_15
-    python anotar_fre3c.py --sin-verificar       # omite V4
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
+Uso: python anotar_fre3c.py [--modelos ...] [--filtros ...] [--sin-verificar]
 """
 
 import argparse
@@ -44,7 +16,7 @@ import numpy as np
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
-import fre3c_lib as lib  # noqa: E402
+import fre3c_lib as lib
 
 FS = lib.FS
 PESOS = "original"
@@ -61,7 +33,6 @@ def cargar_modelo(nombre):
 
 
 def configuracion(m, nombre):
-    """Lo que realmente corre: se lee del objeto cargado."""
     import seisbench
     def plano(v):
         try:
@@ -85,7 +56,6 @@ def configuracion(m, nombre):
 
 
 def stream_tramo(datos, a, b):
-    """Stream ObsPy de FRE con Z, N, E; starttime = indice global / FS."""
     from obspy import Stream, Trace, UTCDateTime
     trs = []
     for c in ("Z", "N", "E"):
@@ -100,7 +70,6 @@ def stream_tramo(datos, a, b):
 
 
 def volcar(ann, curvas, a, b):
-    """Copia las trazas de anotacion a las curvas globales, recortando al tramo."""
     for tr in ann:
         etiqueta = tr.stats.channel.split("_")[-1]
         if abs(tr.stats.sampling_rate - FS) > 1e-6:
@@ -116,7 +85,7 @@ def volcar(ann, curvas, a, b):
 
 
 def verificar_v4(m, datos, curvas, nombre):
-    """Compara disparos propios contra classify() en un tramo."""
+    """Compara los disparos propios con classify() de SeisBench en el tramo 2."""
     a, b = lib.LIMITES_TRAMO[TRAMO_V4 - 1]
     st = stream_tramo(datos, a, b)
     kw = dict(P_threshold=UMBRAL_V4, S_threshold=UMBRAL_V4)

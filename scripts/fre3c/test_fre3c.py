@@ -1,18 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-test_fre3c.py
-=============
+Casos sinteticos para fre3c_lib.py y preparar_fre3c.py.
 
-Casos sinteticos de solucion conocida para fre3c_lib.py y para la
-preparacion de un tramo (preparar_fre3c.preparar_tramo). No usa datos
-reales ni los modelos. La solucion de cada caso esta escrita a mano en el
-propio caso, antes de correrlo.
-
-Uso:
-    python test_fre3c.py
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
+Uso: python test_fre3c.py
 """
 
 import os
@@ -23,7 +14,7 @@ import pandas as pd
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
-import fre3c_lib as lib  # noqa: E402
+import fre3c_lib as lib
 
 FS = lib.FS
 S = int(FS)  # muestras por segundo
@@ -40,9 +31,6 @@ def campana(n, centro, ancho, alto):
     return alto * np.exp(-0.5 * ((x - centro) / ancho) ** 2)
 
 
-# ---------------------------------------------------------------------
-# 1. Disparos (replica de SeisBench) y sesgo de la cache a 0,02
-# ---------------------------------------------------------------------
 def test_disparos():
     print("\n1. Disparos")
     n = 20 * S
@@ -54,14 +42,11 @@ def test_disparos():
     ini, fin, pico, valor = lib.disparos(c, 0.02)
     informar("umbral 0,02 (apagado 0,01): los dos arribos se funden en uno",
              list(pico) == [5 * S], f"picos={list(pico)}")
-    # filtro posterior por confianza, como la cache anterior: sigue habiendo uno
     informar("cache 0,02 filtrada a 0,5 conserva un solo arribo (pierde el de 7 s)",
              int((valor >= 0.5).sum()) == 1)
-    # NaN se trata como 0
     c2 = c.copy()
     c2[:2 * S] = np.nan
     informar("NaN se trata como cero", len(lib.disparos(c2, 0.5)[0]) == 2)
-    # por tramo: indices globales y sin cruzar el limite
     curva = np.zeros(30 * S)
     curva[:15 * S] = campana(15 * S, 14.9 * S, 30, 0.8)
     curva[15 * S:] = campana(15 * S, 0.1 * S, 30, 0.8)
@@ -70,9 +55,6 @@ def test_disparos():
              len(p) == 2, f"picos={list(p)}")
 
 
-# ---------------------------------------------------------------------
-# 2. Agrupacion anclada
-# ---------------------------------------------------------------------
 def test_agrupar():
     print("\n2. Agrupacion anclada de P y S")
     g = lib.agrupar_anclado([1002 + 2 * S, 1000 + 4 * S + 2], 5 * S)
@@ -84,9 +66,6 @@ def test_agrupar():
              list(g) == [0, 8 * S, 16 * S], f"{list(g)}")
 
 
-# ---------------------------------------------------------------------
-# 3. Emparejamiento
-# ---------------------------------------------------------------------
 def test_emparejar():
     print("\n3. Emparejamiento uno a uno")
     tol = 5 * S
@@ -102,9 +81,6 @@ def test_emparejar():
              a[0] == 0 and list(u) == [True, False])
 
 
-# ---------------------------------------------------------------------
-# 4. Clasificacion de detecciones y metricas
-# ---------------------------------------------------------------------
 def test_evaluar():
     print("\n4. Clasificacion de detecciones y metricas")
     n = 2000 * S
@@ -116,17 +92,16 @@ def test_evaluar():
         dict(ini=500 * S, fin=508 * S, clase="IC"),
         dict(ini=700 * S, fin=730 * S, clase="LP"),       # no se detecta
     ])
-    # AV sin senal en el crudo: no entra en zona de eventos con senal
     zona_ini = np.r_[eventos.ini.to_numpy() - 5 * S]
     zona_fin = np.r_[eventos.fin.to_numpy()]
     onsets = np.array([
-        101 * S,        # acierto TR
-        130 * S,        # interna (30 s dentro del TR)
-        301 * S,        # acierto VT
-        303 * S,        # interna (segunda deteccion del VT: cae dentro del evento)
-        500 * S,        # acierto IC (no volcanico)
-        900 * S,        # externa (por ejemplo, sobre un AV sin senal)
-        1000 * S,       # externa
+        101 * S,
+        130 * S,
+        301 * S,
+        303 * S,
+        500 * S,
+        900 * S,
+        1000 * S,
         1550 * S,       # zona no valida: se descarta
     ])
     res = lib.evaluar(onsets, eventos, zona_ini, zona_fin, valida)
@@ -149,7 +124,6 @@ def test_evaluar():
              abs(tot["fp_h"] - 2 / horas) < 1e-9)
     informar("desfase del acierto TR = +1 s",
              abs(res["dt"][0] - 1.0) < 1e-12)
-    # restriccion a un subconjunto de eventos y onsets
     me = eventos.clase.isin(["TR"]).to_numpy()
     mo = res["onsets"] < 200 * S
     filas, tot = lib.resumir(res, eventos, horas, me, mo)
@@ -174,14 +148,11 @@ def test_wilson_y_mascaras():
     informar("dentro_de_intervalos con intervalos solapados", list(d) == [True, True, False, False])
 
 
-# ---------------------------------------------------------------------
-# 6. Preparacion de un tramo con huecos y desfase de una muestra
-# ---------------------------------------------------------------------
 def test_preparar_tramo():
     print("\n6. Preparacion de un tramo sintetico (huecos y desfase de 1 muestra)")
     try:
         import preparar_fre3c as pf
-    except Exception as ex:  # noqa: BLE001
+    except Exception as ex:
         informar("importar preparar_fre3c", False, f"{type(ex).__name__}: {ex}")
         return
     from scipy.signal import sosfiltfilt
@@ -200,7 +171,7 @@ def test_preparar_tramo():
     crudo["tiempos_unix"] = {c: t_full[~quitar] for c in "ZNE"}
     crudo["fs"] = FS
     crudo["estacion"] = "FRE"
-    # Zenodo: Z filtrada 1-15 Hz desplazada una muestra (como el tramo 3)
+    # fila 1 simulada: Z filtrada y desplazada una muestra
     sos15 = lib.sos_filtro(lib.FILTROS["f1_15"])
     zf = sosfiltfilt(sos15, base["Z"].astype(np.int32).astype(float))
     fila1 = np.zeros(n)
@@ -219,7 +190,7 @@ def test_preparar_tramo():
              and valida[200 * S:400 * S].all())
     z = sosfiltfilt(sos15, out["Z"])
     m = valida & (fila1 != 0)
-    m[:20 * S] = False   # transitorio del filtro en los bordes del tramo
+    m[:20 * S] = False   # bordes del tramo
     m[-20 * S:] = False
     r = np.corrcoef(z[m], fila1[m])[0, 1]
     informar("tras corregir el desfase, Z filtrada reproduce la fila 1 lejos de bordes "
@@ -232,7 +203,7 @@ def test_preparar_tramo():
 def main():
     print("TEST fre3c")
     try:
-        import obspy  # noqa: F401
+        import obspy
         test_disparos()
     except ImportError:
         print("\n1. Disparos: OMITIDO (falta obspy en este entorno)")

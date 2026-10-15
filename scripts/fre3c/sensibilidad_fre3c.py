@@ -1,43 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-sensibilidad_fre3c.py
-=====================
+Sensibilidad por clase (nivel 1), FP/h y FDR por detector, filtro y umbral.
 
-Tabla de sensibilidad por clase (prioridad de la revision) para la
-deteccion con FRE y sus tres componentes reales, por detector, filtro y
-umbral, con falsos positivos por hora y tasa de falsos descubrimientos.
-
-Es el NIVEL 1, deteccion del inicio: un evento cuenta como detectado si una
-deteccion cae a menos de 5 s de su inicio en el catalogo (asignacion uno a
-uno). Se mide sobre la traza continua de FRE, contra el catalogo.
-
-Metrica principal: sensibilidad sobre los eventos volcanicos (VT, LP, TR).
-AV e IC se reportan aparte, con su propia sensibilidad, porque iran a la
-clase de rechazo del clasificador: sus aciertos no son falsos positivos ni
-entran en la sensibilidad volcanica. Definiciones en fre3c_lib.py.
-
-Flujos de deteccion:
-    PN-P    arribos P de PhaseNet          PN-S    arribos S de PhaseNet
-    PN-PS   P y S unidos (agrupacion anclada de 5 s, gana el mas temprano)
-    EQT-D   inicio de cada intervalo de la curva de deteccion de EQTransformer
-    EQT-P, EQT-S, EQT-PS   igual que PhaseNet, con los arribos de EQTransformer
-
-Auditoria del calculo anterior: PN-PS-ant y EQT-PS-ant extraen los arribos
-como lo hacia la cache de barrido_modelos.py (classify con umbral 0,02 y
-filtro posterior por confianza). La diferencia con PN-PS y EQT-PS, sobre
-los MISMOS datos, mide el sesgo de ese procedimiento.
-
-Salidas en ~/tesis/resultados/fre3c/:
-    sens_clase.csv     una fila por flujo x filtro x umbral x tramo x clase
-    sens_totales.csv   una fila por flujo x filtro x umbral x tramo
-    curvas_sens_fdr.png y curva_<flujo>_<filtro>.png
-    resumen_fre3c.txt  lo mismo que se imprime
-
-Uso:
-    python sensibilidad_fre3c.py
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
+Uso: python sensibilidad_fre3c.py
 """
 
 import io
@@ -50,7 +16,7 @@ import pandas as pd
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
-import fre3c_lib as lib  # noqa: E402
+import fre3c_lib as lib
 
 FS = lib.FS
 TOL = int(round(lib.TOL_S * FS))
@@ -75,7 +41,6 @@ NOMBRE_FILTRO = {"f1_15": "1-15 Hz", "f1_45": "1-45 Hz"}
 
 
 def onsets_de(flujo, curvas, umbral, cache):
-    """Instantes detectados por un flujo a un umbral."""
     modelo, etiquetas, forma = FLUJOS[flujo]
     partes = []
     for et in etiquetas:
@@ -234,7 +199,6 @@ def figuras(sc, st):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    # Paleta categorica validada (slots 1-3) y tinta para total y FDR
     color = {"VT": "#2a78d6", "LP": "#eb6834", "TR": "#1baf7a"}
     tinta, tinta2, rejilla = "#0b0b0b", "#52514e", "#e4e3df"
 
@@ -251,7 +215,6 @@ def figuras(sc, st):
         g = c[c.clase == "volcanico"].sort_values("umbral")
         lineas.append(("Volcanico", g.umbral, g.sens, dict(color=tinta, lw=3)))
         lineas.append(("FDR", t.umbral, t.fdr, dict(color=tinta2, lw=2, ls="--")))
-        # referencia de la meta de sensibilidad
         ax.axhline(0.95, color=tinta2, lw=0.8, ls=":", zorder=0)
         ax.text(0.99, 0.95, "0,95", ha="right", va="bottom", fontsize=7, color=tinta2,
                 transform=ax.get_yaxis_transform())
@@ -312,7 +275,7 @@ def main():
     eventos = pd.read_csv(lib.RUTA_EVENTOS)
     valida = np.load(lib.ruta_datos("f1_15"))["valida"]
 
-    # Zonas con senal real: todos los eventos que el crudo si contiene
+    # eventos con senal en el crudo, incluidos o no
     con_senal = eventos[eventos.estado_crudo != "no_coincide"]
     zona_ini = (con_senal.ini - TOL).to_numpy()
     zona_fin = con_senal.fin.to_numpy()

@@ -1,62 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-fre3c_lib.py
-============
-
-Funciones comunes de la evaluacion de deteccion con UNA estacion, FRE, y
-sus tres componentes reales (Z, N, E) tomadas de los datos crudos.
-
-Lo usan:
-    preparar_fre3c.py      alinea y filtra los crudos, marca eventos
-    anotar_fre3c.py        corre PhaseNet y EQTransformer y guarda curvas
-    sensibilidad_fre3c.py  tabla de sensibilidad por clase, FP/h y FDR
-    test_fre3c.py          casos sinteticos de solucion conocida
-
-DECISIONES QUE FIJA ESTE MODULO
--------------------------------
-1. Disparos: se replican EXACTAMENTE los de SeisBench
-   (WaveformModel.picks_from_annotations y detections_from_annotations):
-   trigger_onset(curva, umbral, umbral / 2) de ObsPy, y el pico es el
-   maximo de la curva entre el encendido y el apagado, ambos incluidos.
-   Por eso se guardan las curvas completas y no los picks: extraer picks
-   con umbral 0,02 y filtrarlos despues por confianza NO equivale a
-   extraerlos con el umbral alto, porque con 0,02 el apagado ocurre recien
-   bajo 0,01 y dos arribos cercanos quedan fundidos en un solo pick.
-2. Emparejamiento: uno a uno, avido por |dt| creciente, con tolerancia
-   de 5 s respecto del inicio catalogado. Es el mismo criterio que
-   significancia.acertados_onset, para que las cifras sean comparables.
-3. Union P y S: agrupacion ANCLADA. Un grupo empieza en el arribo mas
-   temprano no asignado y absorbe los que caen a <= 5 s de ESE arribo,
-   sin encadenar. El grupo se representa por su arribo mas temprano,
-   porque el nivel 1 mide el inicio del evento.
-4. Clasificacion de cada deteccion que no acierta:
-     interna : cae en [inicio - 5 s, fin] de un evento catalogado con
-               senal (incluido o no). Es senal real: no es falso positivo.
-     externa : todo lo demas. Solo estas son falsos positivos.
-   Los aciertos sobre AV o IC son aciertos de esa clase, no falsos
-   positivos: son eventos reales que el clasificador debe mandar al
-   rechazo.
-5. FDR principal = externas / (aciertos volcanicos + externas).
-   FDR estricto = 1 - aciertos volcanicos / detecciones (cota superior:
-   cuenta como "no descubrimiento" todo lo que no es un acierto VT, LP
-   o TR, incluidos los aciertos AV/IC y las internas).
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
-"""
+"""Funciones comunes de la evaluacion de deteccion con FRE (Z, N, E reales)."""
 
 import os
 
 import numpy as np
 
-# =====================================================================
-# CONSTANTES
-# =====================================================================
 
 FS = 100.0
 N_TOTAL = 3_664_193
 
-# Cortes entre tramos (los mismos de evaluar_detectores.py) y guarda
+# mismos cortes y guarda que evaluar_detectores.py
 CORTES = [2_160_000, 3_240_001]
 GUARDA_S = 30.0
 LIMITES_TRAMO = [(0, 2_160_000), (2_160_000, 3_240_001),
@@ -66,9 +20,7 @@ TOL_S = 5.0
 CLASES = ["VT", "LP", "TR", "AV", "IC"]
 VOLCANICAS = ["VT", "LP", "TR"]
 
-# Filtros a evaluar: Butterworth orden 5, pasabanda, fase cero.
-# f1_15 es el filtro de la traza de Zenodo; f1_45 es la banda con que se
-# entreno EQTransformer.
+# Butterworth orden 5, fase cero. 1-15 Hz: traza de Zenodo; 1-45 Hz: banda de EQTransformer
 FILTROS = {"f1_15": (1.0, 15.0), "f1_45": (1.0, 45.0)}
 
 UMBRALES = [0.02, 0.03, 0.05] + [round(0.05 * i, 2) for i in range(2, 20)]
@@ -97,12 +49,7 @@ def sos_filtro(banda):
     return butter(5, list(banda), btype="bandpass", fs=FS, output="sos")
 
 
-# =====================================================================
-# MASCARAS
-# =====================================================================
-
 def mascara_guardas(n=N_TOTAL, cortes=CORTES, guarda_s=GUARDA_S):
-    """True fuera de las guardas de union (igual que evaluar_detectores)."""
     v = np.ones(n, dtype=bool)
     g = int(guarda_s * FS)
     for c in cortes:
@@ -111,11 +58,7 @@ def mascara_guardas(n=N_TOTAL, cortes=CORTES, guarda_s=GUARDA_S):
 
 
 def desplazar(x, lag, relleno):
-    """
-    Devuelve y con y[k] = x[k - lag]. Convencion de verificar_crudos.py:
-    desfase > 0 significa que la muestra n del crudo corresponde a la
-    muestra n + desfase de Zenodo. Los extremos sin dato quedan en relleno.
-    """
+    """y[k] = x[k - lag] (convencion de desfase de verificar_crudos.py)."""
     y = np.full_like(x, relleno)
     if lag > 0:
         y[lag:] = x[:-lag]
@@ -126,17 +69,9 @@ def desplazar(x, lag, relleno):
     return y
 
 
-# =====================================================================
-# DISPAROS (replica de SeisBench)
-# =====================================================================
-
 def disparos(curva, umbral):
-    """
-    Replica de picks_from_annotations / detections_from_annotations de
-    SeisBench sobre UNA curva contigua.
-
-    Devuelve cuatro arreglos: inicio, fin, muestra del pico y valor del
-    pico de cada disparo. Los NaN (sin anotacion) se tratan como 0.
+    """Disparos como picks_from_annotations de SeisBench: encendido en umbral,
+    apagado en umbral / 2, pico en el maximo. NaN cuenta como 0.
     """
     from obspy.signal.trigger import trigger_onset
 
@@ -158,7 +93,6 @@ def disparos(curva, umbral):
 
 
 def disparos_por_tramo(curva, umbral, limites=LIMITES_TRAMO):
-    """Aplica disparos() por separado en cada tramo y devuelve indices globales."""
     partes = [[], [], [], []]
     for a, b in limites:
         ini, fin, pico, valor = disparos(curva[a:b], umbral)
@@ -170,11 +104,8 @@ def disparos_por_tramo(curva, umbral, limites=LIMITES_TRAMO):
 
 
 def agrupar_anclado(t, tol):
-    """
-    Une arribos cercanos sin encadenar. t: muestras (cualquier orden).
-    Un grupo empieza en el arribo mas temprano no asignado y absorbe los
-    que estan a <= tol muestras de ese arribo. Devuelve el representante
-    de cada grupo (su arribo mas temprano), ordenado.
+    """Une arribos a <= tol del primero del grupo, sin encadenar.
+    Devuelve el arribo mas temprano de cada grupo.
     """
     t = np.sort(np.asarray(t, dtype=np.int64))
     out = []
@@ -185,21 +116,9 @@ def agrupar_anclado(t, tol):
     return np.asarray(out, dtype=np.int64)
 
 
-# =====================================================================
-# EMPAREJAMIENTO
-# =====================================================================
-
 def emparejar(inicios, onsets, tol):
-    """
-    Asignacion uno a uno, avida por |dt| creciente, dentro de +-tol
-    muestras. Mismo criterio que significancia.acertados_onset (lista de
-    candidatos (d, i, j) ordenada), pero buscando los candidatos con
-    searchsorted para que sea rapido con muchos onsets.
-
-    inicios: muestra de inicio de cada evento (orden del catalogo).
-    onsets : muestras detectadas, ordenadas.
-    Devuelve (indice del onset asignado a cada evento o -1,
-              mascara de onsets asignados).
+    """Asignacion uno a uno por |dt| creciente dentro de +-tol (mismo criterio
+    que significancia.acertados_onset).
     """
     inicios = np.asarray(inicios, dtype=np.int64)
     onsets = np.asarray(onsets, dtype=np.int64)
@@ -221,7 +140,6 @@ def emparejar(inicios, onsets, tol):
 
 
 def dentro_de_intervalos(t, inis, fins):
-    """True para cada t que cae en algun [ini, fin] (intervalos cerrados)."""
     t = np.asarray(t, dtype=np.int64)
     if len(inis) == 0 or t.size == 0:
         return np.zeros(t.size, dtype=bool)
@@ -245,17 +163,8 @@ def dentro_de_intervalos(t, inis, fins):
 
 
 def evaluar(onsets, eventos, zona_ini, zona_fin, valida, tol_s=TOL_S):
-    """
-    Empareja y clasifica.
-
-    onsets   : muestras detectadas (se descartan las que caen en zona no
-               valida, igual que coincidencia_onsets).
-    eventos  : DataFrame de eventos INCLUIDOS con columnas ini, clase.
-    zona_ini, zona_fin: intervalos de eventos con senal ([inicio - tol, fin])
-               para decidir si una deteccion no asignada es interna.
-    Devuelve dict con: onsets validos, vector de onset asignado por evento,
-    dt por evento (s, NaN si no acierta) y categoria por onset
-    ("acierto", "interna", "externa").
+    """Empareja onsets con los inicios de los eventos incluidos y clasifica cada
+    onset en acierto, interna (dentro de un evento con senal) o externa (FP).
     """
     tol = int(round(tol_s * FS))
     o = np.unique(np.asarray(onsets, dtype=np.int64))
@@ -274,7 +183,7 @@ def evaluar(onsets, eventos, zona_ini, zona_fin, valida, tol_s=TOL_S):
 
 
 def wilson(k, n, z=1.959963984540054):
-    """Intervalo de confianza del 95 % de Wilson para k aciertos de n."""
+    """IC 95 % de Wilson."""
     if n == 0:
         return float("nan"), float("nan")
     p = k / n
@@ -285,12 +194,7 @@ def wilson(k, n, z=1.959963984540054):
 
 
 def resumir(res, eventos, horas, mascara_eventos=None, mascara_onsets=None):
-    """
-    Resume una evaluacion, opcionalmente restringida a un subconjunto de
-    eventos (por ejemplo, un tramo) y de onsets.
-
-    Devuelve (filas por clase, fila de totales).
-    """
+    """Sensibilidad por clase y totales (FP/h, FDR) para un subconjunto."""
     if mascara_eventos is None:
         mascara_eventos = np.ones(len(eventos), dtype=bool)
     if mascara_onsets is None:
@@ -318,7 +222,7 @@ def resumir(res, eventos, horas, mascara_eventos=None, mascara_onsets=None):
 
     cat = res["cat"][mascara_onsets]
     n_det = int(cat.size)
-    # aciertos volcanicos: onsets asignados a eventos VT, LP o TR del subconjunto
+    # aciertos sobre eventos VT, LP o TR
     volc_ev = np.isin(clases, VOLCANICAS) & mascara_eventos & acierta
     idx_volc = set(res["asignado"][volc_ev].tolist())
     idx_sel = np.where(mascara_onsets)[0]

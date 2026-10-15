@@ -1,29 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-comparar_detectores.py
-======================
+Compara los tres detectores con un mismo criterio de punto de operacion.
 
-Cierra la comparacion de los tres detectores bajo un criterio unico.
-
-PROBLEMA QUE RESUELVE: hasta ahora STA/LTA tenia su punto de operacion
-elegido optimizando el Nivel 2 (calidad del recorte), mientras que
-PhaseNet y EQTransformer se barrieron sobre el Nivel 1 (deteccion del
-momento). Comparar detectores optimizados con criterios distintos no es
-una comparacion. Este script barre STA/LTA con metricas de onset, une el
-resultado con barrido_modelos.csv y selecciona el punto de operacion de
-los tres con la MISMA regla.
-
-Produce:
-  - resultados/comparacion_nivel1.csv   tabla unificada
-  - resultados/frontera_pareto.csv      frontera precision-recall
-  - resultados/curva_pr_nivel1.png      figura para la tesis
-  - tabla final impresa en consola
-
-Uso:
-    python comparar_detectores.py
-    python comparar_detectores.py --criterio f1
-    python comparar_detectores.py --criterio recall --max-falsos 15
+Uso: python comparar_detectores.py [--criterio f1|recall] [--max-falsos N] [--recalcular-stalta]
 """
 
 import argparse
@@ -193,7 +173,7 @@ def main():
 
     print(f"Catalogo: {len(catalogo)} eventos | {horas:.2f} h validas\n")
 
-    # --- STA/LTA nivel 1 (con cache) --------------------------------
+    # STA/LTA nivel 1 (con cache)
     ruta_st = os.path.join(SALIDA, "barrido_stalta_nivel1.csv")
     if os.path.exists(ruta_st) and not args.recalcular_stalta:
         print(f"Usando cache: {ruta_st}")
@@ -204,7 +184,7 @@ def main():
         t_st.to_csv(ruta_st, index=False)
         print(f"Guardado: {ruta_st}")
 
-    # --- modelos profundos ------------------------------------------
+    # modelos profundos
     ruta_mod = os.path.join(SALIDA, "barrido_modelos.csv")
     if not os.path.exists(ruta_mod):
         print(f"\nFalta {ruta_mod}. Corre primero barrido_modelos.py")
@@ -214,7 +194,7 @@ def main():
     tabla = pd.concat([t_st, t_mod], ignore_index=True)
     tabla.to_csv(os.path.join(SALIDA, "comparacion_nivel1.csv"), index=False)
 
-    # --- frontera de Pareto -----------------------------------------
+    # frontera de Pareto
     fronteras = []
     for modelo, gr in tabla.groupby("modelo"):
         f = frontera_pareto(gr)
@@ -235,7 +215,7 @@ def main():
                   f"{r.falsos_h:>10.2f}{r.err_mae:>9.2f}   "
                   f"{r.modo} k={int(r.min_est)}")
 
-    # --- punto de operacion con criterio unico ----------------------
+    # punto de operacion con criterio unico
     print("\n" + "=" * 86)
     if args.criterio == "f1":
         print("  PUNTO DE OPERACION: mejor F1 (mismo criterio para los tres)")

@@ -1,25 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-test_barrido.py
-===============
+Casos sinteticos para barrido.py. No usa datos reales.
 
-Casos sinteticos de solucion conocida para barrido.py (seccion 2.4 del
-informe, criterio RF-12). No usa datos reales.
-
-Para aislar el PROCEDIMIENTO (barrido + fusion + recorte) del detector, los
-casos 1 a 4 usan un detector oraculo: umbral fijo sobre la envolvente RMS de
-1 s. Sobre la traza completa ese detector delimita bien cada evento
-sintetico, asi que el barrido es correcto si reproduce ese mismo resultado.
-
-Luego se mide STA/LTA con la configuracion real, para comprobar que
-procesarlo por ventanas da lo mismo que sobre la traza completa. El
-comportamiento propio de STA/LTA en cada caso se reporta como medicion,
-no como prueba: es una propiedad del detector, no del barrido.
-
-Uso:
-    python test_barrido.py
-    python test_barrido.py --figura casos_sinteticos.png
+Uso: python test_barrido.py [--figura archivo.png]
 """
 
 import argparse
@@ -29,7 +13,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import barrido as br  # noqa: E402
+import barrido as br
 
 FS = br.FS
 RNG = np.random.default_rng(20261002)
@@ -49,9 +33,7 @@ def informar(nombre, ok, detalle=""):
           (f"\n          {detalle}" if detalle else ""))
 
 
-# ---------------------------------------------------------------------
 # Senal sintetica
-# ---------------------------------------------------------------------
 
 def ruido(n):
     return RNG.normal(0.0, SIGMA_RUIDO, n)
@@ -74,9 +56,7 @@ def insertar(x, ini_s, ev):
     return i, i + len(ev)
 
 
-# ---------------------------------------------------------------------
 # Detector oraculo (envolvente RMS de 1 s con umbral fijo)
-# ---------------------------------------------------------------------
 
 UMBRAL_ORACULO = 0.25
 
@@ -125,10 +105,6 @@ def cubre(iv, verdad, tol_s=1.0):
     t = int(tol_s * FS)
     return iv[0] <= verdad[0] + t and iv[1] >= verdad[1] - t
 
-
-# =====================================================================
-# PRUEBAS
-# =====================================================================
 
 def prueba_ventanas():
     print("\n1. Generacion de ventanas y garantia de cobertura")
@@ -274,7 +250,7 @@ def prueba_stalta():
         verdad.append(insertar(x, t, evento(dur, float(RNG.uniform(0.3, 2.0)),
                                            float(RNG.choice([2.0, 5.0])))))
         t += dur + float(RNG.uniform(60, 400))
-    det = lambda w: br.stalta_en_ventana(w, STALTA)  # noqa: E731
+    det = lambda w: br.stalta_en_ventana(w, STALTA)
     ref = completa(x, cortes, det)
     fus, _, _ = barrer(x, cortes, det)
 
@@ -301,16 +277,12 @@ def prueba_stalta():
     return None
 
 
-# =====================================================================
-# FIGURA
-# =====================================================================
-
 def figura(destino, c2):
     import figuras
 
     x, verdad, fus, crudos, v = c2
     v0 = verdad[0]
-    rel = lambda m: (m - v0) / FS  # noqa: E731
+    rel = lambda m: (m - v0) / FS
     tocan = br.ventanas_que_tocan(verdad[0], verdad[1], v)
     lo, hi = v[tocan[0]][0], v[tocan[-1]][1]
     disparos = {}

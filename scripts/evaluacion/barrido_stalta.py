@@ -1,25 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-barrido_stalta.py
-=================
+Barrido de parametros de STA/LTA, con coincidencia entre estaciones por intervalo.
 
-Busca el punto de operacion de STA/LTA sobre la traza continua del NVChVC,
-en vez de fijar parametros a ojo.
-
-CORRIGE el defecto detectado en el diagnostico: la coincidencia entre
-estaciones se evalua a nivel de INTERVALO con ventana de tolerancia, no
-muestra a muestra. Con disparos de 2-3 s y eventos de 9-88 s, exigir
-solapamiento exacto entre estaciones hundia el recall de 0,43 a 0,05.
-
-Estrategia de costo: la funcion caracteristica (lo caro) se calcula una
-sola vez por combinacion (canal, sta, lta) y se reutiliza para barrer
-umbrales, fusion y coincidencia (lo barato).
-
-Uso:
-    python barrido_stalta.py                    # barrido completo
-    python barrido_stalta.py --rapido           # rejilla reducida
-    python barrido_stalta.py --canales 1 2 3
+Uso: python barrido_stalta.py [--rapido] [--canales ...] [--iou-min X]
 """
 
 import argparse
@@ -34,9 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from evaluar_detectores import (Intervalo, metricas, CLASES, FS,
                                 CORTES, GUARDA_S, NPY, CSV, SALIDA)
 
-# =====================================================================
-# REJILLA DE BUSQUEDA
-# =====================================================================
+# Rejilla de busqueda
 
 REJILLA = dict(
     lta_s=[10.0, 30.0, 60.0],
@@ -68,9 +50,7 @@ def segmentos(n):
     return [(b[i], b[i + 1]) for i in range(len(b) - 1)]
 
 
-# =====================================================================
-# AGREGACION CORREGIDA
-# =====================================================================
+# Agregacion corregida
 
 def fusionar_canal(trigs, gap):
     """Une disparos del MISMO canal separados por menos de gap muestras."""
@@ -87,18 +67,8 @@ def fusionar_canal(trigs, gap):
 
 
 def coincidencia(por_canal, min_est, tol, dur_min, dur_max=40_000):
-    """
-    Agrupa intervalos de distintos canales que se solapan dentro de una
-    tolerancia y emite una deteccion de red si participan >= min_est
-    canales distintos.
-
-    dur_max (en muestras, 400 s por defecto) corta el encadenamiento
-    transitivo: si A toca a B y B toca a C, los tres caen en el mismo
-    grupo, y en periodos activos la cadena llegaba a producir una unica
-    "deteccion" de mas de una hora que absorbia eventos reales.
-
-    por_canal : dict {canal: [(ini, fin), ...]}
-    Devuelve  : lista de Intervalo (union temporal del grupo)
+    """Agrupa intervalos de distintos canales dentro de una tolerancia; emite una
+    deteccion si participan al menos min_est canales.
     """
     todos = [(s, e, ch) for ch, ivs in por_canal.items() for s, e in ivs]
     if not todos:
@@ -127,10 +97,6 @@ def coincidencia(por_canal, min_est, tol, dur_min, dur_max=40_000):
             salida.append(Intervalo(int(ini), int(fin)))
     return salida
 
-
-# =====================================================================
-# BARRIDO
-# =====================================================================
 
 def main():
     ap = argparse.ArgumentParser()
@@ -161,7 +127,7 @@ def main():
     print(f"Catalogo: {len(catalogo)} eventos | {horas:.2f} h validas")
     print(f"Canales : {args.canales}")
 
-    # --- filtrado una sola vez por canal ---------------------------
+    # filtrado una sola vez por canal
     print("\nFiltrando canales ...", flush=True)
     filtrado = {}
     for ch in args.canales:

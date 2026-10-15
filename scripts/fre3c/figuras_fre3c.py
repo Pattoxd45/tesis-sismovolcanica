@@ -1,36 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-figuras_fre3c.py
-================
+Figuras de la evaluacion con FRE.
 
-Figuras para presentar la evaluacion de deteccion con FRE y sus tres
-componentes. Lee lo que ya calculo sensibilidad_fre3c.py (no vuelve a
-correr los modelos) y, para la figura 3, las caches de la Etapa 2.
-
-  fig1_por_clase.png     Sensibilidad por clase, PhaseNet (P y S) contra
-                         EQTransformer (curva de deteccion), umbral 0,10,
-                         filtro 1-15 Hz, con k/n e intervalo de confianza.
-  fig2_costo_fp.png      Sensibilidad volcanica contra falsos positivos por
-                         hora: cuantas falsas alarmas cuesta cada nivel.
-  fig3_antes_ahora.png   Misma estacion (FRE), mismos eventos, mismo
-                         procedimiento; solo cambia la entrada del modelo:
-                         horizontales en cero (Etapa 2), vertical duplicada
-                         o tres componentes reales.
-  fig4_filtros.png       Filtro 1-15 Hz contra 1-45 Hz.
-
-Para la figura 3 se usan los arribos de la estacion FRE (canal 1 de la
-traza de Zenodo) guardados en resultados/cache_picks y
-resultados/cache_detection. Como esa cache se extrajo con umbral 0,02 y
-filtro posterior por confianza, del lado "ahora" se usa el flujo que
-extrae igual (PN-PS-ant), para comparar lo mismo con lo mismo. La auditoria
-de sensibilidad_fre3c.py mostro que ese metodo cambia a lo mas un evento.
-
-Uso:
-    python figuras_fre3c.py
-    python figuras_fre3c.py --umbral 0.10
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
+Uso: python figuras_fre3c.py [--umbral 0.10]
 """
 
 import argparse
@@ -42,14 +15,13 @@ import pandas as pd
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
-import fre3c_lib as lib  # noqa: E402
+import fre3c_lib as lib
 
 FS = lib.FS
 TOL = int(round(lib.TOL_S * FS))
-CANAL_FRE = 1  # fila de Zenodo que corresponde a FRE (verificar_crudos.py)
+CANAL_FRE = 1  # fila de FRE en la traza de Zenodo
 DIR_CACHE = os.path.join(lib.DIR_TESIS, "resultados")
 
-# Colores: paleta categorica validada (slots 7, 5, 6 y 4) y tintas
 COLOR = {"PN-PS": "#6250d6", "PN-P": "#e87ba4", "PN-S": "#008300", "EQT-D": "#eda100"}
 NOMBRE = {"PN-PS": "PhaseNet P y S", "PN-P": "PhaseNet solo P", "PN-S": "PhaseNet solo S",
           "EQT-D": "EQTransformer (deteccion)"}
@@ -86,9 +58,7 @@ def fila(sc, flujo, filtro, umbral, clase, tramo="todos"):
     return r.iloc[0] if len(r) else None
 
 
-# ---------------------------------------------------------------------
 # Figura 1: sensibilidad por clase
-# ---------------------------------------------------------------------
 def fig1(plt, sc, umbral, filtro="f1_15"):
     grupos = ["VT", "LP", "TR", "volcanico", "AV", "IC"]
     etiquetas = ["VT", "LP", "TR", "Total\nvolcanico", "AV", "IC"]
@@ -126,9 +96,7 @@ def fig1(plt, sc, umbral, filtro="f1_15"):
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------
 # Figura 2: costo en falsos positivos
-# ---------------------------------------------------------------------
 def fig2(plt, sc, st, filtro="f1_15"):
     fig, ax = plt.subplots(figsize=(9, 5))
     marcar = [0.05, 0.10, 0.30, 0.50]
@@ -164,9 +132,7 @@ def fig2(plt, sc, st, filtro="f1_15"):
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------
 # Figura 3: antes y ahora en la misma estacion
-# ---------------------------------------------------------------------
 def sens_cache_picks(modelo, modo, inc, zona_ini, zona_fin, valida, umbrales):
     ruta = os.path.join(DIR_CACHE, "cache_picks", f"picks_{modelo}_{modo}.csv")
     if not os.path.exists(ruta):
@@ -260,9 +226,7 @@ def fig3(plt, sc, eventos, valida):
         t.to_csv(os.path.join(lib.DIR_SALIDA, "antes_ahora_fre.csv"), index=False)
 
 
-# ---------------------------------------------------------------------
 # Figura 4: filtros
-# ---------------------------------------------------------------------
 def fig4(plt, sc):
     fig, axs = plt.subplots(1, 2, figsize=(11, 4.4), sharey=True)
     for ax, fl in zip(axs, ["PN-PS", "EQT-D"]):

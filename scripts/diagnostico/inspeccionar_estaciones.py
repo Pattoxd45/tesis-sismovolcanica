@@ -6,7 +6,7 @@ a = np.load(f"{BASE}/NVCh_10h_continuous_trace.npy", mmap_mode="r")
 df = pd.read_csv(f"{BASE}/NVCh_10h_continuous_trace_reference.csv")
 CORTES = [2_160_000, 3_240_001]
 
-# --- 1. Los huecos, son los MISMOS indices? ---
+# 1. Los huecos, son los MISMOS indices?
 print("Comparacion exacta de patrones de hueco (bloque 0:1.000.000)")
 z = {i: (np.asarray(a[i, :1_000_000]) == 0) for i in range(1, 8)}
 print("     " + "".join(f"{j:>7}" for j in range(1, 8)))
@@ -15,7 +15,7 @@ for i in range(1, 8):
     print(f"  {i}  {fila}")
 print("(1.000 = huecos identicos -> misma estacion)")
 
-# --- 2. Correlacion de ENVOLVENTES sobre un evento real ---
+# 2. Correlacion de ENVOLVENTES sobre un evento real
 ev = df.iloc[20]
 s, e = int(ev.idx_start), int(ev.idx_end)
 pad = (e - s) // 2
@@ -30,7 +30,7 @@ for i in range(7):
     print(f"  {i+1}  " + "".join(f"{E[i,j]:>7.2f}" for j in range(7)))
 print("(>0.7 entre canales = misma estacion, 3 componentes)")
 
-# --- 3. Eventos del catalogo por segmento y en los bordes ---
+# 3. Eventos del catalogo por segmento y en los bordes
 bordes = [0] + CORTES + [a.shape[1]]
 print("\nEventos por segmento:")
 for k_ in range(3):
@@ -45,7 +45,7 @@ print(f"\nEventos que cruzan una union: {len(cruzan)}")
 if len(cruzan):
     print(cruzan.to_string())
 
-# --- 4. Duraciones (para dimensionar el clasificador) ---
+# 4. Duraciones (para dimensionar el clasificador)
 dur = (df.idx_end - df.idx_start) / 100
 print("\nDuracion de eventos [s] por clase:")
 print(df.assign(dur=dur).groupby("event_type")["dur"]

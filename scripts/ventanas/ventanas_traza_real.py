@@ -1,33 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ventanas_traza_real.py
-======================
+Aplica el barrido de 5 minutos a la traza real con STA/LTA y lo compara con la
+corrida sobre la traza completa.
 
-Aplica el barrido de 5 minutos (seccion 2.4, tarea B-08) a la traza continua
-real con STA/LTA y lo compara con la corrida sobre la traza completa.
-
-Que mide:
-    - Nivel 2 (calidad del recorte) global, por clase y por tramo, para la
-      traza completa y para el barrido. La hipotesis de la seccion 2.4 es
-      que el barrido no cambia la deteccion: STA/LTA calcula su razon
-      muestra a muestra y la ventana solo es la unidad de entrega.
-    - Cuantas detecciones duran mas de 81,92 s, es decir, cuantas quedarian
-      truncadas si el clasificador recibiera la ventana fija del pool.
-
-Que grafica (en resultados/ventanas/):
-    - Para un TR largo y un VT corto: cada ventana de 300 s que toca el
-      evento, con la onda, el intervalo del catalogo y los disparos de esa
-      ventana, mas un panel final con la deteccion fusionada, el recorte
-      adaptativo y la ventana fija de 81,92 s.
-    - Los espectrogramas del recorte adaptativo y de la ventana fija.
-
-Uso:
-    python ventanas_traza_real.py
-    python ventanas_traza_real.py --evento 57        # indice en el catalogo
-
-Reutiliza la carga, la configuracion STA/LTA, la coincidencia entre
-estaciones y las metricas de evaluacion/evaluar_detectores.py.
+Uso: python ventanas_traza_real.py [--evento N]
 """
 
 import argparse
@@ -41,8 +18,8 @@ import numpy as np
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 sys.path.insert(0, os.path.join(AQUI, "..", "evaluacion"))
-import barrido as br                 # noqa: E402
-import evaluar_detectores as ed      # noqa: E402
+import barrido as br
+import evaluar_detectores as ed
 
 FS = ed.FS
 COLOR = {"VT": "#df8d5e", "LP": "#2ca02c", "TR": "#d62728",
@@ -52,13 +29,9 @@ COLOR = {"VT": "#df8d5e", "LP": "#2ca02c", "TR": "#d62728",
 NPERSEG, NOVERLAP = 256, 128
 
 
-# =====================================================================
-# DETECCION
-# =====================================================================
-
 def stalta_barrido(a, canales, ventanas):
     """STA/LTA por ventana de 300 s, trasladado a indices globales."""
-    det = lambda x: br.stalta_en_ventana(x, ed.STALTA)  # noqa: E731
+    det = lambda x: br.stalta_en_ventana(x, ed.STALTA)
     por_canal, crudos = {}, {}
     for ch in canales:
         print(f"    barrido STA/LTA canal {ch} ({len(ventanas)} ventanas) ...",
@@ -71,9 +44,7 @@ def stalta_barrido(a, canales, ventanas):
     return por_canal, crudos
 
 
-# =====================================================================
-# METRICAS POR AMBITO
-# =====================================================================
+# Metricas por ambito
 
 def tramos(n):
     return ed.segmentos(n)
@@ -113,10 +84,6 @@ def por_tramo(a, catalogo, det, valida):
     return salida
 
 
-# =====================================================================
-# FIGURAS
-# =====================================================================
-
 def elegir_canal(a, ev, canales):
     """Canal con mayor razon de energia entre el evento y los 60 s previos."""
     mejor, r_max = canales[0], -1.0
@@ -145,7 +112,7 @@ def figura_ventanas(a, ev, ch, ventanas, crudos, det, destino):
     import figuras
 
     n = a.shape[-1]
-    rel = lambda m: (m - ev.ini) / FS  # noqa: E731
+    rel = lambda m: (m - ev.ini) / FS
     k_toca = br.ventanas_que_tocan(ev.ini, ev.fin, ventanas)
     lo, hi = ventanas[k_toca[0]][0], ventanas[k_toca[-1]][1]
     disparos = {}
@@ -217,10 +184,6 @@ def figura_espectrogramas(a, ev, ch, det, destino):
     plt.close(fig)
     return True
 
-
-# =====================================================================
-# INFORME
-# =====================================================================
 
 def fila(nombre, r):
     return (f"  {nombre:<22}{r['n_catalogo']:>5}{r['n_detecciones']:>6}"

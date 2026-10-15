@@ -1,29 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-barrido_eqt_nivel2.py
-=====================
+Barrido del umbral de EQTransformer en el nivel 2 (calidad del recorte).
 
-Cierra el ultimo hueco de la etapa de deteccion: barre el umbral de
-EQTransformer sobre el NIVEL 2 (calidad del recorte) para compararlo de
-forma pareja contra STA/LTA, que ya tenia sus parametros optimizados.
-
-POR QUE IMPORTA: el detector existe para recortar eventos que despues
-clasifica el VGG16, asi que la calidad del recorte es el criterio
-decisivo. Hasta ahora STA/LTA ganaba ese eje contra un EQTransformer
-corriendo con un umbral puesto a ojo, lo que no es una comparacion.
-
-ESTRATEGIA DE COSTO: la inferencia se hace UNA vez por modo y se guarda
-la curva Detection completa en disco (~73 MB). El barrido de umbrales
-despues es aritmetica sobre esa curva y es instantaneo.
-
-PhaseNet no entra: no produce canal Detection, no delimita eventos, y esa
-ausencia es en si misma un resultado del trabajo.
-
-Uso:
-    python barrido_eqt_nivel2.py
-    python barrido_eqt_nivel2.py --modos ceros
-    python barrido_eqt_nivel2.py --recalcular
+Uso: python barrido_eqt_nivel2.py [--modos ...] [--canales ...] [--recalcular]
 """
 
 import argparse
@@ -167,7 +147,7 @@ def main():
     print(buenos[cols].head(8).to_string(index=False, float_format=fmt)
           if len(buenos) else "  ninguna combinacion supera recall 0,30")
 
-    # --- comparacion contra STA/LTA -------------------------------
+    # comparacion contra STA/LTA
     ruta_st = os.path.join(SALIDA, "barrido_stalta.csv")
     if os.path.exists(ruta_st):
         st = pd.read_csv(ruta_st)

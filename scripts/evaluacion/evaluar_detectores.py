@@ -1,53 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-evaluar_detectores.py  (v2)
-===========================
+Evaluacion de STA/LTA, PhaseNet y EQTransformer sobre la traza continua en dos
+niveles: deteccion del instante (nivel 1) y calidad del recorte (nivel 2).
+Relleno de componentes por modelo: PhaseNet duplica la vertical y EQTransformer
+usa ceros (lo que mejor rindio a cada uno).
 
-Evaluacion comparativa de detectores de eventos sismo-volcanicos sobre la
-traza continua de 10 h del Complejo Volcanico Nevados de Chillan.
-
-Datos: Zenodo DOI 10.5281/zenodo.17163020 (v4)
-
-EVALUACION EN DOS NIVELES
--------------------------
-El diagnostico empirico mostro que los detectores no producen la misma
-clase de salida, asi que compararlos con una sola metrica es injusto:
-
-    STA/LTA        -> intervalos (inicio y fin)
-    EQTransformer  -> intervalos (canal Detection) + picks P/S
-    PhaseNet       -> solo picks P/S, no delimita el fin del evento
-
-NIVEL 1 - DETECCION DEL MOMENTO (los tres compiten en igualdad)
-    Se pregunta si el detector marco un inicio dentro de +-T segundos del
-    inicio catalogado, para T = 1, 2 y 5 s. Metricas: recall de onset,
-    onsets falsos por hora, sesgo y dispersion del error de onset.
-
-NIVEL 2 - CALIDAD DEL RECORTE (solo detectores que delimitan)
-    IoU, error de offset y sesgo de duracion. PhaseNet queda fuera por
-    construccion, y eso mismo es un resultado.
-
-RELLENO DE COMPONENTES
-----------------------
-Los datos son de UNA componente (vertical) por estacion, pero los modelos
-esperan tripletas Z-N-E. Medido sobre eventos de prueba:
-
-    PhaseNet      : con ceros queda CIEGO (P max 0,108, cero picks).
-                    Con la vertical duplicada, P max 0,910. -> "duplicar"
-    EQTransformer : con ceros Detection llega a 0,98; duplicando cae
-                    a 0,36. -> "ceros"
-
-La estrategia optima depende del modelo. Por eso el modo se fija por
-detector y se puede forzar con --componentes para el analisis de
-sensibilidad.
-
-Uso:
-    python evaluar_detectores.py --detectores stalta
-    python evaluar_detectores.py --detectores stalta phasenet eqtransformer
-    python evaluar_detectores.py --detectores phasenet --componentes ceros
-    python evaluar_detectores.py --autotest
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
+Uso: python evaluar_detectores.py --detectores stalta phasenet eqtransformer
+     python evaluar_detectores.py --autotest
 """
 
 import argparse
@@ -59,9 +19,6 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-# =====================================================================
-# CONFIGURACION
-# =====================================================================
 
 BASE = "/home/patto/tesis/datos/zenodo"
 NPY = f"{BASE}/NVCh_10h_continuous_trace.npy"
@@ -70,37 +27,34 @@ SALIDA = "/home/patto/tesis/resultados"
 
 FS = 100.0  # Hz
 
-# Estaciones utilizables. Se excluye la 8 (identicamente cero), la 7
-# (70,8% sin dato) y la 4 (sigma ~100x menor: ganancia anomala).
-# Debe ser el MISMO conjunto para los tres detectores.
+# Estaciones utilizables: se excluyen la 8 (cero), la 7 (70,8 % sin dato) y la 4
+# (ganancia anomala).
 CANALES = [1, 2, 3, 5, 6]
 
 # La traza concatena tres segmentos de fechas distintas (saltos de anos).
 CORTES = [2_160_000, 3_240_001]
 GUARDA_S = 30.0
 
-# --- Nivel 1: deteccion del momento --------------------------------
+# Nivel 1: deteccion del momento
 TOL_ONSET_S = [1.0, 2.0, 5.0]   # tolerancias reportadas
 TOL_RED_ONSET_S = 3.0           # agrupacion de onsets entre estaciones
 
-# --- Nivel 2: calidad del recorte ----------------------------------
+# Nivel 2: calidad del recorte
 IOU_MIN = 0.30
 
-# --- Agregacion a nivel de red -------------------------------------
+# Agregacion a nivel de red
 MIN_ESTACIONES = 2
 TOL_COINCIDENCIA_S = 5.0
 FUSION_S = 5.0
 DUR_MIN_S = 3.0
-# Tope de duracion de una deteccion de red. El evento mas largo del
-# catalogo dura 240,8 s (clase TR); 400 s deja margen holgado y corta el
-# encadenamiento transitivo que producia "detecciones" de mas de una hora.
+# Tope de duracion de una deteccion de red: corta el encadenamiento transitivo.
 DUR_MAX_S = 400.0
 
-# --- STA/LTA (optimo del barrido de 324 combinaciones) -------------
+# STA/LTA (optimo del barrido de 324 combinaciones)
 STALTA = dict(sta_s=2.0, lta_s=60.0, thr_on=4.0, thr_off=1.05,
               banda=(1.0, 20.0))
 
-# --- Modelos SeisBench ---------------------------------------------
+# Modelos SeisBench
 PESOS = {"phasenet": "original", "eqtransformer": "original"}
 COMPONENTES_POR_MODELO = {"phasenet": "duplicar", "eqtransformer": "ceros"}
 UMBRAL_PROB = 0.30   # sobre la curva Detection (solo EQTransformer)
@@ -109,9 +63,7 @@ UMBRAL_PICK = 0.20   # confianza minima de un pick
 CLASES = ["VT", "LP", "TR", "AV", "IC"]
 
 
-# =====================================================================
 # NUCLEO (testeable sin SeisBench)
-# =====================================================================
 
 @dataclass
 class Intervalo:
@@ -161,20 +113,8 @@ def fusionar_canal(trigs, gap):
 def coincidencia(por_canal, valida, min_est=MIN_ESTACIONES,
                  tol_s=TOL_COINCIDENCIA_S, dur_min_s=DUR_MIN_S,
                  dur_max_s=DUR_MAX_S):
-    """
-    Consolida intervalos de cada canal en detecciones de red.
-
-    La coincidencia se evalua por INTERVALO con ventana de tolerancia y
-    no muestra a muestra: los disparos duran pocos segundos y llegan
-    desfasados entre estaciones. Exigir solapamiento exacto hundia el
-    recall de 0,59 a 0,05.
-
-    TOPE DE DURACION: el agrupamiento es transitivo (si A toca a B y B
-    toca a C, los tres caen en el mismo grupo). En periodos sismicamente
-    activos con varios canales la cadena se propaga y puede producir una
-    unica "deteccion" de decenas de minutos, que ademas absorbe eventos
-    reales y los convierte en falsos negativos. Cuando un grupo excede
-    dur_max_s se corta en bloques, en el hueco interno mas ancho.
+    """Consolida intervalos de cada canal en detecciones de red (por intervalo, con
+    tolerancia y tope de duracion).
     """
     tol = int(tol_s * FS)
     dur_min = int(dur_min_s * FS)
@@ -210,9 +150,8 @@ def coincidencia(por_canal, valida, min_est=MIN_ESTACIONES,
 
 def coincidencia_onsets(por_canal, valida, min_est=MIN_ESTACIONES,
                         tol_s=TOL_RED_ONSET_S):
-    """
-    Agrupa onsets (instantes) de distintas estaciones y emite un onset de
-    red por grupo, usando la MEDIANA del grupo como estimador robusto.
+    """Agrupa onsets (instantes) de distintas estaciones y emite un onset de red por
+    grupo, usando la MEDIANA del grupo como estimador robusto.
     """
     tol = int(tol_s * FS)
     todos = sorted((int(t), ch) for ch, d in por_canal.items()
@@ -239,14 +178,11 @@ def coincidencia_onsets(por_canal, valida, min_est=MIN_ESTACIONES,
     return sorted(salida)
 
 
-# ---------------------------------------------------------------------
 # NIVEL 1: metricas de deteccion del momento
-# ---------------------------------------------------------------------
 
 def metricas_onset(catalogo, onsets, horas, tolerancias=TOL_ONSET_S):
-    """
-    Empareja cada evento del catalogo con el onset detectado mas cercano
-    a su inicio, dentro de la tolerancia. Asignacion 1 a 1.
+    """Empareja cada evento del catalogo con el onset detectado mas cercano a su inicio,
+    dentro de la tolerancia.
     """
     onsets = np.asarray(sorted(onsets), dtype=np.int64)
     res = {"n_catalogo": len(catalogo), "n_onsets": int(onsets.size)}
@@ -296,9 +232,7 @@ def metricas_onset(catalogo, onsets, horas, tolerancias=TOL_ONSET_S):
     return res
 
 
-# ---------------------------------------------------------------------
 # NIVEL 2: metricas de calidad del recorte
-# ---------------------------------------------------------------------
 
 def emparejar(catalogo, detecciones, iou_min=IOU_MIN):
     cand = []
@@ -381,10 +315,6 @@ def metricas(catalogo, detecciones, horas_validas, iou_min=IOU_MIN):
     return res, pares, perdidos, fp
 
 
-# =====================================================================
-# CARGA
-# =====================================================================
-
 def cargar():
     a = np.load(NPY, mmap_mode="r")
     df = pd.read_csv(CSV)
@@ -406,10 +336,6 @@ def segmentos(n):
     b = [0] + CORTES + [n]
     return [(b[i], b[i + 1]) for i in range(len(b) - 1)]
 
-
-# =====================================================================
-# DETECTORES
-# =====================================================================
 
 def _stream(datos, ini_global, modo, estacion="S1"):
     """Stream de ObsPy alineado a indices de muestra (starttime = ini/FS)."""
@@ -457,14 +383,8 @@ def detector_stalta(a, canales, cfg=STALTA):
 
 
 def detector_seisbench(a, canales, nombre, modo):
-    """
-    PhaseNet o EQTransformer (CPU).
-
-    Onsets   : picks de classify(). Se admiten P y S como marcadores de
-               momento, porque los eventos volcanicos LP y TR a menudo no
-               tienen un arribo P impulsivo identificable.
-    Intervalos: solo si el modelo entrega un canal Detection. PhaseNet no
-               lo tiene, y por eso queda fuera del Nivel 2.
+    """PhaseNet o EQTransformer: onsets desde los picks P y S; intervalos desde la curva
+    Detection si existe.
     """
     import seisbench.models as sbm
 
@@ -483,7 +403,7 @@ def detector_seisbench(a, canales, nombre, modo):
                 continue
             st = _stream(x, ini, modo, estacion=f"S{ch}")
 
-            # --- onsets: picks ---
+            # onsets: picks
             try:
                 out = modelo.classify(st)
                 for p in getattr(out, "picks", []):
@@ -496,7 +416,7 @@ def detector_seisbench(a, canales, nombre, modo):
             except Exception as ex:
                 print(f"      aviso: classify() fallo ({type(ex).__name__})")
 
-            # --- intervalos: canal Detection, si existe ---
+            # intervalos: canal Detection, si existe
             ann = modelo.annotate(st)
             canal_det = next((tr for tr in ann
                               if tr.stats.channel.endswith("Detection")), None)
@@ -514,10 +434,6 @@ def detector_seisbench(a, canales, nombre, modo):
                       "onsets": sorted(onsets)}
     return salida
 
-
-# =====================================================================
-# INFORME
-# =====================================================================
 
 def imprimir_nivel1(nombre, res):
     print(f"\n{'=' * 70}")
@@ -568,10 +484,6 @@ def imprimir_nivel2(nombre, res):
               f"{d['onset_mae_s']:>10.2f}{d['iou_medio']:>8.3f}"
               f"{d['dur_mediana_s']:>10.1f}")
 
-
-# =====================================================================
-# AUTOTEST
-# =====================================================================
 
 def autotest():
     print("AUTOTEST\n")
@@ -625,10 +537,6 @@ def autotest():
     imprimir_nivel2("autotest", r2)
     print("\nTodos los tests pasaron.")
 
-
-# =====================================================================
-# MAIN
-# =====================================================================
 
 def main():
     p = argparse.ArgumentParser()

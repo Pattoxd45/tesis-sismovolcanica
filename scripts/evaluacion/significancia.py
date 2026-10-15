@@ -1,30 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-significancia.py
-================
+Intervalos de confianza por bootstrap pareado para la sensibilidad de cada
+detector y sus diferencias, y robustez del nivel 2 frente al umbral de IoU.
 
-Ultimo pendiente de la etapa de deteccion. Responde dos preguntas que un
-evaluador va a hacer y que hasta ahora no estaban contestadas:
-
-  1. Las diferencias entre detectores, son reales o son ruido estadistico?
-     Con 203 eventos, una diferencia de recall de 0,04 puede no significar
-     nada. Se calculan intervalos de confianza por bootstrap y, sobre todo,
-     el intervalo de la DIFERENCIA entre pares de detectores: si incluye el
-     cero, no se puede afirmar que uno sea mejor que otro.
-
-  2. Las conclusiones dependen del umbral de IoU = 0,30 que se eligio?
-     Se recalculan las metricas del Nivel 2 con IoU entre 0,10 y 0,50. Si
-     el orden entre detectores se mantiene, la conclusion es robusta; si
-     se invierte, el umbral estaba haciendo el trabajo.
-
-El bootstrap es pareado: se remuestrean los MISMOS indices de evento para
-todos los detectores, que es lo correcto porque los tres se evaluaron
-sobre el mismo catalogo.
-
-Uso:
-    python significancia.py
-    python significancia.py --n-boot 5000
+Uso: python significancia.py [--n-boot N]
 """
 
 import argparse
@@ -61,9 +41,7 @@ OP_NIVEL2 = {
 }
 
 
-# ---------------------------------------------------------------------
 # Reconstruccion de las salidas de cada detector
-# ---------------------------------------------------------------------
 
 def stalta_por_canal(a, canales, cfg):
     from obspy.signal.trigger import classic_sta_lta, trigger_onset
@@ -115,9 +93,7 @@ def eqt_intervalos(modo, umbral, fusion_s, canales):
     return salida
 
 
-# ---------------------------------------------------------------------
 # Emparejamiento -> vector booleano por evento
-# ---------------------------------------------------------------------
 
 def acertados_onset(catalogo, onsets, tol_s=TOL_ONSET_S):
     """Devuelve (vector booleano por evento, n_onsets, n_acertados)."""
@@ -147,9 +123,7 @@ def acertados_iou(catalogo, detecciones, iou_min):
     return v, len(detecciones), len(pares)
 
 
-# ---------------------------------------------------------------------
 # Bootstrap
-# ---------------------------------------------------------------------
 
 def ic_bootstrap(v, n_boot, rng):
     """IC 95% de la proporcion de aciertos, remuestreando eventos."""
@@ -191,7 +165,7 @@ def main():
     print(f"Catalogo: {len(catalogo)} eventos | {horas:.2f} h")
     print(f"Bootstrap: {args.n_boot} remuestreos pareados\n")
 
-    # ---------- NIVEL 1 ----------
+    # Nivel 1
     print("Reconstruyendo salidas del Nivel 1 ...", flush=True)
     aciertos, resumen = {}, []
 
@@ -241,7 +215,7 @@ def main():
             print(f"  {na:<14} - {nb:<14} = {m:+.3f}  "
                   f"IC [{lo:+.3f} , {hi:+.3f}]   significativa: {signif}")
 
-    # ---------- NIVEL 1 POR CLASE ----------
+    # Nivel 1 por clase
     clases_ev = np.array([ev.clase for ev in catalogo])
 
     print("\n" + "=" * 78)
@@ -295,7 +269,7 @@ def main():
     print(f"\n  Comparaciones significativas: {n_signif} de "
           f"{len(CLASES) * len(nombres) * (len(nombres) - 1) // 2}")
 
-    # ---------- NIVEL 2: sensibilidad al IoU ----------
+    # NIVEL 2: sensibilidad al IoU
     print("\n" + "=" * 78)
     print("  NIVEL 2 - SENSIBILIDAD AL UMBRAL DE IoU")
     print("=" * 78)

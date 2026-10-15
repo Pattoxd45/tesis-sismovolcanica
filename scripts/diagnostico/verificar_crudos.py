@@ -1,25 +1,5 @@
-# Verifica los archivos crudos que envio Ricardo (datos/crudos/FRE_*.npy)
-# contra la traza continua de Zenodo.
-#
-# Pasos:
-#   1. Inspeccion sin supuestos: estructura, forma, dtype, rangos, ceros,
-#      vectores de tiempo, huecos y componentes disponibles.
-#   2. Validacion del filtro con un caso sintetico de solucion conocida
-#      (senoides de 0,5, 5 y 30 Hz: tras el filtro debe quedar solo 5 Hz).
-#   3. Filtrado de cada componente cruda con el filtro de Ricardo y
-#      emparejamiento contra las filas 1 a 8 del tramo de Zenodo por
-#      correlacion cruzada: fila que mejor corresponde, desfase, correlacion
-#      maxima y error relativo tras alinear con factor de escala.
-#   4. Desfase local por ventanas de 300 s, para ver si la alineacion se
-#      mantiene a lo largo del tramo o cambia despues de los huecos (solo
-#      para las componentes con correspondencia global, |r| >= 0,9).
-#   5. Coincidencia evento por evento del catalogo de Zenodo entre la fila
-#      emparejada y el crudo filtrado, para localizar donde difieren.
-#
-# El filtro NO se ajusta para forzar la coincidencia: es el que envio Ricardo.
-#
-# Nota de seguridad: los .npy crudos son objetos pickle (dict). Se revisaron
-# sus opcodes antes de cargarlos: solo referencian clases de numpy.
+# Verifica los crudos de FRE (datos/crudos/FRE_*.npy) contra la traza de Zenodo:
+# filtro, fila que corresponde, desfase y coincidencia evento por evento.
 import os
 import numpy as np
 import pandas as pd
@@ -61,9 +41,7 @@ def huecos(t):
     return np.where(np.abs(dt - 1 / FS) > 1e-4)[0], dt
 
 
-# ----------------------------------------------------------------------------
 # 1. Inspeccion
-# ----------------------------------------------------------------------------
 def inspeccionar(nombre, d):
     print(f"\n### {nombre}")
     print(f"tipo del objeto cargado: {type(d).__name__}; claves: {list(d.keys())}")
@@ -94,9 +72,7 @@ def inspeccionar(nombre, d):
                 print(f"         {i:>9,}  {utc(t[i])}  {dt[i] - 1 / FS:6.2f} s")
 
 
-# ----------------------------------------------------------------------------
 # 2. Validacion sintetica del filtro
-# ----------------------------------------------------------------------------
 def amplitud(x, f, t):
     # Amplitud de la componente de frecuencia f por proyeccion en seno y coseno
     return 2 * np.abs(np.mean(x * np.exp(-2j * np.pi * f * t)))
@@ -126,13 +102,10 @@ def validar_filtro():
     return ok
 
 
-# ----------------------------------------------------------------------------
 # 3. Emparejamiento contra Zenodo
-# ----------------------------------------------------------------------------
 def a_grilla(x, t, t0_zen, n_zen):
-    # Ubica cada muestra cruda en la grilla de Zenodo segun su tiempo Unix.
-    # Los huecos se rellenan por interpolacion lineal (solo para que el filtro
-    # no vea escalones) y se marcan como no validos, con un margen a cada lado.
+    # Ubica cada muestra cruda en la grilla de Zenodo; los huecos se interpolan solo
+    # para el filtro y quedan como no validos.
     k = np.round((t - t0_zen) * FS).astype(np.int64)
     dentro = (k >= 0) & (k < n_zen)
     k, xv = k[dentro], x[dentro].astype(float)
@@ -282,9 +255,7 @@ def emparejar(d, zen, n_tramo, ini, fin):
     return mejores, filas
 
 
-# ----------------------------------------------------------------------------
 # 5. Coincidencia por evento del catalogo
-# ----------------------------------------------------------------------------
 def por_evento(cat, n_tramo, ini, fin, mejores, filas):
     # Compara, dentro de cada evento del catalogo, la fila de Zenodo emparejada
     # con la componente cruda filtrada, en el desfase global medido.

@@ -1,36 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-diagnostico_tr_fre3c.py
-=======================
+Nivel de azar de la sensibilidad y diagnostico de los TR perdidos.
 
-Dos preguntas antes de cambiar nada (medir antes de ajustar):
-
-1. NIVEL DE AZAR. Con muchas falsas alarmas, algunas caen por casualidad a
-   menos de 5 s del inicio de un evento y cuentan como acierto. Si las
-   detecciones fuera de eventos llegan como un proceso de Poisson de tasa
-   lambda (FP/h / 3600), la probabilidad de que al menos una caiga en la
-   ventana de 10 s de un evento es p = 1 - exp(-lambda * 10 s). La
-   sensibilidad corregida por azar es (s - p) / (1 - p). Es una
-   aproximacion: las falsas alarmas reales se agrupan cerca de los eventos
-   (codas, replicas), asi que el azar real puede ser algo mayor.
-
-2. POR QUE SE PIERDEN LOS TR. Para cada TR incluido, con PhaseNet P y S:
-   si acierta, con que desfase; si no, cuanto llega a valer la curva cerca
-   del inicio (que tan lejos queda del umbral), cuando aparece la primera
-   deteccion dentro del evento y cuantas hay. Ademas, la sensibilidad de TR
-   si se aceptara un aviso tardio (ventana [inicio - 5 s, inicio + T]),
-   junto a su nivel de azar, para ver si los TR se detectan tarde (arranque
-   emergente) o no se detectan.
-
-Lee las curvas guardadas por anotar_fre3c.py y los resultados de
-sensibilidad_fre3c.py. No vuelve a correr los modelos.
-
-Uso:
-    python diagnostico_tr_fre3c.py
-    python diagnostico_tr_fre3c.py --umbral 0.10 --filtro f1_15
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
+Uso: python diagnostico_tr_fre3c.py [--umbral 0.10] [--filtro f1_15]
 """
 
 import argparse
@@ -42,7 +15,7 @@ import pandas as pd
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
-import fre3c_lib as lib  # noqa: E402
+import fre3c_lib as lib
 
 FS = lib.FS
 TOL = int(round(lib.TOL_S * FS))
@@ -59,7 +32,6 @@ def nivel_azar(sc, st, filtro):
     d = d[d.flujo.isin(FLUJOS_AZAR) & d.umbral.round(2).isin(UMBRALES_AZAR)].copy()
     lam = d.fp_h / 3600.0
     d["p_azar"] = 1 - np.exp(-lam * VENTANA_AZAR_S)
-    # bajo el nivel de azar se informa 0
     d["sens_corregida"] = np.maximum(0.0, (d.sens - d.p_azar) / (1 - d.p_azar))
     # aciertos atribuibles al azar = n * (sens - sens_corregida)
     d["aciertos_azar_esperados"] = d.p_azar * (d.n - d.k) / (1 - d.p_azar)
@@ -88,7 +60,6 @@ def main():
     z = np.load(lib.ruta_anot("phasenet", args.filtro))
     curvas = {k: np.nan_to_num(z[k]) for k in ("P", "S")}
 
-    # -----------------------------------------------------------------
     print(f"1. NIVEL DE AZAR (sensibilidad volcanica, filtro {args.filtro})")
     print("   p_azar = probabilidad de que una falsa alarma caiga por casualidad en los 10 s")
     print("   de un evento; sens_corregida = (sens - p_azar) / (1 - p_azar).")
@@ -96,7 +67,6 @@ def main():
     print(az.to_string(index=False, float_format=lambda v: f"{v:.3f}"))
     az.to_csv(os.path.join(lib.DIR_SALIDA, "nivel_azar.csv"), index=False)
 
-    # -----------------------------------------------------------------
     inc = eventos[eventos.incluido].reset_index(drop=True)
     o = onsets_pn_ps(curvas, args.umbral)
     o = o[valida[o]]

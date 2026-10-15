@@ -1,26 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-diagnostico_modelos.py
-======================
+Inspecciona que devuelven PhaseNet y EQTransformer (canales y forma de las curvas)
+sobre eventos conocidos del catalogo.
 
-Inspecciona QUE devuelven realmente PhaseNet y EQTransformer sobre un
-evento conocido del catalogo, antes de rediseñar la evaluacion.
-
-Preguntas que responde:
-  1. Que canales entrega annotate() y como se llaman?
-  2. Que forma tienen las curvas: picos agudos o mesetas?
-  3. Cuantas muestras superan cada umbral? (mide si son intervalos o picos)
-  4. classify() entrega picks utiles? cuantos y donde?
-  5. Cambia algo al duplicar la vertical en las tres componentes?
-  6. Queda bien alineada la salida con la entrada?
-
-Es rapido: trabaja sobre ventanas de pocos minutos, no sobre las 10 h.
-
-Uso:
-    python diagnostico_modelos.py
-    python diagnostico_modelos.py --modelos phasenet
-    python diagnostico_modelos.py --n-eventos 5
+Uso: python diagnostico_modelos.py [--modelos ...] [--n-eventos N] [--canal N]
 """
 
 import argparse

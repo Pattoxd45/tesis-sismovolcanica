@@ -1,44 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-evaluar_por_tramo.py
-====================
+Evaluacion por tramo de la traza continua (nivel 1 y nivel 2).
 
-Evaluacion por tramo de la traza continua. Solo MIDE: no ajusta ningun
-parametro ni modifica ningun script.
-
-    Nivel 1 (instante) : STA/LTA, PhaseNet y EQTransformer
-    Nivel 2 (recorte)  : STA/LTA y EQTransformer
-
-Reutiliza las cachas de inferencia ya calculadas, asi que PhaseNet y
-EQTransformer no se vuelven a correr:
-
-    resultados/cache_picks/picks_<modelo>_<modo>.csv   -> arribos con confianza
-    resultados/cache_detection/detection_eqt_<modo>.npz -> curva Detection
-
-Las funciones que leen esas cachas y reconstruyen las salidas son las de
-significancia.py (picks_por_canal, eqt_intervalos, stalta_por_canal); la
-coincidencia de red y las metricas son las de evaluar_detectores.py.
-
-DOS CONFIGURACIONES
--------------------
-Los valores globales que cita el informe no salen de los valores por
-omision de evaluar_detectores.py, sino de los puntos de operacion
-"mejor F1" que fija significancia.py en OP_NIVEL1 y OP_NIVEL2. Para que
-quede a la vista, este script calcula los globales con las DOS
-configuraciones, las compara contra los valores citados y recien entonces
-reporta por tramo, usando la que reproduce. Si ninguna reproduce, se
-detiene y muestra la diferencia.
-
-Uso:
-    python evaluar_por_tramo.py
-    python evaluar_por_tramo.py --sin-cache      # recalcula STA/LTA
-
-STA/LTA no tiene cacha de inferencia (es barato comparado con los modelos,
-pero son varios minutos sobre 10 h). Este script cachea sus intervalos por
-canal en resultados/cache_stalta/, con la configuracion en el nombre.
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
+Uso: python evaluar_por_tramo.py [--canales ...] [--sin-cache]
 """
 
 import argparse
@@ -51,9 +16,9 @@ import numpy as np
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 sys.path.insert(0, os.path.join(AQUI, "..", "ventanas"))
-import barrido as br                   # noqa: E402  (solo VENTANA_FIJA_S)
-import evaluar_detectores as ed        # noqa: E402
-import significancia as sig            # noqa: E402
+import barrido as br
+import evaluar_detectores as ed
+import significancia as sig
 
 FS = ed.FS
 CACHE_STALTA = os.path.join(ed.SALIDA, "cache_stalta")
@@ -68,19 +33,10 @@ OBJETIVO_N2_EQT = {"recall": 0.330, "iou_medio": 0.479}
 TOL_REPRODUCE = 5e-4
 
 
-# =====================================================================
-# LAS DOS CONFIGURACIONES
-# =====================================================================
+# Las dos configuraciones
 
 def configuraciones():
-    """
-    Devuelve las dos configuraciones a comparar.
-
-    'ed' : valores por omision de evaluar_detectores.py (STALTA, UMBRAL_PICK,
-           UMBRAL_PROB, FUSION_S, MIN_ESTACIONES, COMPONENTES_POR_MODELO y la
-           mayor de las tolerancias de TOL_ONSET_S).
-    'op' : puntos de operacion "mejor F1" de significancia.py.
-    """
+    """Devuelve las dos configuraciones a comparar."""
     stalta_ed = dict(ed.STALTA, fusion_s=ed.FUSION_S,
                      min_est=ed.MIN_ESTACIONES)
     cfg_ed = {
@@ -123,9 +79,7 @@ def etiqueta(cfg, nombre, nivel):
     return base + f", min_est {c['min_est']}"
 
 
-# =====================================================================
-# RECONSTRUCCION DE LAS SALIDAS
-# =====================================================================
+# Reconstruccion de las salidas
 
 def stalta_por_canal_cacheado(a, canales, cfg, usar_cache=True):
     """sig.stalta_por_canal con cacha en disco, indexada por configuracion."""
@@ -174,9 +128,7 @@ def detecciones_de(nombre, cfg, a, valida, canales, usar_cache=True):
     return ed.coincidencia(pc, valida, c["min_est"])
 
 
-# =====================================================================
-# VERIFICACION CONTRA LOS VALORES CITADOS
-# =====================================================================
+# Verificacion contra los valores citados
 
 def globales(cfg, a, catalogo, valida, horas, canales, usar_cache):
     """Nivel 1 y nivel 2 globales de una configuracion."""
@@ -264,9 +216,7 @@ def verificar(todo, cfgs):
     return elegida
 
 
-# =====================================================================
-# REPORTE POR TRAMO
-# =====================================================================
+# Reporte por tramo
 
 def ambitos(a, valida):
     """Lista de (nombre, ini, fin, horas validas) global y por tramo."""
@@ -414,10 +364,6 @@ def reportar_eqt_largas(todo, catalogo, amb, n):
         print(f"    {k:>3}{(x.ini - t0) / FS:>11.2f}{(x.fin - t0) / FS:>11.2f}"
               f"{x.dur / FS:>9.2f}  {txt}")
 
-
-# =====================================================================
-# MAIN
-# =====================================================================
 
 def main(argv=None):
     ap = argparse.ArgumentParser()

@@ -1,39 +1,6 @@
-# Tarea B-01: verifica si ventanas del pool de entrenamiento
-# (datos/zenodo/NVCHVC_8192.zip) aparecen dentro de la traza continua de
-# Zenodo. Solo mide: no excluye nada del entrenamiento.
-#
-# Pasos:
-#   1. Inspeccion del zip sin supuestos: archivos, forma y dtype (leyendo la
-#      cabecera de TODOS los .npy), patron de nombres, filas presentes,
-#      normalizacion, mascaras y contenido espectral comparado con la traza.
-#   2. Validacion del metodo con solucion conocida:
-#        - positivos: fragmentos recortados de la propia traza (ventana
-#          completa y segmento de evento) deben encontrarse con correlacion
-#          cercana a 1 en el indice exacto;
-#        - nulo: ventanas del pool de fechas que no pueden estar en la traza
-#          (mes-dia a mas de un dia de las tres fechas de la traza) dan la
-#          distribucion de la correlacion maxima por azar o por parecido de
-#          forma de onda (multipletes). Con esto se fija el umbral.
-#   3. Busqueda por correlacion cruzada normalizada (FFT) de cada ventana del
-#      pool contra la fila de la misma estacion (fila i del pool <-> fila
-#      i + 1 de la traza, ver inspeccion). Dos modos:
-#        - "ventana": las 8.192 muestras completas;
-#        - "evento": solo el segmento marcado como evento en la mascara del
-#          pool. Detecta el caso en que el evento se haya insertado en la
-#          traza con un ruido de fondo distinto.
-#      Criterios de coincidencia: NCC media entre estaciones >= umbral, o
-#      NCC de la mejor estacion sola >= UMBRAL_1EST (modo evento). El segundo
-#      se agrego tras la primera corrida: hay ventanas que calzan casi
-#      exactamente en una sola estacion y la media las diluye.
-#      Orden: los 31 archivos que coinciden en mes, dia y hora con la traza;
-#      los AV del pool; y, con --todo, el resto del pool.
-#   4. Reporte de coincidencias: archivo, clase, indice, tramo, hora UTC,
-#      correlacion, evento del catalogo con mayor IoU y si es uno de los 17 AV
-#      del tramo 1 que no aparecen en el crudo de FRE.
-#
-# Uso:
-#   python superposicion_pool_traza.py            # pasos 1-4 con 31 + AV
-#   python superposicion_pool_traza.py --todo     # agrega el resto del pool
+# Tarea B-01: busca ventanas del pool de entrenamiento (NVCHVC_8192.zip) dentro de
+# la traza continua por correlacion de forma de onda. Solo mide; no excluye nada.
+# Uso: python superposicion_pool_traza.py [--todo]
 import os
 import io
 import re
@@ -73,9 +40,7 @@ FECHAS_EXCLUIDAS_NULO = {("02", "08"), ("02", "09"), ("02", "10"),
                          ("01", "13"), ("01", "14"), ("01", "15"),
                          ("01", "09"), ("01", "10"), ("01", "11")}
 
-# Los 17 AV del tramo 1 sin contraparte en el crudo de FRE (idx_start del
-# catalogo). Fuente: salida de scripts/diagnostico/verificar_crudos.py,
-# paso 5, estado "no_coincide" (ejecutada el 1 de octubre de 2026)
+# Los 17 AV del tramo 1 sin contraparte en el crudo de FRE (idx_start del catalogo).
 AV_SIN_CRUDO = {9005, 169581, 176397, 187288, 242412, 273545, 433062, 455131, 478537,
                 803794, 872366, 967042, 1142426, 1149460, 1425188, 1636140, 1722083}
 
@@ -130,13 +95,10 @@ def segmento_evento(w):
     return int(ini[k]), int(fin[k])
 
 
-# ----------------------------------------------------------------------------
 # Correlacion cruzada normalizada contra la traza
-# ----------------------------------------------------------------------------
 class Buscador:
-    # Precalcula, por fila de la traza, su FFT y sus sumas acumuladas para
-    # obtener la correlacion normalizada de una plantilla en todos los
-    # desfases con una sola FFT inversa.
+    # Precalcula FFT y sumas acumuladas por fila para la correlacion normalizada en
+    # todos los desfases.
     def __init__(self, traza):
         self.N = traza.shape[1]
         self.nfft = sf.next_fast_len(self.N + M, real=True)
@@ -177,10 +139,8 @@ class Buscador:
         return float(np.dot(a, b) / d) if d > 0 else 0.0
 
     def buscar(self, w, ini=0, fin=M):
-        # w: ventana (14, 8192) con filas de estacion 0-7. Correlaciona el
-        # segmento [ini, fin) de cada estacion presente contra la fila i + 1 y
-        # promedia las NCC por desfase. Devuelve el indice de la traza donde cae
-        # la muestra 0 de la ventana.
+        # Correlaciona cada estacion de la ventana w (14, 8192) contra su fila de la
+        # traza, promedia y devuelve la mejor posicion.
         filas = [i for i in range(8) if w[i, ini:fin].std() > 0 and (i + 1) in self.X]
         if not filas:
             return None
@@ -200,9 +160,7 @@ class Buscador:
                     ncc_1est=r1, idx_1est=l1 - ini, fila_1est=i1)
 
 
-# ----------------------------------------------------------------------------
 # 1. Inspeccion
-# ----------------------------------------------------------------------------
 def inspeccionar(z, nombres, traza, rng):
     print("=" * 78)
     print("1. INSPECCION DEL POOL (NVCHVC_8192.zip)")
@@ -298,9 +256,7 @@ def inspeccionar(z, nombres, traza, rng):
     return partes
 
 
-# ----------------------------------------------------------------------------
 # 2. Validacion con solucion conocida
-# ----------------------------------------------------------------------------
 def fragmento_traza(traza, a):
     # Construye una ventana con el formato del pool a partir de la traza:
     # filas 1-8 -> 0-7, mascaras 9-14 -> 8-13, normalizada por max|x| global
@@ -409,9 +365,7 @@ def validar(z, partes, traza, cat, bus, rng):
     return pos, nulo
 
 
-# ----------------------------------------------------------------------------
 # 3. Busqueda
-# ----------------------------------------------------------------------------
 def medir(z, r, bus):
     w = leer(z, r.archivo)
     fila = dict(archivo=r.archivo, clase=r.carpeta)
@@ -447,9 +401,7 @@ def buscar_conjunto(z, sel, bus, etiqueta):
     return df
 
 
-# ----------------------------------------------------------------------------
 # 4. Reporte
-# ----------------------------------------------------------------------------
 def iou(a0, a1, b0, b1):
     i = max(0, min(a1, b1) - max(a0, b0))
     u = max(a1, b1) - min(a0, b0)
@@ -457,9 +409,8 @@ def iou(a0, a1, b0, b1):
 
 
 def anotar(df, traza, cat):
-    # Para la mejor posicion de cada modo: tramo, hora UTC y evento del
-    # catalogo con mayor IoU respecto del evento del pool trasladado a la traza
-    # "1est": posicion de la mejor estacion sola en modo evento
+    # Para la mejor posicion de cada modo: tramo, hora UTC y evento del catalogo con
+    # mayor IoU ("1est" = mejor estacion sola).
     for modo, col in (("ventana", "idx_ventana"), ("evento", "idx_evento"), ("1est", "idx1_evento")):
         tr, hora, ev_cat, ev_tipo, ev_iou, sin_crudo = [], [], [], [], [], []
         for r in df.itertuples():

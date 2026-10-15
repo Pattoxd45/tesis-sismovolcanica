@@ -1,64 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-snr_eventos.py
-==============
+Razon senal-ruido de los eventos del catalogo, cruzada con si cada detector
+los encuentra.
 
-Razon senal/ruido de los eventos del catalogo, cruzada con si cada
-detector los encuentra. Responde la pregunta que Ricardo dejo planteada
-en la reunion del 21 de septiembre: cuando un detector pierde un evento,
-es que el detector falla o es que el evento esta enterrado en ruido.
-
-Solo MIDE. No ajusta ningun parametro, no modifica ningun script y no
-propone ningun cambio de configuracion.
-
-DEFINICION DE LA RAZON
-----------------------
-Se reutiliza tal cual la de revisar_falsos_positivos.py: pico absoluto
-del evento sobre el RMS de los 60 s inmediatamente anteriores, en
-decibeles, sobre la traza SIN filtrar.
-
-    razon_dB = 20 * log10( max|x_evento| / rms(x_ruido) )
-
-Esa definicion toma la ventana de ruido completa, sin mirar que hay
-dentro. Si en esos 60 s hay otro evento del catalogo, el RMS del "ruido"
-sube y la razon del evento sale artificialmente baja. Si hay muestras en
-cero (huecos de dato), el RMS baja y la razon sale artificialmente alta.
-Por eso se agrega una segunda variante:
-
-    base      la de revisar_falsos_positivos.py, sin tocar.
-    estricta  misma formula, pero antes de calcular el RMS se sacan de
-              la ventana de ruido las muestras que caen dentro de otro
-              evento del catalogo y las muestras exactamente iguales a
-              cero. Si quedan menos de 5 s limpios, el evento queda sin
-              razon en vez de reportar un numero contaminado.
-
-El script reporta cuantos eventos cambian entre una y otra, y cuanto.
-
-VALIDACION ANTES DE USAR DATOS REALES
--------------------------------------
-La formula se prueba primero contra un caso de solucion conocida: una
-senoide de amplitud A sobre ruido gaussiano de sigma declarado, donde el
-resultado tiene que aproximarse a 20*log10(A/sigma). El script se detiene
-si no pasa. La prueba tambien mide dos sesgos del estimador: el que
-aparece cuando A y sigma son comparables, y el PISO que impone la
-duracion del evento, porque el pico de un tramo largo de puro ruido es
-mayor que el de uno corto. Los dos importan para leer la tabla por
-rangos.
-
-RAZON DE RED
-------------
-Se calcula una razon por cada canal utilizable que tenga dato para ese
-evento, y la razon de red es la MEDIANA entre canales. La mediana y no el
-promedio porque una estacion con ganancia distinta o con un hueco parcial
-arrastraria el promedio.
-
-Uso:
-    python snr_eventos.py
-    python snr_eventos.py --sin-cache      # recalcula STA/LTA
-    python snr_eventos.py --solo-autotest
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
+Uso: python snr_eventos.py [--canales ...] [--sin-cache] [--solo-autotest]
 """
 
 import argparse
@@ -70,10 +16,10 @@ import pandas as pd
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(AQUI, "..", "evaluacion"))
-import evaluar_detectores as ed            # noqa: E402
-import significancia as sig                # noqa: E402
-import evaluar_por_tramo as ept            # noqa: E402
-import revisar_falsos_positivos as rfp     # noqa: E402
+import evaluar_detectores as ed
+import significancia as sig
+import evaluar_por_tramo as ept
+import revisar_falsos_positivos as rfp
 
 FS = ed.FS
 SALIDA = ed.SALIDA
@@ -83,9 +29,7 @@ SALIDA = ed.SALIDA
 MARGEN_RUIDO_S = 60.0
 MIN_RUIDO_S = 5.0
 
-# Duraciones a las que se mide el piso del estimador, en segundos. Van
-# del evento mas corto del catalogo (3,4 s) al mas largo (240,8 s), e
-# incluyen la ventana fija del pool de entrenamiento (81,92 s).
+# Duraciones a las que se mide el piso del estimador, en segundos.
 DURACIONES_PISO = [3.4, 10.0, 30.0, 81.92, 150.0, 240.8]
 
 # Rangos de razon para la tabla de sensibilidad, en dB.
@@ -99,34 +43,15 @@ DETECTORES_N2 = ["stalta", "eqtransformer"]
 
 CSV_SALIDA = os.path.join(SALIDA, "snr_eventos.csv")
 
-# Diferencia a partir de la cual se considera que un evento "cambia" de
-# una variante a la otra. 0,1 dB esta muy por debajo de la dispersion
-# entre canales y no se confunde con ruido numerico.
+# Diferencia a partir de la cual se considera que un evento "cambia" de una variante a
+# la otra.
 TOL_CAMBIO_DB = 0.1
 
 
-# =====================================================================
-# VALIDACION CON CASO SINTETICO DE SOLUCION CONOCIDA
-# =====================================================================
+# Validacion con caso sintetico de solucion conocida
 
 def autotest(verbose=True):
-    """
-    Senoide de amplitud A sobre ruido gaussiano de sigma conocida.
-
-    Con la definicion pico sobre RMS, el valor exacto es:
-        pico de la senoide            = A
-        RMS del ruido gaussiano       -> sigma
-        razon                         -> 20*log10(A/sigma)
-
-    Dos casos:
-      1. Evento SIN ruido superpuesto. El unico error posible es que el
-         RMS muestral del ruido no sea exactamente sigma, y con 60 s a
-         100 Hz ese error es de milesimas de dB. Se exige 0,15 dB.
-      2. Evento CON ruido superpuesto, que es el caso real. Aqui el pico
-         medido es max|A*sen + ruido| >= A, asi que el estimador sobre-
-         estima. El sesgo no se exige: se MIDE y se muestra, porque es
-         justo lo que afecta al rango de razon baja.
-    """
+    """Senoide de amplitud A sobre ruido gaussiano de sigma conocida."""
     rng = np.random.default_rng(20260101)
     n_ruido = int(MARGEN_RUIDO_S * FS)
     n_ev = int(20.0 * FS)
@@ -210,19 +135,10 @@ def autotest(verbose=True):
     return ok, piso
 
 
-# =====================================================================
-# RAZON POR EVENTO
-# =====================================================================
+# Razon por evento
 
 def mascara_eventos(n):
-    """
-    Booleano por muestra: True si la muestra cae dentro de un evento.
-
-    Se construye con el catalogo COMPLETO del CSV (205 eventos), no con
-    los 203 que quedan tras excluir las guardas de union. Los dos
-    excluidos siguen siendo senal sismica real, y si caen dentro de la
-    ventana de ruido de un evento vecino la contaminan igual. Para
-    limpiar el ruido importa donde hay eventos, no cuales se evaluan.
+    """True si la muestra cae dentro de un evento del catalogo completo (205 eventos).
     """
     df = pd.read_csv(ed.CSV)
     m = np.zeros(n, dtype=bool)
@@ -235,14 +151,8 @@ def mascara_eventos(n):
 
 
 def snr_evento(a, canal, ini, fin, estricta, ocupado=None):
-    """
-    Razon de un evento en un canal.
-
-    estricta=False  reproduce revisar_falsos_positivos.snr_intervalo.
-    estricta=True   saca de la ventana de ruido las muestras que caen
-                    dentro de OTRO evento del catalogo (mascara ocupado)
-                    y las muestras exactamente cero, y exige que queden
-                    al menos MIN_RUIDO_S segundos limpios.
+    """Razon de un evento en un canal; estricta=True saca del ruido otros eventos y
+    huecos.
     """
     if not estricta:
         return rfp.snr_intervalo(a, canal, ini, fin,
@@ -268,9 +178,8 @@ def snr_evento(a, canal, ini, fin, estricta, ocupado=None):
 
 
 def razones(a, catalogo, canales, ocupado):
-    """
-    Razon por canal y razon de red (mediana entre canales) de cada
-    evento, en las dos variantes.
+    """Razon por canal y razon de red (mediana entre canales) de cada evento, en las dos
+    variantes.
     """
     filas = []
     for k, ev in enumerate(catalogo):
@@ -296,18 +205,10 @@ def razones(a, catalogo, canales, ocupado):
     return pd.DataFrame(filas)
 
 
-# =====================================================================
-# DETECCIONES EN LOS PUNTOS DE OPERACION DE significancia.py
-# =====================================================================
+# Detecciones en los puntos de operacion de significancia.py
 
 def banderas_deteccion(a, catalogo, valida, horas, canales, usar_cache):
-    """
-    Vector booleano por evento, por detector y por nivel.
-
-    Reutiliza los puntos de operacion y la reconstruccion de salidas de
-    significancia.py a traves de evaluar_por_tramo.globales, y verifica
-    contra los valores citados antes de devolver nada.
-    """
+    """Vector booleano por evento, por detector y por nivel."""
     print("\n" + "=" * 78)
     print("  DETECCIONES EN LOS PUNTOS DE OPERACION DE significancia.py")
     print("=" * 78)
@@ -352,10 +253,6 @@ def banderas_deteccion(a, catalogo, valida, horas, canales, usar_cache):
         banderas[f"n2_{nombre}"] = v
     return banderas
 
-
-# =====================================================================
-# REPORTES
-# =====================================================================
 
 def describir(nombre, v, ancho=30):
     v = np.asarray([x for x in v if np.isfinite(x)])
@@ -496,19 +393,7 @@ def sensibilidad_por_rango(df, banderas):
 
 
 def margen_sobre_piso(df, piso):
-    """
-    Razon medida de cada clase contra el piso que impone su duracion.
-
-    El piso sale del caso 3 de la validacion sintetica y se interpola a
-    la duracion mediana de cada clase. Es el valor que reportaria el
-    estimador si el evento fuera puro ruido gaussiano de esa duracion.
-    El margen es cuanto sobresale la clase por encima de ese piso.
-
-    CUIDADO: el piso se midio con ruido gaussiano blanco. El ruido
-    sismico de fondo esta correlacionado y no es gaussiano, asi que el
-    piso real puede ser distinto. Esto es una referencia, no el umbral
-    de deteccion de nada.
-    """
+    """Razon medida de cada clase contra el piso que impone su duracion."""
     if not piso:
         return
     xs = np.array(sorted(piso))
@@ -566,10 +451,6 @@ def sin_ruido_valido(df, canales):
         if len(sub) > 25:
             print(f"    ... y {len(sub) - 25} mas")
 
-
-# =====================================================================
-# MAIN
-# =====================================================================
 
 def main(argv=None):
     ap = argparse.ArgumentParser()

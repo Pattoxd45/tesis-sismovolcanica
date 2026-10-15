@@ -1,41 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-diagnostico_tramos.py
-=====================
+Diagnostico por tramo de la traza continua, con la misma configuracion de
+evaluacion/evaluar_detectores.py y ventanas/barrido.py.
 
-Diagnostico por tramo de la traza continua. Solo MIDE: no ajusta ningun
-parametro ni modifica ningun script. Toda la configuracion (canales,
-cortes, STA/LTA, tolerancias, IoU minimo, ventana y paso del barrido) se
-toma tal cual de evaluacion/evaluar_detectores.py y de ventanas/barrido.py.
-
-Que imprime:
-
-  1. Por tramo: cuantos eventos tiene el catalogo en cada clase y la
-     sensibilidad de nivel 2 de STA/LTA por clase sobre la traza completa.
-     Se lee de resultados/ventanas/comparacion_barrido.json, que ya
-     contiene ese desglose (lo escribe ventanas/ventanas_traza_real.py).
-
-  2. Por tramo y por canal: fraccion de muestras exactamente iguales a
-     cero y desviacion estandar. Sirve para saber si un tramo con poca
-     sensibilidad tiene senal utilizable en los cinco canales o no.
-
-  3. Las detecciones de red que difieren entre la corrida sobre la traza
-     completa y la corrida con barrido de 5 minutos: inicio y fin en
-     segundos desde el inicio de su tramo, duracion, distancia al borde
-     de ventana mas cercano y evento del catalogo con el que se solapa
-     (clase e IoU). Esto exige recalcular las dos corridas, porque el
-     JSON guarda metricas agregadas y no la lista de detecciones.
-
-Uso:
-    python diagnostico_tramos.py
-    python diagnostico_tramos.py --sin-cache     # recalcula la parte 3
-
-La parte 3 tarda varios minutos (STA/LTA sobre 10 h, dos veces). El
-resultado se guarda en resultados/ventanas/detecciones_red.json y se
-reutiliza en las corridas siguientes salvo que se pida --sin-cache.
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
+Uso: python diagnostico_tramos.py [--sin-cache] [--json]
 """
 
 import argparse
@@ -49,19 +18,15 @@ import numpy as np
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(AQUI, "..", "ventanas"))
 sys.path.insert(0, os.path.join(AQUI, "..", "evaluacion"))
-import barrido as br                   # noqa: E402
-import evaluar_detectores as ed        # noqa: E402
-import ventanas_traza_real as vtr      # noqa: E402
+import barrido as br
+import evaluar_detectores as ed
+import ventanas_traza_real as vtr
 
 FS = ed.FS
 
 JSON_COMPARACION = os.path.join(ed.SALIDA, "ventanas", "comparacion_barrido.json")
 JSON_DETECCIONES = os.path.join(ed.SALIDA, "ventanas", "detecciones_red.json")
 
-
-# =====================================================================
-# UTILIDADES
-# =====================================================================
 
 def utc(t):
     return datetime.fromtimestamp(float(t), timezone.utc).strftime(
@@ -97,9 +62,7 @@ def evento_solapado(d, catalogo):
     return e, v
 
 
-# =====================================================================
-# 1. CATALOGO Y SENSIBILIDAD POR TRAMO Y CLASE
-# =====================================================================
+# 1. Catalogo y sensibilidad por tramo y clase
 
 def parte1(res):
     """Lee el desglose por tramo y clase del JSON de comparacion."""
@@ -150,9 +113,7 @@ def parte1(res):
               f"{sum(faltan.values()):>9}")
 
 
-# =====================================================================
-# 2. CALIDAD DE SENAL POR TRAMO Y CANAL
-# =====================================================================
+# 2. Calidad de senal por tramo y canal
 
 def parte2(a, segmentos):
     """Fraccion de muestras exactamente cero y desviacion estandar."""
@@ -185,9 +146,7 @@ def parte2(a, segmentos):
     return filas
 
 
-# =====================================================================
-# 3. DETECCIONES QUE DIFIEREN ENTRE COMPLETA Y BARRIDO
-# =====================================================================
+# 3. Detecciones que difieren entre completa y barrido
 
 def calcular_detecciones(a, valida, ventanas):
     """Detecciones de red de las dos corridas, con la logica ya existente."""
@@ -280,10 +239,6 @@ def parte3(a, catalogo, det_c, det_b, ventanas, segmentos, res):
             else:
                 print("        contraparte en la otra corrida: ninguna")
 
-
-# =====================================================================
-# MAIN
-# =====================================================================
 
 def main(argv=None):
     ap = argparse.ArgumentParser()

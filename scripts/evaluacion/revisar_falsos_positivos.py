@@ -1,34 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-revisar_falsos_positivos.py
-===========================
+Revisa si los falsos positivos de los detectores son senal sismica no catalogada.
 
-Pregunta una sola cosa, pero decisiva: los "falsos positivos" de los
-detectores, son realmente falsos?
-
-MOTIVO: en las figuras de validacion aparece energia sismica clara fuera
-de los intervalos catalogados (por ejemplo un evento nitido justo antes
-del tremor de referencia). Si el catalogo de 205 eventos no anota TODO lo
-que ocurre en las 10 h, entonces parte de los falsos positivos son
-eventos reales sin etiquetar, y la precision de los TRES detectores esta
-subestimada de forma sistematica.
-
-Esto no se puede decidir a ojo. La prueba es estadistica: si los falsos
-positivos fueran ruido, su relacion senal/ruido deberia parecerse a la de
-tramos de fondo tomados al azar. Si en cambio se parece a la de los
-eventos catalogados, son eventos.
-
-Metodo:
-  1. Reproduce las detecciones de STA/LTA en su punto de operacion optimo.
-  2. Separa verdaderos positivos, falsos positivos y tramos de fondo.
-  3. Calcula la SNR de cada grupo (pico sobre RMS del fondo local).
-  4. Compara las tres distribuciones y cuenta cuantos FP superan el
-     percentil 10 de SNR de los eventos reales.
-
-Uso:
-    python revisar_falsos_positivos.py
-    python revisar_falsos_positivos.py --canal 2
+Uso: python revisar_falsos_positivos.py [--canal N] [--figuras N]
 """
 
 import argparse
@@ -85,14 +60,7 @@ def describir(nombre, vals):
 
 
 def figuras_fp(a, canal, fp, catalogo, snrs, n_fig, destino_dir):
-    """
-    Grafica los falsos positivos con mayor SNR, para inspeccion visual.
-
-    La estadistica dice que contienen senal; la vista dice de QUE tipo.
-    Un sismo tectonico regional, ruido antropico y un evento volcanico
-    pequeno tienen aspectos distintos, y esa distincion no la resuelve
-    ningun numero de SNR.
-    """
+    """Grafica los falsos positivos con mayor SNR, para inspeccion visual."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -148,18 +116,7 @@ def figuras_fp(a, canal, fp, catalogo, snrs, n_fig, destino_dir):
 
 
 def clasificar_fp(fp, catalogo, margen_s=60.0):
-    """
-    Separa los falsos positivos por CAUSA. Tratarlos como una sola
-    categoria oculta que se producen por mecanismos distintos:
-
-      fragmento : se solapa con un evento catalogado. El detector SI vio
-                  el evento pero lo recorto tan corto que el IoU quedo
-                  bajo el umbral. Cuenta doble: falso negativo mas falso
-                  positivo. Se corrige mejorando la delimitacion.
-      adyacente : sin solape, pero a menos de `margen_s` de un evento.
-                  Precursor, replica o coda separada del intervalo.
-      novedoso  : aislado. Este si es candidato a evento no catalogado.
-    """
+    """Clasifica los falsos positivos en fragmento, adyacente o aislado."""
     cat = sorted(catalogo, key=lambda x: x.ini)
     inis = np.array([c.ini for c in cat])
     fins = np.array([c.fin for c in cat])
@@ -207,7 +164,7 @@ def main():
                 for r in df.itertuples()]
     catalogo = [e for e in catalogo if valida[e.ini] and valida[e.fin - 1]]
 
-    # --- detecciones de STA/LTA en su punto optimo ------------------
+    # detecciones de STA/LTA en su punto optimo
     print("Ejecutando STA/LTA en el punto de operacion optimo ...")
     por_canal = {}
     for ch in args.canales:
@@ -231,7 +188,7 @@ def main():
     pares, perdidos, fp = emparejar(catalogo, det, IOU_MIN)
     print(f"\nDetecciones: {len(det)} | TP: {len(pares)} | FP: {len(fp)}")
 
-    # --- control de duraciones patologicas -------------------------
+    # control de duraciones patologicas
     durs = np.array([d.dur / FS for d in det])
     print(f"\nDuracion de las detecciones [s]: mediana {np.median(durs):.1f} | "
           f"p90 {np.percentile(durs, 90):.1f} | max {durs.max():.1f}")
@@ -242,7 +199,7 @@ def main():
         print("  Detecciones muy largas absorben eventos reales y los "
               "convierten en falsos negativos.")
 
-    # --- de donde vienen los falsos positivos -----------------------
+    # de donde vienen los falsos positivos
     clases_fp = clasificar_fp(fp, catalogo)
     print("\n" + "=" * 70)
     print("  ORIGEN DE LOS FALSOS POSITIVOS")
@@ -266,7 +223,7 @@ def main():
               f"El recall")
         print(f"  y la precision estan ambos deprimidos por la MISMA causa.")
 
-    # --- fondo de control -------------------------------------------
+    # fondo de control
     ocupado = np.zeros(n, dtype=bool)
     for ev in catalogo:
         ocupado[max(0, ev.ini - int(30 * FS)):ev.fin + int(30 * FS)] = True
@@ -283,7 +240,7 @@ def main():
             continue
         fondos.append((s0, s0 + dur_tipica))
 
-    # --- SNR de los tres grupos -------------------------------------
+    # SNR de los tres grupos
     print("\n" + "=" * 70)
     print(f"  RELACION SENAL/RUIDO POR GRUPO (canal {args.canal})")
     print("=" * 70)
@@ -323,7 +280,7 @@ def main():
     valen tal como estan.
 """)
 
-    # --- distancia al evento catalogado mas cercano ------------------
+    # distancia al evento catalogado mas cercano
     if fp:
         inicios = np.array([ev.ini for ev in catalogo])
         d_min = [float(np.min(np.abs(inicios - d.ini))) / FS for d in fp]

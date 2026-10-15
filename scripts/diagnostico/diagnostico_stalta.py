@@ -1,23 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-diagnostico_stalta.py
-=====================
+Diagnostica por que STA/LTA tuvo recall bajo: duracion de los disparos, huecos
+y energia de los eventos a nivel de muestra.
 
-No calcula metricas finales: DIAGNOSTICA por que el recall salio bajo.
-
-Responde cuatro preguntas concretas:
-  1. Cuantos disparos hay y de que duracion? (hipotesis: demasiado cortos)
-  2. Cuantos disparos caen sobre huecos de datos? (hipotesis: artefactos)
-  3. A nivel de MUESTRA, ve el detector la energia de los eventos?
-     (desacopla "detecto algo" de "delimito bien")
-  4. Cual es el mejor IoU alcanzable por cada evento del catalogo?
-     (si el mejor IoU es alto pero el recall bajo, el problema es el
-      emparejamiento; si el mejor IoU es bajo, es el recorte)
-
-Uso:
-    python diagnostico_stalta.py
-    python diagnostico_stalta.py --canales 1 2 3
+Uso: python diagnostico_stalta.py [--canales ...]
 """
 
 import argparse
@@ -127,7 +114,6 @@ def main():
     print(f"\n  Huecos de datos cubren {100 * hueco_total.mean():.1f}% "
           f"de la traza (con dilatacion de 2 s)")
 
-    # ---------------------------------------------------------------
     print("\n" + "=" * 70)
     print("  2. COBERTURA A NIVEL DE MUESTRA (ve la energia?)")
     print("=" * 70)
@@ -152,7 +138,6 @@ def main():
           f"{np.mean(votos[fondo] >= 1):.3f}, >=2 = "
           f"{np.mean(votos[fondo] >= 2):.3f}")
 
-    # ---------------------------------------------------------------
     print("\n" + "=" * 70)
     print("  3. MEJOR IoU ALCANZABLE POR EVENTO")
     print("=" * 70)
@@ -189,7 +174,6 @@ def main():
                   f">=0.3: {np.mean(mejores >= 0.3):.3f} | "
                   f">=0.5: {np.mean(mejores >= 0.5):.3f}")
 
-    # ---------------------------------------------------------------
     print("\n" + "=" * 70)
     print("  4. LECTURA")
     print("=" * 70)

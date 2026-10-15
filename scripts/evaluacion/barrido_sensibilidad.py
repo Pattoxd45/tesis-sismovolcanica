@@ -1,74 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-barrido_sensibilidad.py
-=======================
+Barrido hacia la meta de sensibilidad del 95 % en el nivel 1: extension de los
+barridos, union de detectores y frontera sensibilidad contra FP/h. Antes de
+reportar verifica que reproduce las cifras del informe.
 
-Barrido orientado a la meta de sensibilidad del 95 % que pidio Ricardo en
-la reunion del 21 de septiembre. Solo MIDE. No modifica ningun script ni
-ningun valor por omision, no recalcula inferencia y NO elige un punto de
-operacion: deja la frontera a la vista para que la eleccion se haga
-despues, por escrito y con el costo en falsos positivos declarado.
-
-Todo lo que sigue es NIVEL 1 (deteccion del instante) con tolerancia de
-+-5 s, que es el nivel donde los tres detectores compiten en igualdad.
-"Sensibilidad" y "recall" son lo mismo aqui.
-
-LAS CUATRO PARTES
------------------
-1. Lectura de los barridos ya hechos (resultados/comparacion_nivel1.csv y
-   resultados/frontera_pareto.csv): sensibilidad maxima por detector y el
-   costo en falsos positivos por hora al cruzar 0,80, 0,90 y 0,95.
-
-2. Extension del nivel 1 de PhaseNet y EQTransformer con las cachas de
-   arribos que ya existen: los dos modos de relleno de componentes
-   (ceros y duplicar), la confianza minima desde el piso que guarda cada
-   cacha hasta 0,50, y 1 o 2 estaciones. El piso de cada cacha se informa
-   explicitamente: por debajo de el no hay arribos guardados y bajar mas
-   exigiria volver a correr los modelos, cosa que este script no hace.
-
-3. Combinacion de detectores: union de los onsets de red de cada par y de
-   los tres, fusionando onsets separados por menos de 5 s. Se mide con
-   cada detector en su punto de significancia.py ("mejor F1") y tambien
-   en su punto de mayor sensibilidad. La fusion se reporta con tres
-   reglas de representante del grupo (mediana, minimo y sin fusionar),
-   porque medirlo mostro que esa eleccion mueve la sensibilidad tanto
-   como la diferencia entre detectores.
-
-4. Frontera sensibilidad contra falsos positivos por hora de todo lo
-   anterior, en un CSV y una figura.
-
-PROCEDENCIA DE LOS BARRIDOS DE LA PARTE 1
------------------------------------------
-comparacion_nivel1.csv y frontera_pareto.csv son del 20 de agosto, o sea
-ANTERIORES al commit 1658de0 (28 de agosto) que corrigio el segundo corte
-de la traza de 3.240.000 a 3.240.001. La guarda de 30 s alrededor del
-corte se desplaza una muestra, y eso cambia el conteo de onsets. El script
-mide ese efecto en vez de suponerlo (ver verificar_procedencia): resulta
-ser de un onset falso en STA/LTA y de cero en los modelos, con la
-sensibilidad identica. Las cifras de la parte 1 se reportan tal como
-estan guardadas, y las de las partes 2 y 3 con el corte corregido.
-
-VERIFICACION PREVIA
--------------------
-Antes de reportar cualquier cosa, el script reconstruye el nivel 1 de los
-puntos de operacion de significancia.py y lo compara contra los valores
-citados en el informe (0,542 STA/LTA, 0,527 PhaseNet, 0,581
-EQTransformer). Si no reproduce, se detiene: medir sobre una base que no
-empata con el documento no sirve de nada.
-
-Reutiliza:
-    significancia.py    puntos de operacion, lectura de cachas y
-                        reconstruccion de STA/LTA
-    evaluar_por_tramo.py cacha en disco de STA/LTA y los ambitos por tramo
-    evaluar_detectores.py coincidencia de red y metricas de onset
-
-Uso:
-    python barrido_sensibilidad.py
-    python barrido_sensibilidad.py --sin-cache     # recalcula STA/LTA
-    python barrido_sensibilidad.py --sin-figura
-
-Autor: Patricio Valdes Troncoso - Universidad Catolica de Temuco
+Uso: python barrido_sensibilidad.py [--canales ...] [--sin-cache] [--sin-figura]
 """
 
 import argparse
@@ -80,9 +17,9 @@ import pandas as pd
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
-import evaluar_detectores as ed        # noqa: E402
-import significancia as sig            # noqa: E402
-import evaluar_por_tramo as ept        # noqa: E402
+import evaluar_detectores as ed
+import significancia as sig
+import evaluar_por_tramo as ept
 
 FS = ed.FS
 SALIDA = ed.SALIDA
@@ -97,7 +34,7 @@ FUSION_ONSETS_S = 5.0
 OBJETIVOS = [0.80, 0.90, 0.95]
 
 # Rejilla de confianza minima para la extension de la parte 2. El primer
-# punto de cada cacha es su propio piso medido, que se agrega aparte.
+# punto de cada cache es su propio piso medido, que se agrega aparte.
 UMBRALES_CONF = [0.025, 0.03, 0.04, 0.05, 0.075, 0.10, 0.125, 0.15,
                  0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
 MIN_EST = [1, 2]
@@ -112,10 +49,6 @@ TOL_REPRODUCE = ept.TOL_REPRODUCE
 CSV_SALIDA = os.path.join(SALIDA, "barrido_sensibilidad.csv")
 PNG_SALIDA = os.path.join(SALIDA, "frontera_sensibilidad.png")
 
-
-# =====================================================================
-# UTILIDADES
-# =====================================================================
 
 def metricas_de_onsets(catalogo, onsets, horas):
     """Nivel 1 de un conjunto de onsets de red, aplanado a un diccionario."""
@@ -139,30 +72,8 @@ REGLAS_FUSION = ["mediana", "minimo", "sin fusionar"]
 
 
 def fusionar_onsets(onsets, tol_s=FUSION_ONSETS_S, regla="mediana"):
-    """
-    Fusiona onsets provenientes de detectores distintos.
-
-    Dos onsets separados por menos de tol_s quedan en el mismo grupo y el
-    grupo emite un solo onset. La agrupacion es la MISMA que usa
-    coincidencia_onsets de evaluar_detectores.py para agrupar estaciones:
-    cadena, o sea cada onset se compara con el ultimo aceptado del grupo.
-
-    La regla es QUE onset emite el grupo, y no es una decision neutral:
-
-      "mediana"      mediana del grupo. Es el estimador que ya usa
-                     coincidencia_onsets, asi que la union no introduce
-                     una diferencia metodologica respecto de la
-                     agregacion de red. Pero un acierto de un detector
-                     puede perderse si se agrupa con un onset espurio de
-                     otro y la mediana se corre fuera de la tolerancia.
-      "minimo"       el onset mas temprano del grupo. Conserva el inicio
-                     mas adelantado, que es lo que mide el nivel 1.
-      "sin fusionar" no fusiona nada. No es una union utilizable porque
-                     deja onsets repetidos y castiga la precision, pero
-                     da la cota superior de sensibilidad de la union.
-
-    Las tres se reportan porque la diferencia entre ellas resulta ser del
-    mismo orden que las diferencias entre detectores.
+    """Fusiona onsets de detectores distintos a menos de tol_s; el grupo emite su
+    mediana, su minimo o, con 'sin fusionar', todos.
     """
     todos = sorted(int(t) for t in onsets)
     if not todos:
@@ -186,15 +97,7 @@ def fusionar_onsets(onsets, tol_s=FUSION_ONSETS_S, regla="mediana"):
 
 
 def primer_punto(df, objetivo):
-    """
-    Primer punto que alcanza una sensibilidad objetivo.
-
-    CRITERIO DECLARADO: entre todos los puntos con recall >= objetivo se
-    devuelve el de MENOR tasa de falsos positivos por hora, y si hay
-    empate el de mayor recall. Es "el primero" en el sentido de el mas
-    barato que cruza la meta, que es el que interesa cuando la meta de
-    sensibilidad esta fijada de antemano. No es una eleccion de punto de
-    operacion: es la lectura de la tabla.
+    """Punto de menor FP/h que alcanza la sensibilidad objetivo (empate: mayor recall).
     """
     sel = df[df.recall >= objetivo]
     if sel.empty:
@@ -205,12 +108,7 @@ def primer_punto(df, objetivo):
 
 
 def frontera(df):
-    """
-    Puntos no dominados en (sensibilidad alta, falsos por hora bajos).
-
-    Se recorre de mayor a menor recall y se conserva un punto solo si
-    mejora el minimo de falsos_h visto hasta entonces.
-    """
+    """Puntos no dominados en (sensibilidad alta, falsos por hora bajos)."""
     d = df.sort_values(["recall", "falsos_h"],
                        ascending=[False, True]).reset_index(drop=True)
     mejor, out = float("inf"), []
@@ -226,16 +124,10 @@ def etiqueta_stalta(cfg):
             f"_on{cfg['thr_on']:g}_off{cfg['thr_off']:g}")
 
 
-# =====================================================================
-# VERIFICACION: REPRODUCIR EL NIVEL 1 DE significancia.py
-# =====================================================================
+# Verificacion: reproducir el nivel 1 de significancia.py
 
 def verificar(a, catalogo, valida, horas, canales, usar_cache):
-    """
-    Reconstruye el nivel 1 de los puntos de operacion de significancia.py.
-
-    Devuelve (ok, onsets_por_detector, metricas_por_detector).
-    """
+    """Reconstruye el nivel 1 de los puntos de operacion de significancia.py."""
     print("=" * 78)
     print("  VERIFICACION: REPRODUCIR EL NIVEL 1 DE significancia.py")
     print("=" * 78)
@@ -275,9 +167,7 @@ def verificar(a, catalogo, valida, horas, canales, usar_cache):
     return ok, onsets, filas
 
 
-# =====================================================================
-# VERIFICACION DE PROCEDENCIA DE LOS BARRIDOS GUARDADOS
-# =====================================================================
+# Verificacion de procedencia de los barridos guardados
 
 # Corte viejo de la traza, el que estaba vigente cuando se genero
 # comparacion_nivel1.csv. El commit 1658de0 lo corrigio a 3.240.001.
@@ -286,15 +176,7 @@ CORTES_VIEJOS = [2_160_000, 3_240_000]
 
 def verificar_procedencia(tabla2, a, catalogo, valida, horas, canales,
                           usar_cache):
-    """
-    Mide si los barridos guardados se pueden empatar con el corte actual.
-
-    Para los modelos la comparacion es gratis: las filas de la parte 2
-    con la misma (modo, umbral, min_est) se cotejan contra las filas
-    guardadas. Para STA/LTA se reconstruye la fila de mayor sensibilidad
-    con el corte ACTUAL y, si no empata, se repite con el corte VIEJO
-    para comprobar que la diferencia viene de ahi y no de otra cosa.
-    """
+    """Mide si los barridos guardados se pueden empatar con el corte actual."""
     print("\n" + "=" * 78)
     print("  PROCEDENCIA DE LOS BARRIDOS GUARDADOS")
     print("=" * 78)
@@ -367,9 +249,7 @@ def verificar_procedencia(tabla2, a, catalogo, valida, horas, canales,
         print("  diferencia viene de otra cosa y queda sin explicar.")
 
 
-# =====================================================================
-# PARTE 1: LECTURA DE LOS BARRIDOS YA HECHOS
-# =====================================================================
+# Parte 1: lectura de los barridos ya hechos
 
 def parte1():
     """Lee comparacion_nivel1.csv y frontera_pareto.csv y los resume."""
@@ -412,10 +292,7 @@ def parte1():
                       f" umbral={r.umbral:g} min_est={int(r.min_est)}")
         print()
 
-    # Para la parte 4 se devuelven TODOS los puntos del barrido previo, no
-    # solo los que cruzan las metas. Se toma comparacion_nivel1.csv y no
-    # frontera_pareto.csv porque el segundo es un subconjunto del primero
-    # (verificado) y duplicarlo inflaria la tabla.
+    # Para la parte 4 se devuelven todos los puntos del barrido previo.
     ruta = os.path.join(SALIDA, "comparacion_nivel1.csv")
     if not os.path.exists(ruta):
         return pd.DataFrame()
@@ -427,12 +304,10 @@ def parte1():
     return df
 
 
-# =====================================================================
-# PARTE 2: EXTENSION DEL NIVEL 1 CON LAS CACHAS DE ARRIBOS
-# =====================================================================
+# Parte 2: extension del nivel 1 con las caches de arribos
 
 def pisos_de_cache():
-    """Confianza minima efectivamente guardada en cada cacha de arribos."""
+    """Confianza minima efectivamente guardada en cada cache de arribos."""
     print("\n" + "=" * 78)
     print("  PARTE 2 - PISO DE CONFIANZA DE CADA CACHA DE ARRIBOS")
     print("=" * 78)
@@ -463,7 +338,7 @@ def pisos_de_cache():
 
 
 def parte2(catalogo, valida, horas, pisos):
-    """Rejilla modelo x modo x confianza x min_est sobre las cachas."""
+    """Rejilla modelo x modo x confianza x min_est sobre las caches."""
     print("\n" + "=" * 78)
     print("  PARTE 2 - EXTENSION DEL NIVEL 1 (aritmetica sobre las cachas)")
     print("=" * 78)
@@ -537,18 +412,10 @@ def parte2(catalogo, valida, horas, pisos):
     return tabla
 
 
-# =====================================================================
-# PARTE 3: COMBINACION DE DETECTORES
-# =====================================================================
+# Parte 3: combinacion de detectores
 
 def punto_max_sensibilidad_stalta():
-    """
-    Punto de mayor sensibilidad de STA/LTA segun comparacion_nivel1.csv.
-
-    Se lee de la tabla ya calculada y se traduce a la configuracion que
-    necesita stalta_por_canal para poder reconstruir los onsets. Empate
-    de recall se rompe por menor tasa de falsos positivos.
-    """
+    """Punto de mayor sensibilidad de STA/LTA segun comparacion_nivel1.csv."""
     ruta = os.path.join(SALIDA, "comparacion_nivel1.csv")
     if not os.path.exists(ruta):
         return None
@@ -611,7 +478,7 @@ def parte3(a, catalogo, valida, horas, canales, usar_cache,
 
     escenarios = {}
 
-    # --- escenario A: punto de significancia.py ---
+    # escenario A: punto de significancia.py
     print("  Escenario 'op' (punto de significancia.py, mejor F1)")
     for nombre in ("stalta", "phasenet", "eqtransformer"):
         cfg = sig.OP_NIVEL1[nombre]
@@ -620,7 +487,7 @@ def parte3(a, catalogo, valida, horas, canales, usar_cache,
         print(f"    {nombre:<15}{txt}, min_est {cfg['min_est']}")
     escenarios["op"] = dict(onsets_op)
 
-    # --- escenario B: punto de mayor sensibilidad ---
+    # escenario B: punto de mayor sensibilidad
     print("\n  Escenario 'maxsens' (mayor sensibilidad de cada detector;")
     print("  empate de sensibilidad roto por menor tasa de falsos)")
     maxs = {}
@@ -652,7 +519,7 @@ def parte3(a, catalogo, valida, horas, canales, usar_cache,
             maxs[modelo] = ons
     escenarios["maxsens"] = maxs
 
-    # --- medicion de individuales y uniones ---
+    # medicion de individuales y uniones
     amb = ept.ambitos(a, valida)
     combos = [("stalta", "phasenet"),
               ("stalta", "eqtransformer"),
@@ -752,9 +619,7 @@ def parte3(a, catalogo, valida, horas, canales, usar_cache,
     return tabla
 
 
-# =====================================================================
-# PARTE 4: FRONTERA, CSV Y FIGURA
-# =====================================================================
+# Parte 4: frontera, CSV y figura
 
 def parte4(tabla1, tabla2, tabla3, con_figura=True):
     """Junta todo, marca la frontera, escribe el CSV y la figura."""
@@ -776,10 +641,8 @@ def parte4(tabla1, tabla2, tabla3, con_figura=True):
     # se marca por id y no por coincidencia de valores.
     todo["punto_id"] = np.arange(len(todo))
 
-    # Los modelos del barrido previo se reproducen exacto en la extension
-    # (la seccion de procedencia lo mide), asi que esas filas quedan
-    # duplicadas. Se conservan en el CSV pero se excluyen del calculo de
-    # la frontera para que cada punto tenga una sola procedencia.
+    # Las filas de modelos del barrido previo quedan duplicadas en la extension: se
+    # excluyen de la frontera.
     clave = ["grupo", "modo", "umbral", "min_est", "n_onsets", "ambito",
              "escenario", "regla"]
     todo["duplicado"] = (todo.sort_values("fuente",
@@ -787,9 +650,8 @@ def parte4(tabla1, tabla2, tabla3, con_figura=True):
                          .duplicated(subset=clave)
                          .reindex(todo.index))
 
-    # "sin fusionar" deja onsets repetidos, asi que no es una union
-    # utilizable: se conserva en el CSV como cota superior pero se saca
-    # de la frontera y del cruce de metas.
+    # "sin fusionar" es solo cota superior: queda en el CSV, fuera de la frontera y de
+    # las metas.
     usable = todo.regla.ne("sin fusionar") if "regla" in todo.columns \
         else pd.Series(True, index=todo.index)
     glob = todo[(todo.ambito == "global") & (~todo.duplicado)
@@ -912,10 +774,6 @@ def graficar(glob, fr):
     fig.savefig(PNG_SALIDA, dpi=150)
     print(f"  Figura en {PNG_SALIDA}")
 
-
-# =====================================================================
-# MAIN
-# =====================================================================
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
