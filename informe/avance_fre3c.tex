@@ -699,6 +699,98 @@ Hasta 300~s después del aviso & Fin & Es más que el evento más largo del cat�
 \end{longtable}
 }
 
+\subsection*{Período de ruido y percentil}
+
+Para ver si esos valores importan, repetí el recorte con energía y corte
+cambiando solo el período de ruido (cuánto antes del aviso empieza y termina) y
+el percentil, sin tocar lo demás. El Cuadro~\ref{tab:ruido} muestra el
+resultado; en negrita, los valores en uso.
+
+\Needspace*{30\baselineskip}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{lrrrrrrr}
+\caption{Recorte por energía con corte según el período de ruido y el percentil (125 volcánicos). IoU: eventos con IoU de 0,3 y de 0,5 o más; mediana: IoU mediano de los que se tocan.}\label{tab:ruido}\\
+\cabecera{\textbf{Ruido (s antes del aviso)} & \textbf{Percentil} & \textbf{Toca} & \textbf{IoU 0,3} & \textbf{IoU 0,5} & \textbf{Mediana} & \textbf{TR 0,3} & \textbf{TR mediana}}{8}
+30 a 5 & 10 & 122 & 106 & 86 & 0,66 & 21 & 0,37 \\
+30 a 5 & 20 & 122 & 104 & 85 & 0,63 & 19 & 0,35 \\
+30 a 5 & 50 & 121 & 97 & 78 & 0,58 & 16 & 0,27 \\
+\midrule
+60 a 5 & 10 & 122 & 109 & 91 & 0,65 & 24 & 0,46 \\
+60 a 5 & 20 & 122 & 106 & 89 & 0,62 & 22 & 0,38 \\
+60 a 5 & 50 & 121 & 99 & 75 & 0,59 & 17 & 0,29 \\
+\midrule
+120 a 5 & 10 & 122 & 109 & 95 & 0,65 & 25 & 0,53 \\
+\textbf{120 a 5} & \textbf{20} & \textbf{122} & \textbf{107} & \textbf{90} & \textbf{0,65} & \textbf{23} & \textbf{0,42} \\
+120 a 5 & 50 & 121 & 97 & 75 & 0,56 & 17 & 0,30 \\
+\midrule
+240 a 5 & 10 & 122 & 113 & 95 & 0,70 & 28 & 0,52 \\
+240 a 5 & 20 & 122 & 112 & 92 & 0,68 & 27 & 0,50 \\
+240 a 5 & 50 & 121 & 97 & 78 & 0,61 & 21 & 0,38 \\
+\midrule
+120 a 10 & 10 & 122 & 109 & 93 & 0,64 & 25 & 0,53 \\
+120 a 10 & 20 & 122 & 107 & 88 & 0,64 & 23 & 0,42 \\
+120 a 10 & 50 & 121 & 97 & 74 & 0,56 & 17 & 0,29 \\
+\midrule
+120 a 2,5 & 10 & 122 & 110 & 95 & 0,65 & 25 & 0,53 \\
+120 a 2,5 & 20 & 122 & 107 & 91 & 0,65 & 23 & 0,42 \\
+120 a 2,5 & 50 & 121 & 98 & 76 & 0,56 & 18 & 0,31 \\
+\end{longtable}
+}
+
+\begin{itemize}
+\item \textbf{El percentil es lo que más pesa:} con el 50\,\% (la mediana del
+  tramo) el ruido sale más alto, el recorte termina antes y se pierden unos 10
+  eventos bien recortados (de 107 a 97 con el período en uso).
+\item \textbf{Un período más largo ayuda, sobre todo en TR:} al pasar de 120 a
+  240~s, los TR con IoU de 0,3 o más suben de 23 a 27, y el total de 107 a 112.
+\item \textbf{Dónde termina el período casi no importa:} terminar 2,5, 5 o 10~s
+  antes del aviso da 107 en los tres casos.
+\item \textbf{La mejor combinación medida} es 240~s con el percentil 10: 113
+  volcánicos (0,904) con IoU de 0,3 o más y 95 con 0,5 o más, contra 107 y 90
+  de los valores en uso.
+\end{itemize}
+
+No cambié los valores: elegir la mejor combinación con la misma traza con que
+evalúo es ajustar el método a estos datos. Si se cambian, quedará declarado así.
+
+\subsection*{¿El recorte alcanza el inicio del evento?}
+
+El recorte empieza 2,5~s antes del aviso, y el aviso puede venir de la onda P o
+de la S. Como la S llega después de la P, cuando PhaseNet solo ve la S el
+recorte puede empezar tarde. El Cuadro~\ref{tab:inicio-onda} lo mide: para
+cada volcánico que su recorte toca, qué onda dio el aviso y si el recorte
+empieza antes o después del inicio que marca el catálogo.
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{llr>{\raggedleft\arraybackslash}p{1.7cm}>{\raggedleft\arraybackslash}p{1.9cm}>{\raggedleft\arraybackslash}p{2.8cm}>{\raggedleft\arraybackslash}p{1.7cm}}
+\caption{Inicio del recorte según la onda que dio el aviso (recorte por energía con corte).}\label{tab:inicio-onda}\\
+\cabecera{\textbf{Onda} & \textbf{Clase} & \textbf{Eventos} & \textbf{Empieza antes} & \textbf{Empieza después} & \textbf{Aviso tras el inicio, mediana (s)} & \textbf{IoU mediano}}{7}
+P & VT & 34 & 27 & 7 & 1,3 & 0,70 \\
+P & LP & 43 & 33 & 10 & 1,6 & 0,75 \\
+P & TR & 17 & 12 & 5 & 0,9 & 0,46 \\
+P & Todas & 94 & 72 & 22 & 1,4 & 0,69 \\
+\midrule
+S & VT & 1 & 1 & 0 & 0,0 & 0,66 \\
+S & LP & 8 & 4 & 4 & 2,7 & 0,65 \\
+S & TR & 19 & 2 & 17 & 8,5 & 0,38 \\
+S & Todas & 28 & 7 & 21 & 5,0 & 0,53 \\
+\end{longtable}
+}
+
+\begin{itemize}
+\item \textbf{Cuando avisa la P}, el recorte empieza antes del inicio en 72 de
+  94 casos: el aviso llega en mediana 1,4~s después del inicio, dentro de los
+  2,5~s de margen.
+\item \textbf{Cuando avisa solo la S}, el recorte empieza después del inicio en
+  21 de 28 casos: la S llega en mediana 5,0~s después del inicio y el margen no
+  alcanza. En esos casos el recorte pierde la onda P.
+\item \textbf{Casi todos esos casos son TR:} 19 de los 28, y en 17 el recorte
+  empieza tarde, con el aviso 8,5~s después del inicio en mediana. Es otra
+  razón de que TR sea la clase peor recortada.
+\end{itemize}
+
 \section{Calidad del recorte con varios umbrales de IoU}\label{sec:iou}
 
 Un recorte puede tocar el evento sin coincidir bien con él. Para ver las dos
@@ -804,6 +896,7 @@ así que un umbral más bajo da recortes más largos. Es el único parámetro de
 EQTransformer que cambia su recorte, y lo probé de 0,02 a 0,95
 (Cuadro~\ref{tab:iou-eqt}).
 
+\Needspace*{16\baselineskip}
 {\small
 \setlength{\tabcolsep}{4pt}
 \begin{longtable}{rrrrrrr}
