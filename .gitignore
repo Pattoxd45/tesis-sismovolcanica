@@ -17,7 +17,5 @@ papers/
 *.pt
 *.pkl
 
-# el documento vive en Overleaf
-latex/
 
 CLAUDE.local.md
