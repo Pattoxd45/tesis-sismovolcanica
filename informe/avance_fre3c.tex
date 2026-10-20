@@ -169,7 +169,8 @@ contar aciertos y cómo recortar. Las aplico igual a los tres detectores.
 \item \textbf{Falsa alarma:} un aviso que no cae dentro de ningún evento del
   catálogo ni en los 5~s antes de su inicio.
 \item \textbf{Bien recortado:} el recorte tiene un IoU de 0,30 o más con el
-  evento (Sección~\ref{sec:recorte}).
+  evento (Sección~\ref{sec:recorte}). En la Sección~\ref{sec:iou} muestro
+  otros umbrales.
 \item \textbf{Recorte por energía:} PhaseNet no marca el fin del evento, así que
   lo calculo con la energía de la señal (Sección~\ref{sec:recorte}). Sus valores
   los fijé yo:
@@ -416,7 +417,7 @@ PhaseNet y EQTransformer juntos (Sección~\ref{sec:fusion}) & PhaseNet 0,30 y EQ
 PhaseNet + energía con corte & umbral 0,10; 61,5 FP/h & --- & 0,864 con umbral 0,05 \\
 PhaseNet + ventana fija de 82~s & --- & --- & 0,664 \\
 STA/LTA, recorte propio & --- & --- & 0,576 \\
-EQTransformer, recorte propio & --- & --- & 0,088 \\
+EQTransformer, recorte propio & --- & --- & 0,096 (umbral 0,10) \\
 \end{longtable}
 }
 
@@ -586,13 +587,13 @@ recortes que entregan STA/LTA y EQTransformer.
 {\small
 \setlength{\tabcolsep}{5pt}
 \begin{longtable}{>{\raggedright\arraybackslash}p{5.0cm}rrrrrr}
-\caption{Eventos bien recortados (IoU de 0,30 o más), IoU medio de esos eventos y falsas alarmas por hora.}\label{tab:recortes}\\
+\caption{Eventos bien recortados (IoU de 0,30 o más), IoU medio de esos eventos y falsas alarmas por hora. Las redes, con umbral 0,10 y filtro de 1--15~Hz.}\label{tab:recortes}\\
 \cabecera{\textbf{Recorte} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcánicos} & \textbf{IoU medio} & \textbf{FP/h}}{7}
 PhaseNet + energía con corte & 35/36 & 49/52 & 23/37 & \textbf{0,856} & 0,69 & 61,5 \\
 PhaseNet + energía & 34/36 & 37/52 & 27/37 & 0,784 & 0,70 & 61,4 \\
 PhaseNet + ventana fija de 82~s & 3/36 & 43/52 & 37/37 & 0,664 & 0,54 & 60,6 \\
 STA/LTA, recorte propio & 28/36 & 34/52 & 6/37 & 0,544 & 0,46 & 18,2 \\
-EQTransformer, recorte propio & 1/36 & 2/52 & 5/37 & 0,064 & 0,51 & 7,1 \\
+EQTransformer, recorte propio & 3/36 & 3/52 & 6/37 & 0,096 & 0,47 & 9,6 \\
 \end{longtable}
 }
 
@@ -601,10 +602,10 @@ EQTransformer, recorte propio & 1/36 & 2/52 & 5/37 & 0,064 & 0,51 & 7,1 \\
 \item \textbf{Ventana fija:} solo gana en TR, porque con 82~s alcanza a cubrir
   casi cualquier evento largo. En VT, que duran unos 12~s, acierta 3 de 36.
 \item \textbf{STA/LTA:} pierde casi todos los TR (6 de 37).
-\item \textbf{EQTransformer:} no sirve para recortar; sus recortes duran 3,9~s
-  y los eventos, 32,6~s.
+\item \textbf{EQTransformer:} no sirve para recortar; sus recortes duran 5,8~s
+  en mediana y los eventos, 32,6~s.
 \item \textbf{Costo:} PhaseNet trae más falsas alarmas (61 por hora, contra 18
-  de STA/LTA y 7 de EQTransformer); irán a la clase de rechazo.
+  de STA/LTA y 10 de EQTransformer); irán a la clase de rechazo.
 \end{itemize}
 
 El corte se agregó porque, sin él, muchos recortes salían demasiado largos:
@@ -618,6 +619,103 @@ tremor. Otros 6 TR quedan cortos porque en FRE casi no sobresalen del ruido
 
 \figura{fig6_fallas.png}{0.80}{Por qué falla el recorte por energía: un LP con recorte demasiado largo y un TR con recorte demasiado corto. La energía está medida en veces el ruido previo; el recorte termina cuando baja de la línea punteada durante 5~s.}{fig:fallas}
 
+\section{Calidad del recorte con varios umbrales de IoU}\label{sec:iou}
+
+Un recorte puede tocar el evento sin coincidir bien con él. Para ver las dos
+cosas, conté cuántos volcánicos tienen un recorte que los toca (cualquier
+tiempo en común) y cuántos superan cada umbral de IoU, de 0,1 a 0,9. Lo hice
+con las mismas reglas para los cinco recortes: un recorte por evento, las redes
+con umbral 0,10 y filtro de 1--15~Hz, y STA/LTA con la configuración de la
+Etapa~2.
+
+{\small
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.2cm}rrrrrrrrrr}
+\caption{Volcánicos (de 125) con un recorte que los toca y con IoU igual o mayor que cada umbral.}\label{tab:iou-umbral}\\
+\cabecera{\textbf{Recorte} & \textbf{Toca} & \textbf{0,1} & \textbf{0,2} & \textbf{0,3} & \textbf{0,4} & \textbf{0,5} & \textbf{0,6} & \textbf{0,7} & \textbf{0,8} & \textbf{0,9}}{11}
+PhaseNet + energía con corte & 122 & 118 & 112 & 107 & 99 & 90 & 71 & 52 & 33 & 16 \\
+PhaseNet + energía & 120 & 119 & 106 & 98 & 92 & 83 & 66 & 51 & 31 & 15 \\
+PhaseNet + ventana fija de 82~s & 125 & 124 & 101 & 83 & 60 & 39 & 22 & 17 & 11 & 5 \\
+EQTransformer, recorte propio & 91 & 68 & 30 & 12 & 7 & 2 & 2 & 2 & 1 & 0 \\
+STA/LTA, recorte propio & 106 & 100 & 92 & 68 & 41 & 20 & 14 & 5 & 1 & 0 \\
+\end{longtable}
+}
+
+\figura{fig7_iou.png}{0.85}{Parte de los 125 volcánicos con IoU igual o mayor que cada umbral, para cada recorte. La línea punteada marca el 0,30 usado en el Cuadro~\ref{tab:recortes}.}{fig:iou}
+
+\needspace{20\baselineskip}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.2cm}lrrrrr}
+\caption{Por clase: eventos con recorte que los toca y con IoU de 0,3, 0,5 y 0,7 o más, e IoU mediano de los que se tocan.}\label{tab:iou-clase}\\
+\cabecera{\textbf{Recorte} & \textbf{Clase} & \textbf{Toca} & \textbf{0,3} & \textbf{0,5} & \textbf{0,7} & \textbf{IoU mediano}}{7}
+PhaseNet + energía con corte & VT (36) & 35 & 35 & 33 & 17 & 0,69 \\
+ & LP (52) & 51 & 49 & 40 & 28 & 0,74 \\
+ & TR (37) & 36 & 23 & 17 & 7 & 0,42 \\
+\midrule
+PhaseNet + energía & VT (36) & 35 & 34 & 32 & 16 & 0,68 \\
+ & LP (52) & 49 & 37 & 29 & 20 & 0,58 \\
+ & TR (37) & 36 & 27 & 22 & 15 & 0,62 \\
+\midrule
+PhaseNet + ventana fija de 82~s & VT (36) & 36 & 3 & 0 & 0 & 0,19 \\
+ & LP (52) & 52 & 43 & 13 & 0 & 0,41 \\
+ & TR (37) & 37 & 37 & 26 & 17 & 0,66 \\
+\midrule
+EQTransformer, recorte propio & VT (36) & 27 & 3 & 0 & 0 & 0,15 \\
+ & LP (52) & 44 & 3 & 1 & 1 & 0,15 \\
+ & TR (37) & 20 & 6 & 1 & 1 & 0,20 \\
+\midrule
+STA/LTA, recorte propio & VT (36) & 32 & 28 & 13 & 4 & 0,46 \\
+ & LP (52) & 45 & 34 & 4 & 0 & 0,36 \\
+ & TR (37) & 29 & 6 & 3 & 1 & 0,21 \\
+\end{longtable}
+}
+
+\subsection*{Los cuatro casos de cruce}
+
+Cuando un recorte toca su evento, puede hacerlo de cuatro formas:
+\begin{itemize}
+\item \textbf{Cubre todo:} empieza antes del evento y termina después.
+\item \textbf{Le falta el final:} empieza antes y termina dentro del evento.
+\item \textbf{Le faltan el inicio y el fin:} queda dentro del evento.
+\item \textbf{Le falta el inicio:} empieza dentro del evento y termina después.
+\end{itemize}
+
+El Cuadro~\ref{tab:iou-casos} cuenta cuántos volcánicos caen en cada caso y,
+entre paréntesis, su IoU mediano.
+
+{\small
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.3cm}rrrrr}
+\caption{Volcánicos según cómo los toca su recorte; entre paréntesis, IoU mediano.}\label{tab:iou-casos}\\
+\cabecera{\textbf{Recorte} & \textbf{Cubre todo} & \textbf{Falta el final} & \textbf{Faltan inicio y fin} & \textbf{Falta el inicio} & \textbf{No lo toca}}{6}
+PhaseNet + energía con corte & 27 (0,66) & 52 (0,69) & 29 (0,58) & 14 (0,79) & 3 \\
+PhaseNet + energía & 40 (0,56) & 47 (0,74) & 15 (0,59) & 18 (0,60) & 5 \\
+PhaseNet + ventana fija de 82~s & 94 (0,35) & 6 (0,65) & 15 (0,66) & 10 (0,52) & 0 \\
+EQTransformer, recorte propio & 1 (0,49) & 35 (0,20) & 53 (0,13) & 2 (0,32) & 34 \\
+STA/LTA, recorte propio & 0 & 14 (0,42) & 91 (0,33) & 1 (0,52) & 19 \\
+\end{longtable}
+}
+
+\begin{itemize}
+\item \textbf{Tocar no basta:} si se cuenta todo recorte que toca el evento,
+  PhaseNet con energía y corte llega a 122 de 125 (0,976), y la ventana fija
+  toca los 125. Pero la ventana fija los toca porque es larga: en VT, que duran
+  unos 12~s, su IoU mediano es 0,19. Por eso hace falta mirar también el IoU.
+\item \textbf{Con IoU de 0,5 o más:} PhaseNet con energía y corte recorta bien
+  90 volcánicos (0,720); sin corte, 83; con la ventana fija, 39; STA/LTA, 20, y
+  EQTransformer, 2.
+\item \textbf{Por clase:} con energía y corte, VT y LP quedan bien recortados
+  (IoU mediano 0,69 y 0,74). TR es lo más débil (0,42); en TR rinde mejor sin
+  corte (0,62) o con la ventana fija (0,66), porque el tremor es largo.
+\item \textbf{Dónde falla el recorte por energía con corte:} en 81 volcánicos
+  el recorte termina antes que el evento (52 + 29), y en 43 empieza después del
+  inicio del catálogo (29 + 14). En esos 43, el aviso de PhaseNet llegó más de
+  2,5~s después del inicio, que es el margen que dejo antes del aviso.
+\item \textbf{STA/LTA y EQTransformer cortan corto:} casi siempre su recorte
+  queda dentro del evento (91 y 53 casos). EQTransformer no toca 34 volcánicos.
+\end{itemize}
+
 \section{PhaseNet y EQTransformer juntos}\label{sec:fusion}
 
 Junté los avisos de las dos redes: si un aviso de PhaseNet y uno de
@@ -625,7 +723,7 @@ EQTransformer caen a 5~s o menos uno del otro, cuentan como una sola
 detección, con la hora del más temprano. El Cuadro~\ref{tab:fusion} muestra el
 resultado con distintos umbrales para cada red.
 
-\needspace{16\baselineskip}
+\Needspace*{22\baselineskip}
 {\small
 \setlength{\tabcolsep}{4pt}
 \begin{longtable}{>{\raggedright\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{1.7cm}rrrrr>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{2.3cm}}
