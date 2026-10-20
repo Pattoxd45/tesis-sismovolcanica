@@ -195,7 +195,8 @@ contar aciertos y cómo recortar. Las aplico igual a los tres detectores.
 \section{Sensibilidad por clase}
 
 Un evento cuenta como detectado si hay un aviso a 5~s o menos de su inicio,
-antes o después. El Cuadro~\ref{tab:por-clase} y la
+antes o después. La Sección~\ref{sec:tolerancia} explica qué significa ese valor
+y da también los resultados con 10~s. El Cuadro~\ref{tab:por-clase} y la
 Figura~\ref{fig:por-clase} muestran qué parte de cada clase detecta cada red,
 con umbral 0,10 y filtro de 1--15~Hz. Entre corchetes va el intervalo de
 confianza del 95\,\%.
@@ -448,11 +449,110 @@ tolerancia ningún detector llega a 0,95: el máximo es 0,936.
 
 \section{Tolerancia de tiempo: los tres detectores y las tres clases}\label{sec:tolerancia}
 
-Hasta aquí, un evento cuenta como detectado si hay un aviso a 5~s o menos de su
-inicio. Para ver cuánto depende el resultado de ese valor, probé otras
-tolerancias con las mismas reglas para los tres detectores: un aviso por
-evento, las redes con umbral 0,10 y filtro de 1--15~Hz, y STA/LTA con la
-configuración de la Etapa~2. Probé dos formas:
+\subsection*{Qué son los 5 y los 10 segundos}
+
+El catálogo marca, para cada evento, el instante en que empieza. Un detector no
+entrega eventos, sino \emph{avisos}: instantes en que su curva supera el umbral.
+Para saber si un detector encontró un evento, comparo sus avisos con ese inicio.
+La \emph{tolerancia} es cuánto puede separarse el aviso del inicio para que el
+evento cuente como detectado. Informo dos valores:
+
+\begin{itemize}
+\item \textbf{5~s:} el aviso tiene que caer entre 5~s antes y 5~s después del
+  inicio, una ventana de 10~s en total. Es el valor usado hasta aquí.
+\item \textbf{10~s:} entre 10~s antes y 10~s después del inicio, una ventana de
+  20~s.
+\end{itemize}
+
+La tolerancia no cambia al detector: sus avisos son los mismos con 5 y con
+10~s. Lo único que cambia es cuáles de esos avisos se aceptan como acierto. La
+Figura~\ref{fig:tolerancia} lo muestra con tres eventos de ejemplo. Con las dos
+tolerancias se mantienen las mismas reglas:
+
+\begin{itemize}
+\item Cada evento se empareja con un solo aviso, el más cercano a su inicio, y
+  cada aviso con un solo evento.
+\item Un aviso que cae dentro de un evento, pero fuera de su ventana (como el
+  del evento C), no es acierto ni falsa alarma.
+\item Una falsa alarma es un aviso que cae fuera de todo evento y fuera de la
+  ventana anterior a su inicio. Con 10~s esa ventana anterior pasa de 5 a 10~s;
+  por eso las falsas alarmas bajan un poco.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.16cm, y=1cm, font=\footnotesize]
+\fill[azul!12] (-10,0.45) rectangle (10,3.15);
+\fill[azul!30] (-5,0.45) rectangle (5,3.15);
+\foreach \y/\t/\n/\d in {2.7/3/A/{aviso a 3~s del inicio:\\detectado con 5 y con 10~s},
+                        1.8/7/B/{aviso a 7~s:\\detectado solo con 10~s},
+                        0.9/12/C/{aviso a 12~s: no detectado con\\ninguna; tampoco es falsa alarma}} {
+  \fill[black!25] (0,\y-0.12) rectangle (30,\y+0.12);
+  \node[anchor=east] at (-11,\y) {Evento \n};
+  \draw[line width=1.6pt, naranjo] (\t,\y-0.3) -- (\t,\y+0.3);
+  \node[anchor=west, align=left] at (32,\y) {\d};
+}
+\draw[dashed, black!70] (0,0.3) -- (0,3.25);
+\draw[<->, black!70] (-5,3.4) -- (5,3.4);
+\node[anchor=west] at (5.5,3.4) {tolerancia de 5~s};
+\draw[<->, black!70] (-10,3.8) -- (10,3.8);
+\node[anchor=west] at (10.5,3.8) {tolerancia de 10~s};
+\draw[->, black!60] (-12,0.3) -- (31,0.3) node[right] {s};
+\foreach \x in {-10,-5,0,5,10,20,30} {
+  \draw[black!60] (\x,0.3) -- (\x,0.22) node[below] {\x};
+}
+\end{tikzpicture}
+\caption{Tres eventos de ejemplo que empiezan en 0~s (barras grises) y el aviso de un detector (línea naranja). La franja oscura es la ventana de 5~s y la clara, la de 10~s.}\label{fig:tolerancia}
+\end{figure}
+
+\subsection*{La sensibilidad con 5 y con 10~s}
+
+La \emph{sensibilidad} de una clase es la parte de sus eventos del catálogo que
+el detector encuentra: eventos detectados divididos por eventos de esa clase.
+La sensibilidad volcánica junta VT, LP y TR: detectados de las tres clases
+divididos por 125. La meta de 0,95 pide al menos 119 de los 125
+($0{,}95 \times 125 = 118{,}75$); cada evento vale 0,008.
+
+Con PhaseNet (P y S, umbral 0,10, filtro de 1--15~Hz):
+
+\begin{itemize}
+\item \textbf{5~s:} VT $35/36 = 0{,}972$; LP $52/52 = 1{,}000$; TR
+  $26/37 = 0{,}703$. Volcánicos: $(35 + 52 + 26)/125 = 113/125 = 0{,}904$.
+  Faltan 6 eventos para la meta.
+\item \textbf{10~s:} VT y LP no cambian; TR sube a $34/37 = 0{,}919$.
+  Volcánicos: $121/125 = 0{,}968$, 2 eventos sobre la meta.
+\end{itemize}
+
+Los 8 eventos que se ganan son todos TR: 6 tienen su aviso entre 5 y 10~s
+después del inicio y 2, entre 5 y 10~s antes. Con 125 eventos, la cifra tiene
+incertidumbre: el intervalo de confianza del 95\,\% (el rango en que
+probablemente estaría la sensibilidad con otro grupo de eventos parecido) va de
+0,840 a 0,944 con 5~s y de 0,921 a 0,987 con 10~s. Con 10~s el valor medido
+pasa la meta, pero el intervalo todavía incluye valores bajo 0,95.
+
+El Cuadro~\ref{tab:tol-clase} hace la misma cuenta para los tres detectores.
+Con 10~s ningún otro llega a la meta: STA/LTA queda en $99/125 = 0{,}792$,
+EQTransformer con su detección en $72/125 = 0{,}576$ y EQTransformer con P y S
+en $70/125 = 0{,}560$.
+
+{\small
+\setlength{\tabcolsep}{2.5pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.2cm}rrrrrrrrrr}
+\caption{Detectados por clase con tolerancia de 5 y de 10~s, y falsas alarmas por hora. Volcán.: detectados de 125.}\label{tab:tol-clase}\\
+\cabecera{ & \multicolumn{5}{c}{\textbf{5~s}} & \multicolumn{5}{c}{\textbf{10~s}} \\ \textbf{Detector} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcán.} & \textbf{FP/h} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcán.} & \textbf{FP/h}}{11}
+PhaseNet, P y S & 35/36 & 52/52 & 26/37 & 113 & 61,5 & 35/36 & 52/52 & 34/37 & 121 & 60,6 \\
+EQTransformer, detección & 23/36 & 32/52 & 14/37 & 69 & 10,0 & 23/36 & 35/52 & 14/37 & 72 & 9,8 \\
+EQTransformer, P y S & 23/36 & 35/52 & 9/37 & 67 & 8,7 & 23/36 & 36/52 & 11/37 & 70 & 8,4 \\
+STA/LTA & 30/36 & 43/52 & 16/37 & 89 & 18,4 & 31/36 & 45/52 & 23/37 & 99 & 18,3 \\
+\end{longtable}
+}
+
+\subsection*{Otras tolerancias}
+
+Para ver cuánto depende el resultado de la tolerancia, probé también otros
+valores, con las mismas reglas para los tres detectores: las redes con umbral
+0,10 y filtro de 1--15~Hz, y STA/LTA con la configuración de la Etapa~2. Probé
+dos formas:
 
 \begin{itemize}
 \item \textbf{Simétrica:} el aviso puede caer hasta $T$ segundos antes o
@@ -473,18 +573,6 @@ PhaseNet, P y S & 0,344 & 0,584 & 0,752 & 0,904 & 0,944 & \textbf{0,968} & 0,976
 EQTransformer, detección & 0,240 & 0,376 & 0,488 & 0,552 & 0,560 & 0,576 & 0,624 & 0,648 & 0,696 \\
 EQTransformer, P y S & 0,208 & 0,384 & 0,464 & 0,536 & 0,544 & 0,560 & 0,568 & 0,568 & 0,576 \\
 STA/LTA & 0,224 & 0,376 & 0,504 & 0,712 & 0,760 & 0,792 & 0,800 & 0,808 & 0,840 \\
-\end{longtable}
-}
-
-{\small
-\setlength{\tabcolsep}{2.5pt}
-\begin{longtable}{>{\raggedright\arraybackslash}p{4.2cm}rrrrrrrrrr}
-\caption{Detectados por clase con tolerancia simétrica de 5 y de 10~s, y falsas alarmas por hora. Volcán.: detectados de 125.}\label{tab:tol-clase}\\
-\cabecera{ & \multicolumn{5}{c}{\textbf{5~s}} & \multicolumn{5}{c}{\textbf{10~s}} \\ \textbf{Detector} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcán.} & \textbf{FP/h} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcán.} & \textbf{FP/h}}{11}
-PhaseNet, P y S & 35/36 & 52/52 & 26/37 & 113 & 61,5 & 35/36 & 52/52 & 34/37 & 121 & 60,6 \\
-EQTransformer, detección & 23/36 & 32/52 & 14/37 & 69 & 10,0 & 23/36 & 35/52 & 14/37 & 72 & 9,8 \\
-EQTransformer, P y S & 23/36 & 35/52 & 9/37 & 67 & 8,7 & 23/36 & 36/52 & 11/37 & 70 & 8,4 \\
-STA/LTA & 30/36 & 43/52 & 16/37 & 89 & 18,4 & 31/36 & 45/52 & 23/37 & 99 & 18,3 \\
 \end{longtable}
 }
 
@@ -557,9 +645,10 @@ De los 11 TR que PhaseNet pierde con 5~s, 6 tienen aviso entre 5,9 y 7,3~s
 después del inicio, 2 lo tienen mucho después (22 y 42~s) y 3 no tienen
 ninguno.
 
-Con 5~s ningún detector llega a 0,95; con 10~s, PhaseNet llega a 0,968. El
-valor que se use en adelante es una decisión de evaluación y se aplicará igual a
-los tres detectores.
+Por eso informo las dos tolerancias, 5 y 10~s, siempre con las mismas reglas
+para los tres detectores. Con 5~s ningún detector llega a 0,95; con 10~s,
+PhaseNet llega a 0,968. La diferencia entre las dos está casi toda en TR, cuyo
+aviso llega más tarde.
 
 \section{Recorte de PhaseNet por energía}\label{sec:recorte}
 
@@ -701,6 +790,12 @@ Hasta 300~s después del aviso & Fin & Es más que el evento más largo del cat�
 
 \subsection*{Período de ruido y percentil}
 
+El \emph{período de ruido} es el tramo de señal justo antes del aviso, cuando
+todavía no llega el evento. Sirve para saber cuánta energía tiene la señal
+cuando no pasa nada; con ese nivel se decide dónde termina el evento (pasos 5 a
+7). El \emph{percentil} dice qué valor de ese tramo se toma como nivel: con el
+20\,\%, el nivel es la energía bajo la cual queda el 20\,\% del tramo.
+
 Para ver si esos valores importan, repetí el recorte con energía y corte
 cambiando solo el período de ruido (cuánto antes del aviso empieza y termina) y
 el percentil, sin tocar lo demás. El Cuadro~\ref{tab:ruido} muestra el
@@ -791,6 +886,11 @@ S & Todas & 28 & 7 & 21 & 5,0 & 0,53 \\
   razón de que TR sea la clase peor recortada.
 \end{itemize}
 
+Esto afecta solo a los recortes de PhaseNet, que empiezan a partir del aviso;
+los de EQTransformer y STA/LTA tienen su propio inicio. Para que el recorte
+alcance la onda P cuando avisa solo la S habría que agregar una regla nueva al
+recorte, que no viene de PhaseNet. No la agregué.
+
 \section{Calidad del recorte con varios umbrales de IoU}\label{sec:iou}
 
 Un recorte puede tocar el evento sin coincidir bien con él. Para ver las dos
@@ -845,16 +945,62 @@ STA/LTA, recorte propio & VT (36) & 32 & 28 & 13 & 4 & 0,46 \\
 
 \subsection*{Los cuatro casos de cruce}
 
-Cuando un recorte toca su evento, puede hacerlo de cuatro formas:
+El IoU compara un recorte con su evento: divide el tiempo que tienen en común
+por el tiempo total que ocupan los dos juntos, desde el primer inicio hasta el
+último fin. Vale 1 si el recorte coincide con el evento y 0 si no lo toca.
+Cuando un recorte toca su evento, puede hacerlo de cuatro formas. La
+Figura~\ref{fig:iou-casos} las muestra con un evento de ejemplo que va de 0 a
+60~s:
+
 \begin{itemize}
-\item \textbf{Cubre todo:} empieza antes del evento y termina después.
-\item \textbf{Le falta el final:} empieza antes y termina dentro del evento.
-\item \textbf{Le faltan el inicio y el fin:} queda dentro del evento.
+\item \textbf{Cubre todo:} empieza antes del evento y termina después. De
+  $-10$ a 70~s: en común, los 60~s del evento; total, de $-10$ a 70~s, 80~s.
+  IoU $= 60/80 = 0{,}75$.
+\item \textbf{Le falta el final:} empieza antes y termina dentro del evento. De
+  $-10$ a 40~s: en común, de 0 a 40~s, 40~s; total, de $-10$ a 60~s, 70~s.
+  IoU $= 40/70 = 0{,}57$.
+\item \textbf{Le faltan el inicio y el fin:} queda dentro del evento. De 10 a
+  40~s: en común, 30~s; total, el evento entero, 60~s. IoU $= 30/60 = 0{,}50$.
 \item \textbf{Le falta el inicio:} empieza dentro del evento y termina después.
+  De 20 a 80~s: en común, de 20 a 60~s, 40~s; total, de 0 a 80~s, 80~s.
+  IoU $= 40/80 = 0{,}50$.
+\item \textbf{No lo toca:} no hay tiempo en común. IoU $= 0$.
 \end{itemize}
 
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.1cm, y=1cm, font=\footnotesize]
+\draw[dashed, black!45] (0,-0.5) -- (0,3.3);
+\draw[dashed, black!45] (60,-0.5) -- (60,3.3);
+\fill[black!25] (0,2.88) rectangle (60,3.12);
+\node[anchor=east] at (-17,3.0) {Evento};
+\foreach \y/\a/\b/\ca/\cb/\n/\v in {2.4/-10/70/0/60/{Cubre todo}/{$60/80 = 0{,}75$},
+                                   1.8/-10/40/0/40/{Falta el final}/{$40/70 = 0{,}57$},
+                                   1.2/10/40/10/40/{Faltan inicio y fin}/{$30/60 = 0{,}50$},
+                                   0.6/20/80/20/60/{Falta el inicio}/{$40/80 = 0{,}50$}} {
+  \fill[naranjo!35] (\a,\y-0.12) rectangle (\b,\y+0.12);
+  \fill[naranjo] (\ca,\y-0.12) rectangle (\cb,\y+0.12);
+  \node[anchor=east] at (-17,\y) {\n};
+  \node[anchor=west] at (87,\y) {\v};
+}
+\fill[naranjo!35] (65,-0.12) rectangle (80,0.12);
+\node[anchor=east] at (-17,0) {No lo toca};
+\node[anchor=west] at (87,0) {$0$};
+\draw[->, black!60] (-15,-0.5) -- (85,-0.5) node[right] {s};
+\foreach \x in {-10,0,20,40,60,80} {
+  \draw[black!60] (\x,-0.5) -- (\x,-0.58) node[below] {\x};
+}
+\end{tikzpicture}
+\caption{Los cuatro casos de cruce con un evento de ejemplo de 0 a 60~s (gris). Cada recorte va en naranjo claro, y la parte que tiene en común con el evento, en naranjo oscuro. A la derecha, su IoU: tiempo en común dividido por tiempo total.}\label{fig:iou-casos}
+\end{figure}
+
+Los cuatro casos dan un IoU mayor que 0. Lo que lo baja no es el caso, sino
+cuánto le sobra o le falta al recorte: uno que cubre todo pero dura mucho más
+que el evento también queda con IoU bajo.
+
 El Cuadro~\ref{tab:iou-casos} cuenta cuántos volcánicos caen en cada caso y,
-entre paréntesis, su IoU mediano.
+entre paréntesis, su IoU mediano. Cada volcánico cae en uno solo de los cinco
+casos, y cada fila suma 125.
 
 {\small
 \setlength{\tabcolsep}{3pt}

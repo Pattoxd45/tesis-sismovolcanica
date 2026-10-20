@@ -4,7 +4,7 @@
 Barrido de P_threshold y S_threshold por separado, igual para PhaseNet y EQTransformer,
 y eventos que se detectan solo con P, solo con S o con ambas.
 
-Uso: python barrido_ps_fre3c.py [--filtros f1_15 f1_45]
+Uso: python barrido_ps_fre3c.py [--filtros f1_15 f1_45] [--tolerancia 5]
 """
 
 import argparse
@@ -36,14 +36,14 @@ def picos(curvas, fase, umbral, cache):
     return cache[clave]
 
 
-def barrer(modelo, filtro, curvas, inc, zona_ini, zona_fin, valida, horas):
+def barrer(modelo, filtro, curvas, inc, zona_ini, zona_fin, valida, horas, tol_s):
     cache, filas = {}, []
     for up in lib.UMBRALES:
         for us in lib.UMBRALES:
             # P y S a 5 s o menos del primero cuentan como un aviso, igual que en PN-PS
             o = lib.agrupar_anclado(np.concatenate([picos(curvas, "P", up, cache),
                                                     picos(curvas, "S", us, cache)]), TOL)
-            res = lib.evaluar(o, inc, zona_ini, zona_fin, valida)
+            res = lib.evaluar(o, inc, zona_ini, zona_fin, valida, tol_s)
             fc, ft = lib.resumir(res, inc, horas)
             c = {f["clase"]: f for f in fc}
             filas.append(dict(modelo=modelo, filtro=filtro, P_threshold=up, S_threshold=us,
@@ -53,8 +53,8 @@ def barrer(modelo, filtro, curvas, inc, zona_ini, zona_fin, valida, horas):
     return pd.DataFrame(filas), cache
 
 
-def aciertos_fase(curvas, fase, umbral, cache, inc, zona_ini, zona_fin, valida):
-    res = lib.evaluar(picos(curvas, fase, umbral, cache), inc, zona_ini, zona_fin, valida)
+def aciertos_fase(curvas, fase, umbral, cache, inc, zona_ini, zona_fin, valida, tol_s):
+    res = lib.evaluar(picos(curvas, fase, umbral, cache), inc, zona_ini, zona_fin, valida, tol_s)
     return res["asignado"] >= 0
 
 
@@ -106,28 +106,33 @@ def verificar_diagonal(df, modelo, filtro):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--filtros", nargs="+", default=list(lib.FILTROS), choices=list(lib.FILTROS))
+    ap.add_argument("--tolerancia", type=float, default=lib.TOL_S)
     args = ap.parse_args()
 
     eventos = pd.read_csv(lib.RUTA_EVENTOS)
     inc = eventos[eventos.incluido].reset_index(drop=True)
     valida = np.load(lib.ruta_datos("f1_15"))["valida"]
     con_senal = eventos[eventos.estado_crudo != "no_coincide"]
-    zona_ini, zona_fin = (con_senal.ini - TOL).to_numpy(), con_senal.fin.to_numpy()
+    # la ventana previa al evento que no cuenta como falsa alarma crece con la tolerancia
+    tol_ev = int(round(args.tolerancia * FS))
+    zona_ini, zona_fin = (con_senal.ini - tol_ev).to_numpy(), con_senal.fin.to_numpy()
+    sufijo = "" if np.isclose(args.tolerancia, lib.TOL_S) else f"_{args.tolerancia:g}s"
     horas = valida.sum() / FS / 3600
     volc = inc.clase.isin(lib.VOLCANICAS).to_numpy()
 
     tablas, por_evento = [], inc[["id", "clase", "tramo", "dur_s"]].copy()
-    print("BARRIDO DE P_threshold Y S_threshold POR SEPARADO (nivel 1, tolerancia 5 s)")
-    print("  sensibilidad volcanica = VT+LP+TR detectados / 125; FP/h fuera de todo evento;")
+    print(f"BARRIDO DE P_threshold Y S_threshold POR SEPARADO (nivel 1, tolerancia {args.tolerancia:g} s)")
+    print(f"  sensibilidad volcanica = VT+LP+TR detectados / {int(inc.clase.isin(lib.VOLCANICAS).sum())}; FP/h fuera de todo evento;")
     print("  FDR = FP / (aciertos volcanicos + FP). Filas: P_threshold; columnas: S_threshold.")
     for modelo in MODELOS:
         for filtro in args.filtros:
             z = np.load(lib.ruta_anot(modelo, filtro))
             curvas = {k: np.nan_to_num(z[k]) for k in ("P", "S")}
-            df, cache = barrer(modelo, filtro, curvas, inc, zona_ini, zona_fin, valida, horas)
+            df, cache = barrer(modelo, filtro, curvas, inc, zona_ini, zona_fin, valida, horas, args.tolerancia)
             tablas.append(df)
             print(f"\n=== {modelo}, filtro {NOMBRE_FILTRO[filtro]} ===")
-            print(f"  comprobacion de la diagonal: {verificar_diagonal(df, modelo, filtro)}")
+            if not sufijo:
+                print(f"  comprobacion de la diagonal: {verificar_diagonal(df, modelo, filtro)}")
             print("\n  Sensibilidad volcanica:")
             matriz(df, "sens_volc", lambda v: f"{v:.3f}")
             print("\n  Falsas alarmas por hora:")
@@ -149,8 +154,8 @@ def main():
             print("\n  Eventos volcanicos segun la fase que los detecta (P y S con el mismo umbral):")
             print(f"   {'umbral':>6} {'clase':>5} {'ambas':>6} {'solo P':>7} {'solo S':>7} {'ninguna':>8}")
             for u in UMBRALES_DIF:
-                hp = aciertos_fase(curvas, "P", u, cache, inc, zona_ini, zona_fin, valida)
-                hs = aciertos_fase(curvas, "S", u, cache, inc, zona_ini, zona_fin, valida)
+                hp = aciertos_fase(curvas, "P", u, cache, inc, zona_ini, zona_fin, valida, args.tolerancia)
+                hs = aciertos_fase(curvas, "S", u, cache, inc, zona_ini, zona_fin, valida, args.tolerancia)
                 por_evento[f"{modelo}_{filtro}_P_{u:.2f}"] = hp
                 por_evento[f"{modelo}_{filtro}_S_{u:.2f}"] = hs
                 for cl in lib.VOLCANICAS:
@@ -164,9 +169,9 @@ def main():
                     print(f"          solo P: {', '.join(f'{x.id}:{x.clase}' for x in sp.itertuples()) or '-'}")
                     print(f"          solo S: {', '.join(f'{x.id}:{x.clase}' for x in ss.itertuples()) or '-'}")
 
-    pd.concat(tablas).to_csv(os.path.join(lib.DIR_SALIDA, "barrido_ps.csv"), index=False)
-    por_evento.to_csv(os.path.join(lib.DIR_SALIDA, "ps_por_evento.csv"), index=False)
-    print(f"\nTablas en {lib.DIR_SALIDA}/barrido_ps.csv y ps_por_evento.csv")
+    pd.concat(tablas).to_csv(os.path.join(lib.DIR_SALIDA, f"barrido_ps{sufijo}.csv"), index=False)
+    por_evento.to_csv(os.path.join(lib.DIR_SALIDA, f"ps_por_evento{sufijo}.csv"), index=False)
+    print(f"\nTablas en {lib.DIR_SALIDA}/barrido_ps{sufijo}.csv y ps_por_evento{sufijo}.csv")
 
 
 if __name__ == "__main__":

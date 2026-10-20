@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Sensibilidad por clase con distintas tolerancias de tiempo, igual para PhaseNet,
-EQTransformer y STA/LTA, y retraso del primer aviso de cada evento.
+EQTransformer y STA/LTA, retraso del primer aviso de cada evento y umbral de las redes
+con 5 y con 10 s.
 
 Uso: python tolerancia_fre3c.py [--umbral 0.10] [--filtro f1_15]
 """
@@ -24,6 +25,10 @@ SIMETRICAS_S = [1, 2, 3, 5, 7, 10, 15, 20, 30]
 TARDIAS_S = [5, 7, 10, 15, 20, 30, 60]
 ANTES_TARDIA_S = 5.0     # en la prueba tardia solo se alarga el lado posterior al inicio
 DETECTORES = ["PhaseNet P y S", "EQTransformer deteccion", "EQTransformer P y S", "STA/LTA"]
+FLUJOS_UMBRAL = {"PhaseNet P y S": ("PN-PS", "phasenet"), "EQTransformer deteccion": ("EQT-D", "eqtransformer"),
+                 "EQTransformer P y S": ("EQT-PS", "eqtransformer")}
+TOL_INFORME_S = [5, 10]
+METAS = [0.80, 0.90, 0.95]
 
 
 def onsets_detectores(umbral, filtro, valida):
@@ -108,6 +113,8 @@ def imprimir(df, tipo, valores, col):
 
 
 def main():
+    import sensibilidad_fre3c as sf
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--umbral", type=float, default=0.10)
     ap.add_argument("--filtro", default="f1_15", choices=list(lib.FILTROS))
@@ -162,9 +169,56 @@ def main():
                   f"{v.quantile(0.90):>6.1f} {int((v > lib.TOL_S).sum()):>6} {len(g) - len(v):>9}")
         print()
 
+    # 5 y 10 s: los dos valores que se informan; el umbral de cada red se barre igual que en sensibilidad_fre3c.py
+    print("4. UMBRAL DE LAS REDES CON 5 Y CON 10 s (simetrica; P y S con el mismo umbral)")
+    filas_u = []
+    for det, (flujo, modelo) in FLUJOS_UMBRAL.items():
+        curvas = dict(np.load(lib.ruta_anot(modelo, args.filtro)))
+        cache = {}
+        for u in lib.UMBRALES:
+            o = sf.onsets_de(flujo, curvas, u, cache)
+            for t in TOL_INFORME_S:
+                res = evaluar_ventana(o, inc, zona_ini, zona_fin, valida, t, t)
+                filas_u.append(dict(fila(det, "umbral", t, t, res, inc, horas), umbral=u))
+    du = pd.DataFrame(filas_u)
+    for t in TOL_INFORME_S:
+        tol_t = int(round(t * FS))
+        base = lib.evaluar(ons["PhaseNet P y S"], inc, zona_ini - tol_t, zona_fin, valida, t)
+        fc, ft = lib.resumir(base, inc, horas)
+        r = du[(du.detector == "PhaseNet P y S") & np.isclose(du.umbral, args.umbral) & np.isclose(du.antes_s, t)]
+        igual = (not r.empty and {f["clase"]: f["k"] for f in fc}["volcanico"] == r.iloc[0].k_volc
+                 and np.isclose(ft["fp_h"], r.iloc[0].fp_h))
+        print(f"   comprobacion PhaseNet +-{t:g} s, umbral {args.umbral:.2f}: igual a lib.evaluar: {'SI' if igual else 'NO'}")
+    print(f"   {'detector':<25} {'umbral':>6} " + " ".join(f"{f'{t:g} s: sens':>11} {'FP/h':>6}" for t in TOL_INFORME_S))
+    for det in FLUJOS_UMBRAL:
+        for u in lib.UMBRALES:
+            celdas = []
+            for t in TOL_INFORME_S:
+                r = du[(du.detector == det) & np.isclose(du.umbral, u) & np.isclose(du.antes_s, t)].iloc[0]
+                celdas.append(f"{r.sens_volc:>11.3f} {r.fp_h:>6.1f}")
+            print(f"   {det:<25} {u:>6.2f} " + " ".join(celdas))
+        print()
+    print("   Menos FP/h que alcanza cada meta (VT, LP, TR detectados entre parentesis):")
+    for det in FLUJOS_UMBRAL:
+        for t in TOL_INFORME_S:
+            g = du[(du.detector == det) & np.isclose(du.antes_s, t)]
+            partes = []
+            for meta in METAS:
+                ok = g[g.sens_volc >= meta]
+                if ok.empty:
+                    partes.append(f"{meta:.2f}: no")
+                    continue
+                r = ok.sort_values(["fp_h", "umbral"], ascending=[True, False]).iloc[0]
+                partes.append(f"{meta:.2f}: u {r.umbral:.2f}, {r.sens_volc:.3f}, {r.fp_h:.1f} FP/h "
+                              f"({r.k_VT}/{r.k_LP}/{r.k_TR})")
+            mx = g.sort_values(["sens_volc", "fp_h"], ascending=[False, True]).iloc[0]
+            print(f"   {det:<25} {t:>3g} s | " + " | ".join(partes) +
+                  f" | max {mx.sens_volc:.3f} con u {mx.umbral:.2f}, {mx.fp_h:.1f} FP/h")
+    du.to_csv(os.path.join(lib.DIR_SALIDA, "tolerancia_umbral.csv"), index=False)
+
     df.to_csv(os.path.join(lib.DIR_SALIDA, "tolerancias.csv"), index=False)
     dr.to_csv(os.path.join(lib.DIR_SALIDA, "retrasos.csv"), index=False)
-    print(f"Tablas en {lib.DIR_SALIDA}/tolerancias.csv y retrasos.csv")
+    print(f"Tablas en {lib.DIR_SALIDA}/tolerancias.csv, retrasos.csv y tolerancia_umbral.csv")
 
 
 if __name__ == "__main__":
