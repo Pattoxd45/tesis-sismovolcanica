@@ -258,7 +258,8 @@ Hasta aquí usé el mismo valor para \texttt{P\_threshold} y
 \texttt{S\_threshold}. Ahora probé cada uno por separado: 21 valores para P y
 21 para S, de 0,02 a 0,95, o sea, 441 combinaciones en cada red. Lo hice igual
 en PhaseNet y en EQTransformer, con la misma forma de contar. Estos valores no
-cambian lo que calcula la red: solo deciden qué avisos se aceptan.
+cambian lo que calcula la red: solo deciden qué avisos se aceptan. Primero va el
+resultado con 5~s de tolerancia y al final, con 10~s.
 
 Los Cuadros~\ref{tab:ps-pn} y~\ref{tab:ps-eqt} muestran una parte de la
 rejilla. Cada casilla trae la sensibilidad volcánica y, entre paréntesis, las
@@ -297,7 +298,7 @@ falsas alarmas por hora. Las filas son \texttt{P\_threshold} y las columnas,
 
 \begin{itemize}
 \item \textbf{El máximo no sube:} con valores separados PhaseNet sigue en 0,936
-  y EQTransformer en 0,688. Ninguna combinación llega a 0,95.
+  y EQTransformer en 0,688. Con 5~s, ninguna combinación llega a 0,95.
 \item \textbf{En PhaseNet, bajar S de 0,10 no suma eventos, solo falsas
   alarmas:} con P en 0,02, S en 0,10 detecta lo mismo que S en 0,02 (117 de
   125), con 82,5 falsas alarmas por hora en vez de 107,2. Bajar P sí suma
@@ -359,6 +360,100 @@ TR & 3 & 16 & 7 & 11 & 1 & 8 & 0 & 28 \\
 \item En EQTransformer, la S no detecta ningún TR que la P no vea.
 \end{itemize}
 
+\subsection*{Con 10~s de tolerancia}
+
+Repetí el mismo barrido con 10~s de tolerancia (Sección~\ref{sec:tolerancia}).
+Los avisos son los mismos; solo cambia cuáles se aceptan como acierto. Los
+Cuadros~\ref{tab:ps-pn-10} y~\ref{tab:ps-eqt-10} son la misma parte de la
+rejilla que los anteriores. En negrita, en PhaseNet, la combinación que llega a
+0,95 con menos falsas alarmas; en EQTransformer, el máximo.
+
+\needspace{14\baselineskip}
+{\small
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{lrrrrrr}
+\caption{PhaseNet, P y S, con 10~s de tolerancia (filtro 1--15~Hz): sensibilidad volcánica y falsas alarmas por hora.}\label{tab:ps-pn-10}\\
+\cabecera{\textbf{P $\backslash$ S} & \textbf{0,02} & \textbf{0,05} & \textbf{0,10} & \textbf{0,20} & \textbf{0,30} & \textbf{0,50}}{7}
+\textbf{0,02} & 0,976 (105,3) & 0,976 (89,7) & 0,976 (81,1) & 0,944 (73,9) & 0,904 (69,3) & 0,896 (67,5) \\
+\textbf{0,05} & 0,968 (97,6) & 0,968 (79,4) & 0,968 (69,3) & 0,920 (59,7) & 0,872 (53,6) & 0,848 (50,7) \\
+\textbf{0,10} & 0,968 (93,4) & 0,968 (73,1) & 0,968 (60,6) & 0,912 (49,3) & 0,856 (42,0) & 0,824 (38,3) \\
+\textbf{0,20} & 0,968 (90,9) & 0,968 (69,4) & 0,952 (55,2) & 0,856 (41,3) & 0,800 (32,4) & 0,752 (26,8) \\
+\textbf{0,30} & 0,968 (90,3) & 0,968 (68,1) & \textbf{0,952 (52,7)} & 0,832 (36,5) & 0,768 (26,7) & 0,712 (19,9) \\
+\textbf{0,50} & 0,960 (88,9) & 0,936 (65,7) & 0,896 (49,3) & 0,744 (31,4) & 0,640 (20,3) & 0,568 (12,4) \\
+\end{longtable}
+}
+
+\needspace{14\baselineskip}
+{\small
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{lrrrrrr}
+\caption{EQTransformer, P y S, con 10~s de tolerancia (filtro 1--15~Hz): sensibilidad volcánica y falsas alarmas por hora.}\label{tab:ps-eqt-10}\\
+\cabecera{\textbf{P $\backslash$ S} & \textbf{0,02} & \textbf{0,05} & \textbf{0,10} & \textbf{0,20} & \textbf{0,30} & \textbf{0,50}}{7}
+\textbf{0,02} & \textbf{0,728 (14,0)} & 0,648 (12,2) & 0,632 (11,2) & 0,608 (10,4) & 0,600 (10,1) & 0,576 (8,6) \\
+\textbf{0,05} & 0,712 (12,8) & 0,632 (10,9) & 0,608 (9,8) & 0,584 (8,9) & 0,576 (8,6) & 0,552 (7,2) \\
+\textbf{0,10} & 0,696 (11,8) & 0,600 (9,8) & 0,560 (8,4) & 0,528 (7,5) & 0,520 (7,2) & 0,496 (5,6) \\
+\textbf{0,20} & 0,672 (10,7) & 0,544 (8,5) & 0,472 (7,0) & 0,424 (6,0) & 0,408 (5,5) & 0,376 (3,9) \\
+\textbf{0,30} & 0,664 (10,5) & 0,536 (8,3) & 0,448 (6,8) & 0,392 (5,6) & 0,368 (5,2) & 0,320 (3,3) \\
+\textbf{0,50} & 0,648 (10,2) & 0,512 (8,0) & 0,400 (6,5) & 0,304 (5,3) & 0,272 (4,4) & 0,216 (2,3) \\
+\end{longtable}
+}
+
+\needspace{20\baselineskip}
+{\small
+\setlength{\tabcolsep}{5pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{6.2cm}rrrr}
+\caption{Casos principales del barrido con 10~s de tolerancia (filtro 1--15~Hz). Volcánicos: detectados de 125.}\label{tab:ps-casos-10}\\
+\cabecera{\textbf{Caso} & \textbf{P} & \textbf{S} & \textbf{Volcánicos} & \textbf{FP/h}}{5}
+\multicolumn{5}{l}{\textit{PhaseNet}}\\
+\addlinespace
+Por defecto de SeisBench & 0,30 & 0,30 & 96 = 0,768 & 26,7 \\
+Meta 0,80, mismo valor & 0,25 & 0,25 & 102 = 0,816 & 32,6 \\
+Meta 0,80, valores separados & 0,30 & 0,25 & 101 = 0,808 & 30,2 \\
+Meta 0,90, mismo valor & 0,15 & 0,15 & 117 = 0,936 & 48,2 \\
+Meta 0,90, valores separados & 0,30 & 0,15 & 115 = 0,920 & 42,6 \\
+Meta 0,95, mismo valor & 0,10 & 0,10 & 121 = 0,968 & 60,6 \\
+Meta 0,95, valores separados & 0,30 & 0,10 & 119 = 0,952 & 52,7 \\
+Máximo, mismo valor & 0,03 & 0,03 & 122 = 0,976 & 94,2 \\
+Máximo, valores separados & 0,03 & 0,10 & 122 = 0,976 & 75,2 \\
+\midrule
+\multicolumn{5}{l}{\textit{EQTransformer}}\\
+\addlinespace
+Por defecto de SeisBench & 0,10 & 0,10 & 70 = 0,560 & 8,4 \\
+Máximo, mismo valor & 0,02 & 0,02 & 91 = 0,728 & 14,0 \\
+Máximo, valores separados & 0,03 & 0,02 & 91 = 0,728 & 13,5 \\
+\end{longtable}
+}
+
+{\small
+\setlength{\tabcolsep}{5pt}
+\begin{longtable}{lrrrrrrrr}
+\caption{Volcánicos según la onda que los detecta con 10~s de tolerancia (umbral 0,10 para P y para S, filtro 1--15~Hz).}\label{tab:solo-ps-10}\\
+\cabecera{ & \multicolumn{4}{c}{\textbf{PhaseNet}} & \multicolumn{4}{c}{\textbf{EQTransformer}} \\ \textbf{Clase} & \textbf{Ambas} & \textbf{Solo P} & \textbf{Solo S} & \textbf{Ninguna} & \textbf{Ambas} & \textbf{Solo P} & \textbf{Solo S} & \textbf{Ninguna}}{9}
+VT & 34 & 0 & 1 & 1 & 17 & 3 & 3 & 13 \\
+LP & 40 & 5 & 7 & 0 & 20 & 11 & 5 & 16 \\
+TR & 10 & 12 & 12 & 3 & 3 & 6 & 2 & 26 \\
+\end{longtable}
+}
+
+\begin{itemize}
+\item \textbf{Con 10~s, PhaseNet llega a 0,95 con su valor por defecto de P:}
+  con \texttt{P\_threshold} en 0,30 y \texttt{S\_threshold} en 0,10 detecta
+  119 de 125 (0,952) con 52,7 falsas alarmas por hora. Con el mismo valor para
+  las dos hace falta bajar a 0,10: 121 de 125 (0,968) con 60,6.
+\item \textbf{El máximo sube de 0,936 a 0,976} (122 de 125). Con valores
+  separados (P 0,03 y S 0,10) cuesta 75,2 falsas alarmas por hora, contra 94,2
+  con el mismo valor.
+\item \textbf{EQTransformer sube de 0,688 a 0,728}, y sigue sin llegar a 0,80.
+\item \textbf{Con 10~s, la S suma más:} en PhaseNet, la S sola detecta 12 TR
+  que la P no ve, contra 7 con 5~s, y en LP los detectados por las dos ondas
+  pasan de 27 a 40. En esos eventos el aviso de la S cae a más de 5~s del
+  inicio, pero a 10~s o menos. Va con lo que se vio en el recorte: en los TR
+  en que avisa solo la S, su aviso llega en mediana 8,5~s después del inicio
+  (Cuadro~\ref{tab:inicio-onda}).
+\item \textbf{Con 1--45~Hz} el resultado es igual o peor: PhaseNet tiene el
+  mismo máximo (0,976) con más falsas alarmas, y EQTransformer llega a 0,720.
+\end{itemize}
+
 \section{EQTransformer: filtro de 1--45~Hz y umbral}
 
 EQTransformer ya filtra la señal en 1--45~Hz por dentro, y su umbral por
@@ -397,9 +492,10 @@ detectar el 80\,\% y el 90\,\% de los volcánicos y cuántas falsas alarmas por
 hora (FP/h) cuesta; la última columna es lo máximo que logra. ``---''
 significa que no llega con ningún umbral. En las filas de P y S, los valores
 de P y de S se eligen por separado (Sección~\ref{sec:ps}). Con 5~s de
-tolerancia ningún detector llega al 95\,\%: el máximo es 0,936, de PhaseNet
-(con 10~s, ver la Sección~\ref{sec:tolerancia}). La parte de abajo mide el recorte con el IoU
-(Sección~\ref{sec:recorte}).
+tolerancia ningún detector llega al 95\,\%: el máximo es 0,936, de PhaseNet.
+La parte de abajo mide el recorte con el IoU (Sección~\ref{sec:recorte}), que
+no depende de la tolerancia. El Cuadro~\ref{tab:metas-10} repite la parte de
+detección con 10~s.
 
 \Needspace*{34\baselineskip}
 {\small
@@ -425,6 +521,23 @@ STA/LTA, recorte propio & --- & --- & 0,576 \\
 EQTransformer, recorte propio & --- & --- & 0,184 con umbral 0,02 \\
 \end{longtable}
 }
+
+\Needspace*{14\baselineskip}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{3.0cm}}
+\caption{Umbral con que cada detector alcanza cada meta de sensibilidad volcánica con 10~s de tolerancia (125 eventos, filtro 1--15~Hz).}\label{tab:metas-10}\\
+\cabecera{\textbf{Detector} & \textbf{Meta 0,80} & \textbf{Meta 0,90} & \textbf{Meta 0,95} & \textbf{Máximo}}{5}
+PhaseNet, P y S & P 0,30 y S 0,25; 30,2 FP/h & P 0,30 y S 0,15; 42,6 FP/h & P 0,30 y S 0,10; 52,7 FP/h & 0,976 con P 0,03 y S 0,10; 75,2 FP/h \\
+EQTransformer, detección & --- & --- & --- & 0,592 con umbral 0,05; 12,8 FP/h \\
+EQTransformer, P y S & --- & --- & --- & 0,728 con P 0,03 y S 0,02; 13,5 FP/h \\
+STA/LTA (configuración de la Etapa~2) & --- & --- & --- & 0,792; 18,3 FP/h (no se barre) \\
+\end{longtable}
+}
+
+Con 10~s solo PhaseNet llega a las tres metas, y llega a 0,95 con su valor por
+defecto de \texttt{P\_threshold}. PhaseNet con solo P o solo S y las dos redes
+juntas no los medí con 10~s.
 
 \section{Las tres componentes y la meta de 0,95}\label{sec:componentes}
 
