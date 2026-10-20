@@ -1,5 +1,4 @@
-% Avance de la deteccion con FRE; toma las figuras de ../resultados/fre3c/.
-% Compilar con: latexmk -pdf avance_fre3c.tex
+% Avance de la deteccion con FRE; toma las figuras de ../resultados/fre3c/ o, en Overleaf, de figuras/.
 
 \documentclass[11pt,a4paper,oneside,spanish,oldfontcommands]{memoir}
 
@@ -41,7 +40,7 @@
 \usepackage{hyperref}
 \hypersetup{hidelinks}
 
-\graphicspath{{../resultados/fre3c/}}
+\graphicspath{{../resultados/fre3c/}{figuras/}}
 
 % Figura que puede no existir todavia: si falta, deja un aviso en su lugar.
 \newcommand{\figura}[4]{%
@@ -49,8 +48,10 @@
     \centering
     \IfFileExists{../resultados/fre3c/#1}%
       {\includegraphics[width=#2\textwidth]{#1}}%
-      {\fbox{\parbox{0.9\textwidth}{\centering\small\itshape Falta \detokenize{#1}:
-        se genera en resultados/fre3c/ al correr el script indicado.}}}
+      {\IfFileExists{figuras/#1}%
+        {\includegraphics[width=#2\textwidth]{#1}}%
+        {\fbox{\parbox{0.9\textwidth}{\centering\small\itshape Falta \detokenize{#1}:
+          va en resultados/fre3c/ o, en Overleaf, en figuras/.}}}}
     \caption{#3}\label{#4}
   \end{figure}}
 
