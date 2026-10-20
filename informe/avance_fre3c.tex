@@ -1,4 +1,9 @@
-% Latex avances para el jueves 15/10
+%% Respuestas a lo pedido en la revision: deteccion con FRE y sus tres
+%% componentes. Documento corto, sin portada ni bibliografia.
+%% Vive en informe/ y toma las figuras de ../resultados/fre3c/, que generan
+%% figuras_fre3c.py, sensibilidad_fre3c.py y recorte_fre3c.py --figura.
+%% Compilar con: latexmk -pdf avance_fre3c.tex
+
 \documentclass[11pt,a4paper,oneside,spanish,oldfontcommands]{memoir}
 
 \usepackage{mathpazo}
@@ -61,81 +66,147 @@
 \pagestyle{plain}
 
 % ======================================================================
-\section{Cómo se mide: los dos niveles, renombrados}
+\section{Datos}
 % ======================================================================
 
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}p{11.3cm}}
-\caption{Medidas usadas en todo el documento.}\label{tab:medidas}\\
-\cabecera{\textbf{Medida} & \textbf{Qué cuenta}}{2}
-Detección del inicio (antes nivel~1) &
-Un evento está detectado si una detección cae a 5~s o menos de su inicio en
-el catálogo. Cada detección se asigna a un solo evento, el más cercano. \\
-\addlinespace
-Delimitación del evento (antes nivel~2) &
-Un evento está delimitado si el recorte que entrega el detector se superpone
-con él con un IoU de al menos 0,30. \\
-\addlinespace
-IoU &
-Duración de la intersección entre recorte y evento, dividida por la de su
-unión. Vale 1 si el recorte coincide con el evento. \\
-\addlinespace
-Sensibilidad &
-Eventos detectados dividido por eventos de la clase. Entre corchetes, el
-intervalo de confianza del 95\,\% (Wilson). \\
-\addlinespace
-Falsos positivos por hora (FP/h) &
-Detecciones que no caen en ningún evento del catálogo, por hora válida. Una
-detección sobre un AV o un IC no es un falso positivo. \\
-\addlinespace
-Tasa de falsos descubrimientos (FDR) &
-FP dividido por (aciertos volcánicos + FP), es decir, 1 menos la precisión.
-Es global: un falso positivo no tiene clase, así que no hay FDR por clase. \\
-\end{longtable}
-}
-
-% ======================================================================
-\section{Datos: FRE con sus tres componentes}
-% ======================================================================
-
-Tomé Z, N y E de los registros crudos de FRE, los alineé con la grilla de la
-traza de Zenodo y los filtré con un Butterworth de orden 5, de fase cero, en
-dos bandas: 1--15~Hz (la de la traza) y 1--45~Hz (la de EQTransformer). La Z
-filtrada reproduce la fila de FRE de la traza con correlación de al menos
-0,99996 en los tres tramos (desfase de 0, 0 y 1~muestra), y N y E no son cero
-ni copia de Z (correlación con Z de 0,30 o menos). Los arribos que extraigo de
-las curvas de las redes son idénticos a los que entrega SeisBench en todos los
-controles. De los 205 eventos del catálogo evalúo 179 (Cuadro~\ref{tab:eventos}).
-Las métricas principales usan solo los 125 volcánicos; AV e IC se muestran
-como referencia, porque irán a la clase de rechazo del clasificador.
+Uso la estación FRE con sus tres componentes, filtradas en dos rangos de
+frecuencia: 1--15~Hz, el mismo de la traza, y 1--45~Hz, el rango con que se
+entrenó EQTransformer. Las cifras principales se calculan solo con los eventos
+volcánicos (VT, LP y TR); AV e IC quedan fuera, porque irán a la clase de
+rechazo, y aparecen solo como referencia. De los 205 eventos del catálogo
+evalué 179 (Cuadro~\ref{tab:eventos}); los demás no tienen señal o caen en
+huecos del registro. Quedan 125 volcánicos.
 
 {\small
 \begin{longtable}{lrr>{\raggedright\arraybackslash}p{9.6cm}}
 \caption{Eventos del catálogo evaluados en FRE.}\label{tab:eventos}\\
 \cabecera{\textbf{Clase} & \textbf{Catálogo} & \textbf{Evaluados} & \textbf{Excluidos y motivo}}{4}
-VT & 38 & 36 & 2 sin dato en el crudo \\
-LP & 55 & 52 & 1 sin señal en el crudo, 1 sin dato, 1 con el inicio en un hueco \\
-TR & 38 & 37 & 1 en la guarda de unión de tramos \\
-AV & 23 & 6 & 17 del tramo 1 sin señal en el registro crudo de FRE \\
-IC & 51 & 48 & 1 en la guarda de unión, 1 sin dato, 1 con el inicio en un hueco \\
+VT & 38 & 36 & 2 en huecos del registro \\
+LP & 55 & 52 & 1 sin señal en el registro original, 2 en huecos \\
+TR & 38 & 37 & 1 en el borde entre dos tramos \\
+AV & 23 & 6 & 17 del tramo 1 sin señal en el registro original \\
+IC & 51 & 48 & 1 en el borde entre dos tramos, 2 en huecos \\
 \midrule
 Total & 205 & 179 & Volcánicos evaluados: 125 (VT 36, LP 52, TR 37) \\
 \end{longtable}
 }
 
 % ======================================================================
+\section{Detectores y sus parámetros}\label{sec:parametros}
+% ======================================================================
+
+Comparo tres detectores. Cada uno viene de una librería que define sus
+parámetros, con su nombre y su valor por defecto. Solo cambio esos parámetros,
+los nombro como los nombra su librería y parto de su valor por defecto.
+
+\begin{itemize}
+\item \textbf{PhaseNet y EQTransformer} (librería SeisBench): redes neuronales
+  que sus autores ya entrenaron con sismos de todo el mundo. Las uso tal como
+  vienen, con los pesos ``original'', sin volver a entrenarlas. Leen la señal
+  por ventanas (30~s PhaseNet, 60~s EQTransformer) y entregan, para cada
+  instante, la probabilidad de que ahí llegue una onda P, la primera onda de un
+  sismo, o una onda S, la segunda. EQTransformer entrega además una curva de
+  detección: la probabilidad de que en ese instante haya un evento.
+\item \textbf{STA/LTA} (librería ObsPy): compara la energía de los últimos
+  segundos (STA, ventana corta) con la del último minuto (LTA, ventana larga).
+  Cuando la razón entre las dos sube de un valor, avisa.
+\end{itemize}
+
+Una curva de probabilidad se convierte en avisos así: el aviso se enciende
+cuando la curva supera el umbral, se apaga cuando baja de la mitad del umbral,
+y se ubica en el punto más alto de ese tramo. Es la regla de SeisBench; la
+apliqué tal cual y comprobé que entrega los mismos avisos que su función
+\texttt{classify}.
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{3.4cm}}
+\caption{Parámetros de cada detector. ``Por defecto'' es el valor que trae la librería (en SeisBench, el que carga con los pesos ``original'').}\label{tab:parametros}\\
+\cabecera{\textbf{Parámetro} & \textbf{Qué hace} & \textbf{Por defecto} & \textbf{Usado} & \textbf{Por qué}}{5}
+\multicolumn{5}{l}{\textit{PhaseNet (SeisBench)}}\\
+\addlinespace
+\texttt{P\_threshold} & Probabilidad mínima para aceptar una onda P. En el PhaseNet original se llama \texttt{min\_p\_prob}. & 0,3 & De 0,02 a 0,95; 0,10 en los cuadros & Con 0,3 se pierden muchos volcánicos, y la meta es encontrar el 95\,\%. \\
+\texttt{S\_threshold} & Lo mismo para la onda S (\texttt{min\_s\_prob}). & 0,3 & El mismo valor de \texttt{P\_threshold} & Falta barrerlo por separado. \\
+\texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 1500 & 1500 & Sin cambio. \\
+\texttt{blinding} & Muestras que se descartan en cada borde de la ventana, donde la red ve menos señal. & 250 por lado & 250 por lado & Sin cambio. \\
+\texttt{stacking} & Cómo se juntan las ventanas que se solapan: promedio (\texttt{avg}) o máximo (\texttt{max}). & \texttt{avg} & \texttt{avg} & Sin cambio. \\
+\midrule
+\multicolumn{5}{l}{\textit{EQTransformer (SeisBench)}}\\
+\addlinespace
+\texttt{detection\_\allowbreak{}threshold} & Probabilidad mínima de la curva de detección. & 0,3 & De 0,02 a 0,95; 0,10 en los cuadros & La misma razón que en PhaseNet. \\
+\texttt{P\_threshold}, \texttt{S\_threshold} & Probabilidad mínima de la onda P y de la onda S. & 0,1 & De 0,02 a 0,95 & La misma razón que en PhaseNet. \\
+\texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 3000 & 3000 & Sin cambio. \\
+\texttt{blinding} & Muestras que se descartan en cada borde. & 500 por lado & 500 por lado & Sin cambio. \\
+\texttt{stacking} & Cómo se juntan las ventanas que se solapan. & \texttt{max} & \texttt{max} & Sin cambio. \\
+Filtro interno & Deja pasar solo 1--45~Hz antes de entrar a la red. & 1--45~Hz & 1--45~Hz & No se puede cambiar: viene con los pesos. \\
+\midrule
+\multicolumn{5}{l}{\textit{STA/LTA (ObsPy: \texttt{classic\_sta\_lta}, \texttt{trigger\_onset} y \texttt{bandpass})}}\\
+\addlinespace
+\texttt{nsta} & Largo de la ventana corta. & No tiene & 200 muestras (2~s) & La mejor combinación del barrido de la Etapa~2; no se toca. \\
+\texttt{nlta} & Largo de la ventana larga. & No tiene & 6000 muestras (60~s) & Igual. \\
+\texttt{thres1} & Razón STA/LTA que enciende el aviso. En otras funciones de ObsPy se llama \texttt{thr\_on}. & No tiene & 4,0 & Igual. \\
+\texttt{thres2} & Razón que lo apaga (\texttt{thr\_off}). & No tiene & 1,05 & Igual. \\
+\texttt{freqmin}, \texttt{freqmax} & Banda que deja pasar el filtro previo. & No tiene & 1 y 20~Hz & Igual. \\
+\texttt{corners} & Orden del filtro: qué tan brusco es el corte. & 4 & 4 & Sin cambio. \\
+\texttt{zerophase} & Si el filtro se aplica sin correr la señal en el tiempo. & No & Sí & Un filtro que corre la señal atrasa el inicio de los eventos. \\
+\midrule
+\multicolumn{5}{l}{\textit{Filtro de FRE antes de las redes (SciPy: \texttt{butter} y \texttt{sosfiltfilt})}}\\
+\addlinespace
+\texttt{N} & Orden del filtro. & No tiene & 5 & Así la vertical de FRE coincide con la traza publicada (correlación de 0,99 o más). \\
+\texttt{Wn} & Banda que deja pasar. & No tiene & 1--15~Hz y 1--45~Hz & 1--15~Hz: la banda de la traza publicada; 1--45~Hz: la del filtro interno de EQTransformer. \\
+\texttt{sosfiltfilt} & Aplica el filtro sin correr la señal en el tiempo. & --- & --- & La misma razón que \texttt{zerophase}. \\
+\end{longtable}
+}
+
+Algunas reglas no vienen de ninguna librería: son decisiones mías sobre cómo
+contar aciertos y cómo recortar. Las aplico igual a los tres detectores.
+
+\begin{itemize}
+\item \textbf{Tolerancia de 5~s:} un evento cuenta como detectado si hay un
+  aviso a 5~s o menos de su inicio, antes o después.
+\item \textbf{Un aviso, un evento:} cada aviso se asigna a un solo evento, el de
+  inicio más cercano.
+\item \textbf{Avisos que se juntan:} los avisos de P y de S que caen a 5~s o
+  menos del primero cuentan como uno solo, con la hora del más temprano. La
+  misma regla junta PhaseNet con EQTransformer (Sección~\ref{sec:fusion}). En
+  STA/LTA, los avisos separados por menos de 5~s se unen en uno, como en la
+  Etapa~2.
+\item \textbf{Falsa alarma:} un aviso que no cae dentro de ningún evento del
+  catálogo ni en los 5~s antes de su inicio.
+\item \textbf{Bien recortado:} el recorte tiene un IoU de 0,30 o más con el
+  evento (Sección~\ref{sec:recorte}).
+\item \textbf{Recorte por energía:} PhaseNet no marca el fin del evento, así que
+  lo calculo con la energía de la señal (Sección~\ref{sec:recorte}). Sus valores
+  los fijé yo:
+  \begin{itemize}
+  \item empieza 2,5~s antes del aviso;
+  \item la energía es la de Z, N y E juntas, promediada en ventanas de 1~s;
+  \item el ruido se mide entre 120 y 5~s antes del aviso, como el nivel que la
+    energía no supera el 20\,\% de ese tiempo (así no lo infla la cola de un
+    evento anterior);
+  \item el fin está donde empieza el primer tramo de 5~s seguidos con la
+    energía bajo el doble del ruido, buscado entre 2 y 300~s después del aviso;
+    si antes hay un hueco en el registro, termina ahí;
+  \item \textbf{con corte:} si llega otro aviso antes de ese fin, el recorte
+    termina 2,5~s antes de ese aviso, donde empieza el recorte siguiente.
+  \end{itemize}
+\end{itemize}
+
+% ======================================================================
 \section{Sensibilidad por clase}
 % ======================================================================
 
-Es lo prioritario. El Cuadro~\ref{tab:por-clase} y la
-Figura~\ref{fig:por-clase} muestran qué fracción de cada clase detecta cada
-red, con la confianza mínima en 0,10 y el filtro de 1--15~Hz.
+Un evento cuenta como detectado si hay un aviso a 5~s o menos de su inicio,
+antes o después. El Cuadro~\ref{tab:por-clase} y la
+Figura~\ref{fig:por-clase} muestran qué parte de cada clase detecta cada red,
+con umbral 0,10 y filtro de 1--15~Hz. Entre corchetes va el intervalo de
+confianza del 95\,\%.
 
 \needspace{14\baselineskip}
 {\small
 \begin{longtable}{lll}
-\caption{Sensibilidad por clase en la detección del inicio (umbral 0,10, filtro 1--15~Hz).}\label{tab:por-clase}\\
-\cabecera{\textbf{Clase} & \textbf{PhaseNet, arribos P y S} & \textbf{EQTransformer, detección}}{3}
+\caption{Sensibilidad por clase (umbral 0,10, filtro 1--15~Hz).}\label{tab:por-clase}\\
+\cabecera{\textbf{Clase} & \textbf{PhaseNet, P y S} & \textbf{EQTransformer, detección}}{3}
 VT & 35/36 = 0,972 [0,858; 0,995] & 23/36 = 0,639 [0,476; 0,775] \\
 LP & 52/52 = 1,000 [0,931; 1,000] & 32/52 = 0,615 [0,480; 0,735] \\
 TR & 26/37 = 0,703 [0,542; 0,825] & 14/37 = 0,378 [0,241; 0,539] \\
@@ -145,14 +216,13 @@ TR & 26/37 = 0,703 [0,542; 0,825] & 14/37 = 0,378 [0,241; 0,539] \\
 AV (rechazo) & 6/6 = 1,000 [0,610; 1,000] & 2/6 = 0,333 [0,097; 0,700] \\
 IC (rechazo) & 35/48 = 0,729 [0,590; 0,834] & 9/48 = 0,188 [0,102; 0,319] \\
 \midrule
-FP/h y FDR & 61,5 FP/h; FDR 0,841 & 10,0 FP/h; FDR 0,584 \\
+Falsas alarmas por hora & 61,5 & 10,0 \\
 \end{longtable}
 }
 
 Lo que más se pierde es TR: PhaseNet detecta 26 de 37, mientras VT y LP
 quedan sobre 0,97. EQTransformer queda por debajo de PhaseNet en todas las
-clases. Con 61,5 falsos positivos por hora, unos 2 de los 113 aciertos podrían
-deberse al azar; descontándolos, la sensibilidad volcánica es 0,886.
+clases.
 
 \figura{fig1_por_clase.png}{0.92}{Sensibilidad por clase de cada red (FRE, tres componentes, umbral 0,10, filtro 1--15~Hz). Barras finas: intervalo de confianza del 95\,\%.}{fig:por-clase}
 
@@ -162,304 +232,241 @@ deberse al azar; descontándolos, la sensibilidad volcánica es 0,886.
 
 {\small
 \setlength{\tabcolsep}{5pt}
-\begin{longtable}{>{\raggedright\arraybackslash}p{5.2cm}rrrrrr}
-\caption{Detección del inicio por salida de cada red (umbral 0,10, filtro 1--15~Hz).}\label{tab:salidas}\\
-\cabecera{\textbf{Salida} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcán.} & \textbf{FP/h} & \textbf{FDR}}{7}
-PhaseNet, solo P & 34/36 & 45/52 & 19/37 & 0,784 & 40,3 & 0,800 \\
-PhaseNet, solo S & 34/36 & 34/52 & 10/37 & 0,624 & 50,5 & 0,863 \\
-PhaseNet, P y S & 35/36 & 52/52 & 26/37 & 0,904 & 61,5 & 0,841 \\
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.2cm}rrrrr}
+\caption{Detección por salida de cada red (umbral 0,10, filtro 1--15~Hz). FP/h: falsas alarmas por hora.}\label{tab:salidas}\\
+\cabecera{\textbf{Salida} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcánicos} & \textbf{FP/h}}{6}
+PhaseNet, solo P & 34/36 & 45/52 & 19/37 & 0,784 & 40,3 \\
+PhaseNet, solo S & 34/36 & 34/52 & 10/37 & 0,624 & 50,5 \\
+PhaseNet, P y S & 35/36 & 52/52 & 26/37 & 0,904 & 61,5 \\
 \midrule
-EQTransformer, detección & 23/36 & 32/52 & 14/37 & 0,552 & 10,0 & 0,584 \\
-EQTransformer, solo P & 20/36 & 30/52 & 9/37 & 0,472 & 5,8 & 0,487 \\
-EQTransformer, solo S & 19/36 & 22/52 & 1/37 & 0,336 & 5,8 & 0,571 \\
-EQTransformer, P y S & 23/36 & 35/52 & 9/37 & 0,536 & 8,7 & 0,559 \\
+EQTransformer, detección & 23/36 & 32/52 & 14/37 & 0,552 & 10,0 \\
+EQTransformer, solo P & 20/36 & 30/52 & 9/37 & 0,472 & 5,8 \\
+EQTransformer, solo S & 19/36 & 22/52 & 1/37 & 0,336 & 5,8 \\
+EQTransformer, P y S & 23/36 & 35/52 & 9/37 & 0,536 & 8,7 \\
 \end{longtable}
 }
 
-P sola llega a 0,784 y S sola a 0,624. Además, de los aciertos de S, unos
-7 serían casuales con su tasa de falsos positivos; descontándolos queda en
-0,567. Juntas llegan a 0,904: S recupera los eventos cuya P es débil, sobre
-todo LP (de 45 a 52) y TR (de 19 a 26). Para juntarlas, P y S van a una sola
-lista. El primer arribo abre un grupo, se suman los que caen a 5~s o menos de
-ese primero, sin encadenar, y el grupo se representa con su arribo más
-temprano. En EQTransformer, la curva de detección es su mejor salida.
+P sola detecta 0,784 y S sola 0,624; juntas, 0,904. La S recupera eventos
+cuya P es débil, sobre todo LP (de 45 a 52) y TR (de 19 a 26). Para juntarlas,
+los avisos de P y S que caen a 5~s o menos uno del otro cuentan como uno solo.
+En EQTransformer, la curva de detección es la mejor salida.
 
 % ======================================================================
 \section{EQTransformer: filtro de 1--45~Hz y umbral}
 % ======================================================================
 
-Con los pesos originales, SeisBench ya aplica a EQTransformer su propio
-pasabanda de 1--45~Hz antes de inferir, y su umbral de detección por defecto
-es 0,30. Le entregué la señal filtrada en las dos bandas y barrí el umbral
-desde 0,02 hasta 0,95. El filtro de 1--45~Hz cambia uno o dos eventos, en
-ambos sentidos: la sensibilidad máxima de EQTransformer pasa de 0,560 a 0,576,
-y la de PhaseNet, de 0,936 a 0,928 (Figura~\ref{fig:filtros}). Bajar el umbral
-de 0,30 a 0,05 sube EQTransformer de 0,456 a 0,560, pero con ningún umbral
-pasa de 0,58.
+EQTransformer ya filtra la señal en 1--45~Hz por dentro, y su umbral por
+defecto es 0,30. Probé las dos bandas y umbrales desde 0,02 hasta 0,95. Usar
+1--45~Hz cambia uno o dos eventos, a favor o en contra
+(Figura~\ref{fig:filtros}). Bajar el umbral de 0,30 a 0,05 sube
+EQTransformer de 0,456 a 0,560, pero con ningún umbral pasa de 0,58. No probé
+rangos más altos: la señal está muestreada a 100~Hz, así que no contiene
+frecuencias sobre 50~Hz, y EQTransformer corta en 45~Hz por dentro de todas
+formas.
 
 \figura{fig4_filtros.png}{0.98}{Sensibilidad volcánica por umbral con la señal filtrada en 1--15~Hz y en 1--45~Hz.}{fig:filtros}
 
 % ======================================================================
-\section{Curvas de sensibilidad por clase y FDR}
+\section{Curvas de sensibilidad por clase y FDR}\label{sec:curvas}
 % ======================================================================
 
-La Figura~\ref{fig:curvas} reúne en cada gráfico la sensibilidad de VT, LP,
-TR y del total volcánico junto con la FDR, para cada salida, filtro y umbral.
-La Figura~\ref{fig:costo} muestra lo mismo como costo: cuántos falsos
-positivos por hora exige cada nivel de sensibilidad. La FDR queda alta
-(0,841 para PhaseNet a 0,10) porque las detecciones fuera de eventos son
-frecuentes. Una precisión de 0,95 (FDR de 0,05 o menos) solo se alcanza con
-sensibilidades de 0,09 o menos, así que no sirve como punto de operación.
-Cuántos falsos positivos son tolerables dependerá de cuántos descarte la clase
-de rechazo; lo fijaré al evaluar el sistema integrado.
+La sensibilidad es la parte de los eventos del catálogo que el detector
+encuentra: 0,904 quiere decir que encuentra 113 de los 125 volcánicos. La FDR
+es la parte de los avisos que son falsas alarmas: con PhaseNet a 0,10 es 0,84,
+o sea, por cada evento volcánico detectado hay unas 5 falsas alarmas.
 
-\figura{curvas_sens_fdr.png}{0.80}{Sensibilidad por clase y FDR por umbral, para cada salida y filtro (detección del inicio).}{fig:curvas}
+La Figura~\ref{fig:curvas} muestra las dos cosas para cada umbral: la
+sensibilidad de VT, LP, TR y del total volcánico, y la FDR. La
+Figura~\ref{fig:costo} muestra cuántas falsas alarmas por hora cuesta cada
+nivel de sensibilidad. Una precisión del 95\,\% (FDR de 0,05) solo se logra
+encontrando menos del 10\,\% de los eventos. Cuántas falsas alarmas se pueden
+aceptar dependerá de cuántas descarte la clase de rechazo del clasificador.
 
-\figura{fig2_costo_fp.png}{0.92}{Sensibilidad volcánica contra falsos positivos por hora; cada punto es un umbral (filtro 1--15~Hz).}{fig:costo}
+\figura{curvas_sens_fdr.png}{0.80}{Sensibilidad por clase y FDR por umbral, para cada salida y filtro.}{fig:curvas}
+
+\figura{fig2_costo_fp.png}{0.92}{Sensibilidad volcánica contra falsas alarmas por hora; cada punto es un umbral (filtro 1--15~Hz).}{fig:costo}
 
 % ======================================================================
-\section{Cuadro de metas, ahora con EQTransformer}
+\section{Cuadro de metas}\label{sec:metas}
 % ======================================================================
 
-El Cuadro~\ref{tab:metas} reemplaza al Cuadro~3.6 del informe de la Etapa~2.
-Allí EQTransformer solo aparecía unido a PhaseNet; ahora tiene sus propias
-filas, y cada bloque dice en qué nivel y sobre qué se mide. Cada celda da la
-configuración con menos falsos positivos por hora que alcanza la meta; ``---''
-indica que no la alcanza con ningún umbral. En la fusión probé PhaseNet a 0,05,
-0,10 y 0,30 con EQTransformer a 0,10, 0,30 y 0,50, y en la delimitación, los
-umbrales 0,05, 0,10 y 0,30. No es
-comparable cifra a cifra con el anterior, que usaba cinco estaciones
-verticales con coincidencia entre ellas.
+Para cada detector, el Cuadro~\ref{tab:metas} muestra con qué umbral llega a
+detectar el 80\,\% y el 90\,\% de los volcánicos y cuántas falsas alarmas por
+hora (FP/h) cuesta; la última columna es lo máximo que logra. ``---''
+significa que no llega con ningún umbral. Ningún detector llega al 95\,\%: el
+máximo es 0,936, de PhaseNet. La parte de abajo mide el recorte con el IoU
+(Sección~\ref{sec:recorte}).
 
 {\small
 \setlength{\tabcolsep}{4pt}
-\begin{longtable}{>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{3.6cm}}
-\caption{Configuraciones que alcanzan cada meta de sensibilidad volcánica en FRE (125 eventos).}\label{tab:metas}\\
-\cabecera{\textbf{Detector y salida} & \textbf{Meta 0,80} & \textbf{Meta 0,90} & \textbf{0,95} & \textbf{Máximo}}{5}
-\multicolumn{5}{l}{\textit{Detección del inicio (tolerancia de 5~s), sobre la traza continua}}\\
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{3.6cm}}
+\caption{Umbral con que cada detector alcanza cada meta de sensibilidad volcánica (125 eventos).}\label{tab:metas}\\
+\cabecera{\textbf{Detector} & \textbf{Meta 0,80} & \textbf{Meta 0,90} & \textbf{Máximo}}{4}
+\multicolumn{4}{l}{\textit{Detección: aviso a 5~s o menos del inicio}}\\
 \addlinespace
-PhaseNet, P y S & 0,25 (1--45~Hz); 36,9 FP/h & 0,10 (1--15~Hz); 61,5 FP/h & --- & 0,936 [0,879; 0,967] a 0,02; 107,2 FP/h \\
-PhaseNet, solo P & 0,05 (1--15~Hz); 55,5 FP/h & --- & --- & 0,856 \\
-PhaseNet, solo S & --- & --- & --- & 0,744 \\
-EQTransformer, detección & --- & --- & --- & 0,576 \\
-EQTransformer, P y S & --- & --- & --- & 0,688 \\
-Fusión de PhaseNet (P y S) y EQTransformer (detección) & 0,30 y 0,50; 29,0 FP/h & 0,10 y 0,50; 62,7 FP/h & --- & 0,912 \\
+PhaseNet, P y S & umbral 0,25 (1--45~Hz); 36,9 FP/h & umbral 0,10 (1--15~Hz); 61,5 FP/h & 0,936 con umbral 0,02; 107,2 FP/h \\
+PhaseNet, solo P & umbral 0,05 (1--15~Hz); 55,5 FP/h & --- & 0,856 \\
+PhaseNet, solo S & --- & --- & 0,744 \\
+EQTransformer, detección & --- & --- & 0,576 \\
+EQTransformer, P y S & --- & --- & 0,688 \\
+PhaseNet y EQTransformer juntos (Sección~\ref{sec:fusion}) & PhaseNet 0,30 y EQTransformer 0,50; 29,0 FP/h & PhaseNet 0,10 y EQTransformer 0,50; 62,7 FP/h & 0,912 \\
 \midrule
-\multicolumn{5}{l}{\textit{Delimitación del evento (IoU de al menos 0,30), recorte contra catálogo}}\\
+\multicolumn{4}{l}{\textit{Recorte: IoU de 0,30 o más con el evento}}\\
 \addlinespace
-PhaseNet, P y S, recorte por energía con corte & 0,10; 61,5 FP/h & --- & --- & 0,864 a 0,05 \\
-PhaseNet, P y S, ventana fija de 81,92~s & --- & --- & --- & 0,664 \\
-STA/LTA, recorte propio & --- & --- & --- & 0,576 \\
-EQTransformer, recorte propio & --- & --- & --- & 0,088 \\
+PhaseNet + energía con corte & umbral 0,10; 61,5 FP/h & --- & 0,864 con umbral 0,05 \\
+PhaseNet + ventana fija de 82~s & --- & --- & 0,664 \\
+STA/LTA, recorte propio & --- & --- & 0,576 \\
+EQTransformer, recorte propio & --- & --- & 0,088 \\
 \end{longtable}
 }
 
 % ======================================================================
-\section{Las tres componentes y la meta de 0,95}
+\section{Las tres componentes y la meta de 0,95}\label{sec:componentes}
 % ======================================================================
 
-Para aislar el efecto de las componentes comparé la misma estación, los mismos
-eventos y el mismo procedimiento, cambiando solo lo que recibe la red
-(Figura~\ref{fig:antes-ahora}). Con la confianza en 0,10, PhaseNet sube de
-0,656 con las horizontales en cero (la entrada de la Etapa~2) a 0,904 con Z, N
-y E reales; con la vertical duplicada en las tres da 0,912. La sensibilidad
-baja de la Etapa~2 venía, entonces, sobre todo de las horizontales en cero.
-EQTransformer va al revés: 0,624 con ceros y 0,552 con las tres reales. Lo
-evalúo igual con las tres reales, por coherencia con PhaseNet, y lo declaro
-como limitación.
-
-Con tres componentes, ninguna configuración llega a 0,95 de sensibilidad: el
-máximo es 0,936, aunque su intervalo de confianza (0,879 a 0,967) incluye
-0,95. Leída como precisión, la meta tampoco es útil (Sección~6).
-
-\figura{fig3_antes_ahora.png}{0.98}{Misma estación y mismos eventos; solo cambia la entrada: horizontales en cero, vertical duplicada o Z, N y E reales.}{fig:antes-ahora}
-
-% ======================================================================
-\section{Auditoría de la sensibilidad}
-% ======================================================================
+PhaseNet y EQTransformer esperan tres señales por estación: Z, N y E. En la
+Etapa~2 solo tenía la vertical (Z), así que las otras dos se rellenaban con
+ceros o con copias de la vertical. Ahora les entrego las tres reales. La
+Figura~\ref{fig:antes-ahora} compara esas opciones en FRE, con los mismos
+eventos y umbral 0,10:
 
 \begin{itemize}
-\item \textbf{Causa de la cifra baja anterior.} Fue la entrada, no el conteo:
-  en la misma estación, PhaseNet pasa de 0,656 a 0,904 al recibir las
-  horizontales reales (Sección~8).
-\item \textbf{Extracción de arribos.} Mi extracción coincide con la de
-  SeisBench en todos los controles. La forma anterior (guardar a 0,02 y
-  filtrar por confianza) difiere de la exacta en un evento como máximo
-  (0,912 contra 0,920).
-\item \textbf{Conteo.} La asignación es uno a uno y está validada con 28 casos
-  sintéticos de solución conocida; el recorte por energía, con otros 21. Todos
-  pasan.
-\item \textbf{Aciertos por azar.} A 0,10, PhaseNet con P y S tendría unos 2
-  aciertos casuales; corregida, su sensibilidad es 0,886.
-\item \textbf{Eventos sin señal.} Se excluyen y se informan
-  (Cuadro~\ref{tab:eventos}); en particular, 17 AV del tramo~1 no tienen
-  señal en el registro crudo de FRE.
+\item \textbf{PhaseNet:} 0,656 con ceros, 0,912 copiando la vertical y 0,904
+  con las tres reales.
+\item \textbf{EQTransformer:} 0,624 con ceros y 0,552 con las tres reales.
 \end{itemize}
+
+La cifra baja de la Etapa~2 no era un error de cálculo: venía de los ceros.
+EQTransformer rinde algo menos con las tres reales, pero las uso igual para
+tratar a las dos redes de la misma forma. Con tres componentes ningún detector
+llega a 0,95: el máximo es 0,936.
+
+\figura{fig3_antes_ahora.png}{0.98}{Misma estación y mismos eventos; solo cambia lo que recibe cada red: ceros, copias de la vertical o Z, N y E reales.}{fig:antes-ahora}
 
 % ======================================================================
 \section{TR: probar con distintas tolerancias}
 % ======================================================================
 
-De los 11 TR que PhaseNet no detecta, 6 tienen su primera detección entre
-5,9 y 7,3~s después del inicio, justo fuera de la tolerancia de 5~s; 2, mucho
-después (22 y 42~s), y 3 no tienen ninguna. En el inicio de los TR detectados,
-la curva P de PhaseNet tiene una mediana de 0,301; en los perdidos, de 0,006:
-el inicio emergente del tremor casi no la activa.
+De los 11 TR que PhaseNet pierde, 6 sí tienen aviso, pero entre 5,9 y 7,3~s
+después del inicio, justo fuera de los 5~s; 2 tienen aviso mucho después (22 y
+42~s) y 3 no tienen ninguno. El tremor empieza de a poco y PhaseNet lo nota
+tarde. El Cuadro~\ref{tab:tr} muestra qué pasa si para TR se acepta un aviso
+hasta $T$ segundos después del inicio; VT y LP se siguen contando con 5~s.
 
+\needspace{22\baselineskip}
 {\small
-\begin{longtable}{rrrrr}
-\caption{TR detectados si se acepta una detección hasta $T$ segundos después de su inicio. La probabilidad de azar es la de que un falso positivo caiga en esa ventana por casualidad.}\label{tab:tr}\\
-\cabecera{\textbf{$T$ (s)} & \textbf{TR detectados} & \textbf{Sensibilidad} & \textbf{Prob. de azar} & \textbf{Corregida}}{5}
-5 & 26/37 & 0,703 & 0,157 & 0,647 \\
-10 & 32/37 & 0,865 & 0,226 & 0,825 \\
-20 & 32/37 & 0,865 & 0,348 & 0,793 \\
-30 & 33/37 & 0,892 & 0,450 & 0,803 \\
-60 & 36/37 & 0,973 & 0,671 & 0,918 \\
+\begin{longtable}{rrrr}
+\caption{TR detectados si se acepta un aviso hasta $T$ segundos después del inicio (PhaseNet, P y S, umbral 0,10, filtro 1--15~Hz).}\label{tab:tr}\\
+\cabecera{\textbf{$T$ (s)} & \textbf{TR detectados} & \textbf{Sensibilidad TR} & \textbf{Volcánicos}}{4}
+5 & 26/37 & 0,703 & 113/125 = 0,904 \\
+10 & 32/37 & 0,865 & 119/125 = 0,952 \\
+20 & 32/37 & 0,865 & 119/125 = 0,952 \\
+30 & 33/37 & 0,892 & 120/125 = 0,960 \\
+60 & 36/37 & 0,973 & 123/125 = 0,984 \\
 \end{longtable}
 }
 
-Con 10~s para TR, el total volcánico sería 119/125 = 0,952 [0,899; 0,978].
-Ampliar más la ventana suma pocos TR y mucho azar. En esta tabla basta con
-que haya alguna detección en la ventana, sin asignación uno a uno.
+Con 10~s, TR sube a 32 de 37 y el total volcánico llega a 0,952. Más allá de
+10~s se suman pocos TR, y mientras más ancha es la ventana, más fácil es que el
+aviso aceptado no venga del tremor sino de otra cosa que pasó en esos segundos.
 
 % ======================================================================
-\section{Recorte de PhaseNet por energía (B-11)}
+\section{Recorte de PhaseNet por energía}\label{sec:recorte}
 % ======================================================================
 
-PhaseNet solo entrega arribos, no el fin del evento. STA/LTA y EQTransformer sí
-entregan un recorte propio. Por eso construí el fin a partir de la energía:
+PhaseNet marca el inicio del evento, pero no su fin. Por eso el fin lo defino
+con la energía de la señal:
 
 \begin{itemize}
-\item \textbf{Inicio.} 2,5~s antes del arribo.
-\item \textbf{Envolvente.} Raíz de la media móvil de 1~s de Z²+N²+E².
-\item \textbf{Ruido.} Percentil 20 de la envolvente entre 120 y 5~s antes del
-  arribo.
-\item \textbf{Fin.} Comienzo del primer tramo de 5~s con la envolvente bajo
-  2~veces el ruido. Duración mínima de 2~s y máxima de 300~s; se detiene en
-  los huecos del registro.
-\item \textbf{Con corte.} Si el siguiente arribo de PhaseNet llega antes, el
-  recorte termina 2,5~s antes de ese arribo.
+\item El recorte empieza 2,5~s antes del aviso de PhaseNet.
+\item Termina cuando la energía de Z, N y E se queda 5~s seguidos bajo el doble
+  del ruido medido antes del evento, con un máximo de 300~s.
+\item \textbf{Con corte:} si antes llega otro aviso, el recorte termina 2,5~s
+  antes de ese aviso.
 \end{itemize}
 
-La regla está validada con casos sintéticos; por ejemplo, en un decaimiento
-exponencial el fin cae a 0,1~s del valor teórico. El Cuadro~\ref{tab:recortes}
-la compara con la ventana fija de 81,92~s (la del conjunto de entrenamiento) y
-con los recortes propios de STA/LTA y EQTransformer.
+Los valores exactos están al final de la Sección~\ref{sec:parametros}.
 
-{\small
-\setlength{\tabcolsep}{4pt}
-\begin{longtable}{>{\raggedright\arraybackslash}p{4.4cm}rrrrrr}
-\caption{Delimitación de los 125 eventos volcánicos (PhaseNet a 0,10 con filtro 1--15~Hz; EQTransformer a 0,30 con 1--45~Hz; STA/LTA con el óptimo de la Etapa~2). Duración: mediana de los recortes que tocan un volcánico; la del catálogo es 32,6~s.}\label{tab:recortes}\\
-\cabecera{\textbf{Recorte} & \textbf{IoU $\geq$ 0,3} & \textbf{IoU $\geq$ 0,5} & \textbf{IoU medio} & \textbf{Duración} & \textbf{FP/h} & \textbf{Recortes}}{7}
-PhaseNet + energía con corte & \textbf{0,856} & \textbf{0,720} & 0,69 & 18,6~s & 61,5 & 842 \\
-PhaseNet + energía & 0,784 & 0,664 & 0,70 & 28,2~s & 61,4 & 842 \\
-PhaseNet + ventana fija & 0,664 & 0,312 & 0,54 & 81,9~s & 60,6 & 842 \\
-STA/LTA, recorte propio & 0,544 & 0,160 & 0,46 & 11,0~s & 18,2 & 323 \\
-EQTransformer, recorte propio & 0,064 & 0,032 & 0,51 & 3,9~s & 7,1 & 149 \\
-\end{longtable}
-}
+Para saber si un recorte es bueno uso el IoU, que mide cuánto coinciden el
+recorte y el evento del catálogo: el tiempo que comparten dividido por el
+tiempo total que abarcan entre los dos. Vale 1 si coinciden exactamente y 0 si
+no se tocan. Por ejemplo, un evento de 0 a 60~s y un recorte de 10 a 70~s
+comparten 50 de 70~s: IoU de 0,71. Un evento cuenta como bien recortado con
+IoU de 0,30 o más.
 
-{\small
-\begin{longtable}{lrrrrr}
-\caption{Eventos delimitados por clase (IoU de al menos 0,30) y, entre paréntesis, IoU medio de los aciertos.}\label{tab:recortes-clase}\\
-\cabecera{\textbf{Clase} & \textbf{Energía con corte} & \textbf{Energía} & \textbf{Ventana fija} & \textbf{STA/LTA} & \textbf{EQTransformer}}{6}
-VT & 35/36 (0,71) & 34/36 (0,70) & 3/36 (0,33) & 28/36 (0,52) & 1/36 (0,32) \\
-LP & 49/52 (0,70) & 37/52 (0,69) & 43/52 (0,44) & 34/52 (0,41) & 2/52 (0,60) \\
-TR & 23/37 (0,63) & 27/37 (0,70) & 37/37 (0,67) & 6/37 (0,51) & 5/37 (0,51) \\
-\midrule
-Volcánicos & 107/125 & 98/125 & 83/125 & 68/125 & 8/125 \\
-\end{longtable}
-}
+El Cuadro~\ref{tab:recortes} compara el recorte por energía con la ventana fija
+de 82~s, que es como vienen cortados los eventos de entrenamiento, y con los
+recortes que entregan STA/LTA y EQTransformer.
 
-\begin{itemize}
-\item \textbf{Mejor recorte.} PhaseNet con energía y corte delimita 107 de 125
-  [0,784; 0,907], y 0,720 con un IoU de al menos 0,5.
-\item \textbf{Ventana fija.} Solo gana en TR, y por geometría: si el inicio
-  está bien, una ventana de 81,92~s alcanza un IoU de 0,30 con cualquier
-  evento de entre 24,6 y 262~s. No delimita: con IoU de 0,5 cae a 0,312, y en
-  VT, de unos 12~s, acierta 3 de 36.
-\item \textbf{STA/LTA.} Delimita razonablemente VT y LP, pero pierde los TR
-  (6 de 37).
-\item \textbf{EQTransformer.} Encuentra inicios, pero sus intervalos duran
-  3,9~s en mediana, frente a 32,6~s de los eventos: no delimita eventos
-  volcánicos.
-\item \textbf{Costo.} Los recortes de PhaseNet traen 61 falsos positivos por
-  hora, contra 18 de STA/LTA y 7 de EQTransformer; irán a la clase de rechazo.
-\end{itemize}
-
-Antes de agregar el corte diagnostiqué los 27 volcánicos que el recorte por
-energía no delimitaba. 18 recortes eran demasiado largos: en 17 había otro
-evento del catálogo dentro, y en 16 la señal seguía sobre 2 veces el ruido
-después del evento. Son eventos en secuencia, y 23 de las 27 fallas están en
-el tramo~1. El corte en el siguiente arribo resuelve buena parte: LP pasa de
-37 a 49. Su costo está en TR, que baja de 27 a 23, probablemente porque
-PhaseNet da varios arribos dentro de los tremores largos (hasta 7 en un mismo
-TR). Otros 6 TR quedan cortos: dentro del evento, su envolvente es solo 0,8 a
-1,6 veces el ruido previo, así que en FRE casi no sobresalen y el umbral de
-2 veces el ruido no puede delimitarlos.
-
-\figura{fig5_recortes.png}{0.78}{Recorte por energía (sin el corte en el siguiente arribo) contra la ventana fija, en el caso mediano de cada clase volcánica. En el panel de TR, desde los 89~s aparece una señal mucho mayor que sale de la escala.}{fig:recortes}
-
-\figura{fig6_fallas.png}{0.80}{Por qué falla el recorte por energía: caso mediano de un LP con recorte largo y de un TR con recorte corto. La envolvente está en veces el ruido previo, y el recorte termina cuando baja de la línea punteada durante 5~s.}{fig:fallas}
-
-% ======================================================================
-\section{Fusión de PhaseNet y EQTransformer}
-% ======================================================================
-
-La fusión une las salidas de las dos redes en una sola lista de detecciones:
-
-\begin{enumerate}
-\item De PhaseNet tomo los arribos P y S. Cada curva se umbraliza como lo hace
-  SeisBench (se enciende en el umbral y se apaga en la mitad), y el arribo es
-  el máximo de cada disparo.
-\item De EQTransformer tomo el inicio de cada disparo de su curva de
-  detección, umbralizada igual.
-\item Todos los arribos van a una sola lista ordenada. El primero abre un
-  grupo, se suman los que caen a 5~s o menos de ese primero, y el siguiente
-  arribo abre un grupo nuevo. No hay encadenamiento: un arribo a 6~s del
-  primero abre otro grupo, aunque esté a 1~s del anterior.
-\item Cada grupo es una detección y se representa con su arribo más temprano.
-  Esa detección se evalúa como cualquier otra.
-\end{enumerate}
-
-Es la misma agrupación que une P y S en PhaseNet, y está validada con casos
-sintéticos: una P a 2~s y una S a 4~s forman un grupo representado por la P, y
-arribos cada 4~s durante 20~s forman tres grupos, no uno.
-
+\needspace{12\baselineskip}
 {\small
 \setlength{\tabcolsep}{5pt}
-\begin{longtable}{rrrrrrrrr}
-\caption{Fusión en FRE, detección del inicio (PhaseNet con filtro 1--15~Hz, EQTransformer con 1--45~Hz). Nuevos: volcánicos que acierta la fusión y no PhaseNet solo, al mismo umbral.}\label{tab:fusion}\\
-\cabecera{\textbf{PhaseNet} & \textbf{EQT} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcán.} & \textbf{FP/h} & \textbf{PhaseNet solo} & \textbf{Nuevos}}{9}
-0,05 & 0,10 & 35/36 & 52/52 & 27/37 & 0,912 & 84,2 & 0,912; 80,9 FP/h & 0 \\
-0,05 & 0,30 & 35/36 & 52/52 & 27/37 & 0,912 & 82,6 & 0,912; 80,9 FP/h & 0 \\
-0,05 & 0,50 & 35/36 & 52/52 & 27/37 & 0,912 & 81,7 & 0,912; 80,9 FP/h & 0 \\
-\midrule
-0,10 & 0,10 & 35/36 & 52/52 & 27/37 & 0,912 & 65,3 & 0,904; 61,5 FP/h & 1 \\
-0,10 & 0,30 & 35/36 & 52/52 & 27/37 & 0,912 & 63,6 & 0,904; 61,5 FP/h & 1 \\
-0,10 & 0,50 & 35/36 & 52/52 & 27/37 & 0,912 & 62,7 & 0,904; 61,5 FP/h & 1 \\
-\midrule
-0,30 & 0,10 & 34/36 & 46/52 & 24/37 & 0,832 & 31,8 & 0,752; 26,9 FP/h & 10 \\
-0,30 & 0,30 & 33/36 & 45/52 & 22/37 & 0,800 & 30,0 & 0,752; 26,9 FP/h & 6 \\
-0,30 & 0,50 & 33/36 & 45/52 & 22/37 & 0,800 & 29,0 & 0,752; 26,9 FP/h & 6 \\
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.0cm}rrrrrr}
+\caption{Eventos bien recortados (IoU de 0,30 o más), IoU medio de esos eventos y falsas alarmas por hora.}\label{tab:recortes}\\
+\cabecera{\textbf{Recorte} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcánicos} & \textbf{IoU medio} & \textbf{FP/h}}{7}
+PhaseNet + energía con corte & 35/36 & 49/52 & 23/37 & \textbf{0,856} & 0,69 & 61,5 \\
+PhaseNet + energía & 34/36 & 37/52 & 27/37 & 0,784 & 0,70 & 61,4 \\
+PhaseNet + ventana fija de 82~s & 3/36 & 43/52 & 37/37 & 0,664 & 0,54 & 60,6 \\
+STA/LTA, recorte propio & 28/36 & 34/52 & 6/37 & 0,544 & 0,46 & 18,2 \\
+EQTransformer, recorte propio & 1/36 & 2/52 & 5/37 & 0,064 & 0,51 & 7,1 \\
 \end{longtable}
 }
 
-Con PhaseNet a 0,10, sumar EQTransformer agrega un solo evento (un TR) y entre
-1 y 4 falsos positivos por hora: EQTransformer casi no detecta nada que
-PhaseNet no vea ya. La fusión sirve cuando PhaseNet es exigente. Con PhaseNet
-a 0,30 y EQTransformer a 0,10 llega a 0,832 con 31,8 FP/h, mientras PhaseNet
-solo necesita 41,6 FP/h para la misma sensibilidad (umbral 0,20). Además
-alcanza la meta de 0,80 con 29,0 FP/h, menos que cualquier detector solo
-(36,9). En ninguna combinación la fusión perdió un evento que PhaseNet solo
-acertaba. Tampoco llega a 0,95: su máximo en lo probado es 0,912.
+\begin{itemize}
+\item \textbf{Mejor:} PhaseNet + energía con corte, 107 de 125 (0,856).
+\item \textbf{Ventana fija:} solo gana en TR, porque con 82~s alcanza a cubrir
+  casi cualquier evento largo. En VT, que duran unos 12~s, acierta 3 de 36.
+\item \textbf{STA/LTA:} pierde casi todos los TR (6 de 37).
+\item \textbf{EQTransformer:} no sirve para recortar; sus recortes duran 3,9~s
+  y los eventos, 32,6~s.
+\item \textbf{Costo:} PhaseNet trae más falsas alarmas (61 por hora, contra 18
+  de STA/LTA y 7 de EQTransformer); irán a la clase de rechazo.
+\end{itemize}
+
+El corte se agregó porque, sin él, muchos recortes salían demasiado largos:
+con eventos seguidos, el recorte se tragaba al siguiente
+(Figura~\ref{fig:fallas}, arriba). El corte sube LP de 37 a 49, pero baja TR de
+27 a 23, probablemente porque PhaseNet da varios avisos dentro de un mismo
+tremor. Otros 6 TR quedan cortos porque en FRE casi no sobresalen del ruido
+(Figura~\ref{fig:fallas}, abajo).
+
+\figura{fig5_recortes.png}{0.78}{Recorte por energía (sin corte) contra la ventana fija, en un caso típico de cada clase volcánica. En el panel de TR, desde los 89~s aparece una señal mucho mayor que sale de la escala.}{fig:recortes}
+
+\figura{fig6_fallas.png}{0.80}{Por qué falla el recorte por energía: un LP con recorte demasiado largo y un TR con recorte demasiado corto. La energía está medida en veces el ruido previo; el recorte termina cuando baja de la línea punteada durante 5~s.}{fig:fallas}
 
 % ======================================================================
-\section{Clasificación}
+\section{PhaseNet y EQTransformer juntos}\label{sec:fusion}
 % ======================================================================
 
-Además de la VGG16 compararé una ResNet y una red liviana; la candidata para
-la tercera es EfficientNet-B0. Esta etapa aún no comienza: parte cuando quede
-cerrada la detección.
+Junté los avisos de las dos redes: si un aviso de PhaseNet y uno de
+EQTransformer caen a 5~s o menos uno del otro, cuentan como una sola
+detección, con la hora del más temprano. El Cuadro~\ref{tab:fusion} muestra el
+resultado con distintos umbrales para cada red.
+
+\needspace{16\baselineskip}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{1.7cm}rrrrr>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{2.3cm}}
+\caption{PhaseNet y EQTransformer juntos. Nuevos: volcánicos que detectan juntos y PhaseNet solo no detecta, con el mismo umbral de PhaseNet.}\label{tab:fusion}\\
+\cabecera{\textbf{Umbral PhaseNet} & \textbf{Umbral EQT} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcán.} & \textbf{FP/h} & \textbf{PhaseNet solo (volcán.; FP/h)} & \textbf{Nuevos}}{9}
+0,05 & 0,10 & 35/36 & 52/52 & 27/37 & 0,912 & 84,2 & 0,912; 80,9 & ninguno \\
+0,05 & 0,30 & 35/36 & 52/52 & 27/37 & 0,912 & 82,6 & 0,912; 80,9 & ninguno \\
+0,05 & 0,50 & 35/36 & 52/52 & 27/37 & 0,912 & 81,7 & 0,912; 80,9 & ninguno \\
+\midrule
+0,10 & 0,10 & 35/36 & 52/52 & 27/37 & 0,912 & 65,3 & 0,904; 61,5 & 1 TR \\
+0,10 & 0,30 & 35/36 & 52/52 & 27/37 & 0,912 & 63,6 & 0,904; 61,5 & 1 TR \\
+0,10 & 0,50 & 35/36 & 52/52 & 27/37 & 0,912 & 62,7 & 0,904; 61,5 & 1 TR \\
+\midrule
+0,30 & 0,10 & 34/36 & 46/52 & 24/37 & 0,832 & 31,8 & 0,752; 26,9 & 1 VT, 2 LP, 7 TR \\
+0,30 & 0,30 & 33/36 & 45/52 & 22/37 & 0,800 & 30,0 & 0,752; 26,9 & 1 LP, 5 TR \\
+0,30 & 0,50 & 33/36 & 45/52 & 22/37 & 0,800 & 29,0 & 0,752; 26,9 & 1 LP, 5 TR \\
+\end{longtable}
+}
+
+EQTransformer aporta poco: con PhaseNet a 0,10 suma un solo TR. Aporta más
+cuando PhaseNet usa un umbral alto (0,30): suma hasta 10 eventos, 7 de ellos
+TR, y llega a 0,832 con 31,8 falsas alarmas por hora, menos que las 41,6 que
+necesita PhaseNet solo para lo mismo. Juntos nunca pierden un evento que
+PhaseNet detecta solo, y su máximo es 0,912.
 
 \end{document}
