@@ -66,6 +66,57 @@
 \sloppy
 \pagestyle{plain}
 
+% ---------------- Portada ----------------
+\vspace*{-6\baselineskip}
+\pagenumbering{gobble}
+\includegraphics[width=\textwidth]{images/Logo_depto_ing_informatica.png}
+
+\vspace{3cm}
+
+\begin{center}
+    \textbf{DESARROLLO DE UN ALGORITMO DE IDENTIFICACIÓN DE EVENTOS
+    SISMO-VOLCÁNICOS MEDIANTE DETECCIÓN AUTOMÁTICA Y CLASIFICACIÓN CON CNN}
+\end{center}
+\vspace{3.5cm}
+
+\begin{center}
+por
+\par\end{center}
+
+\begin{center}
+Patricio Valdés Troncoso\vspace{3cm}
+\par\end{center}
+
+\begin{center}
+Avance del Trabajo de Título: etapa de detección\\
+Facultad de Ingeniería de la Universidad Católica de Temuco\\
+Profesor guía: Ricardo Soto
+\par\end{center}
+\begin{center}
+- Temuco, Octubre 2026 -
+\par\end{center}
+
+\clearpage
+\pagenumbering{roman}
+
+\tableofcontents*
+\clearpage
+
+% ---------------- Cuerpo ----------------
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\section*{Presentación}
+
+Este avance reúne las correcciones de la etapa de detección. La detección se
+rehízo con una sola estación, FRE, y sus tres componentes reales, y se evaluó
+con las mismas reglas para PhaseNet, EQTransformer y STA/LTA. Solo se cambian
+los parámetros que cada tecnología expone, con su nombre oficial; las
+decisiones propias del trabajo se declaran aparte (Sección~\ref{sec:parametros}).
+Cada término se explica la primera vez que aparece. Todas las cifras están
+medidas sobre la traza continua del Nevados de Chillán; las únicas figuras con
+valores inventados son dos ejemplos, y así se indica en ellas.
+
 \section{Datos}
 
 Se trabaja con registros sísmicos del Complejo Volcánico Nevados de Chillán.
