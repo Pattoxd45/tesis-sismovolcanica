@@ -20,8 +20,8 @@ NPY = f"{BASE}/NVCh_10h_continuous_trace.npy"
 CSV = f"{BASE}/NVCh_10h_continuous_trace_reference.csv"
 
 FS = 100.0
-CANAL = 1          # canal con mejor relacion senal/ruido (sigma mas alta)
-MARGEN_S = 60.0    # contexto a cada lado del evento
+CANAL = 1  # canal con mejor relacion senal/ruido (sigma mas alta)
+MARGEN_S = 60.0
 
 
 def construir_stream(x, ini_muestra, modo, estacion="S1"):
@@ -64,13 +64,12 @@ def analizar(modelo, nombre, x, ini, s_rel, e_rel, modo):
         d = np.asarray(tr.data, dtype=np.float64)
         if d.size == 0:
             continue
-        # region del evento dentro de la salida anotada
         a0 = max(0, s_rel - off)
         a1 = min(d.size, e_rel - off)
         dentro = d[a0:a1] if a1 > a0 else np.array([0.0])
 
         sup = {u: int((d >= u).sum()) for u in (0.1, 0.3, 0.5)}
-        # ancho tipico de las regiones que superan 0,3
+        # 0,3: umbral por defecto de SeisBench
         m = (d >= 0.3).astype(np.int8)
         dd = np.diff(np.concatenate(([0], m, [0])))
         anchos = np.where(dd == -1)[0] - np.where(dd == 1)[0]
@@ -83,7 +82,6 @@ def analizar(modelo, nombre, x, ini, s_rel, e_rel, modo):
               f">=0.3:{sup[0.3]:>6} >=0.5:{sup[0.5]:>6} | "
               f"ancho mediano de region>=0.3: {ancho_med:.2f} s")
 
-    # picks explicitos
     try:
         out = modelo.classify(st)
         picks = getattr(out, "picks", out)

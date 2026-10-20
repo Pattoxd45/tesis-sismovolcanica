@@ -146,7 +146,6 @@ def main():
         for gap_s in [0.0, 5.0, 15.0]:
             mask = (votos >= k) & valida
             ivs = intervalos(mask)
-            # fusionar por gap
             fus = []
             for s, e in ivs:
                 if fus and s <= fus[-1][1] + int(gap_s * FS):

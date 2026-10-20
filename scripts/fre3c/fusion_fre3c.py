@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Fusion de PhaseNet (P y S) y EQTransformer (inicio de la deteccion) en el nivel 1.
-Todos los arribos van a una sola lista; cada grupo abre con el arribo mas temprano,
-suma los que caen a 5 s o menos de ese primero, sin encadenar, y se representa con
-el mas temprano. Es la misma agrupacion que une P y S en PN-PS.
+Fusion de PhaseNet (P y S) y EQTransformer (inicio de la deteccion) en el nivel 1,
+con la misma agrupacion que une P y S.
 
 Uso: python fusion_fre3c.py [--filtro-eqt f1_45]
 """

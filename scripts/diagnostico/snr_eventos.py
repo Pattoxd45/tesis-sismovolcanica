@@ -24,15 +24,14 @@ import revisar_falsos_positivos as rfp
 FS = ed.FS
 SALIDA = ed.SALIDA
 
-# Ventana de ruido y minimo de ruido limpio exigido, los dos tomados de
-# revisar_falsos_positivos.snr_intervalo para no cambiar la definicion.
+# ventana de ruido y minimo limpio iguales a revisar_falsos_positivos.snr_intervalo
 MARGEN_RUIDO_S = 60.0
 MIN_RUIDO_S = 5.0
 
-# Duraciones a las que se mide el piso del estimador, en segundos.
+# duraciones, en s, a las que se mide el piso del estimador
 DURACIONES_PISO = [3.4, 10.0, 30.0, 81.92, 150.0, 240.8]
 
-# Rangos de razon para la tabla de sensibilidad, en dB.
+# rangos en dB para la tabla de sensibilidad
 RANGOS = [(-np.inf, 5.0, "< 5"),
           (5.0, 10.0, "5 a 10"),
           (10.0, 20.0, "10 a 20"),
@@ -43,12 +42,9 @@ DETECTORES_N2 = ["stalta", "eqtransformer"]
 
 CSV_SALIDA = os.path.join(SALIDA, "snr_eventos.csv")
 
-# Diferencia a partir de la cual se considera que un evento "cambia" de una variante a
-# la otra.
+# diferencia minima, en dB, para decir que un evento cambia de una variante a la otra
 TOL_CAMBIO_DB = 0.1
 
-
-# Validacion con caso sintetico de solucion conocida
 
 def autotest(verbose=True):
     """Senoide de amplitud A sobre ruido gaussiano de sigma conocida."""
@@ -135,11 +131,8 @@ def autotest(verbose=True):
     return ok, piso
 
 
-# Razon por evento
-
 def mascara_eventos(n):
-    """True si la muestra cae dentro de un evento del catalogo completo (205 eventos).
-    """
+    """True si la muestra cae dentro de un evento del catalogo completo (205 eventos)."""
     df = pd.read_csv(ed.CSV)
     m = np.zeros(n, dtype=bool)
     n_ev = 0
@@ -169,8 +162,7 @@ def snr_evento(a, canal, ini, fin, estricta, ocupado=None):
 
     limpio = x_bg != 0.0
     if ocupado is not None:
-        # ocupado marca TODO evento; la ventana es anterior al evento en
-        # estudio, asi que lo que marque ahi es otro evento del catalogo.
+        # la ventana es anterior al evento estudiado: lo que ocupado marque ahi es otro evento
         limpio &= ~ocupado[f0:ini]
     if limpio.sum() < int(MIN_RUIDO_S * FS):
         return float("nan")
@@ -187,8 +179,7 @@ def razones(a, catalogo, canales, ocupado):
         for etiqueta, estricta in (("base", False), ("est", True)):
             vals = {}
             for ch in canales:
-                # "canal con datos": si el tramo del evento es todo cero
-                # en ese canal, el canal no tiene dato ahi.
+                # si el tramo del evento es todo cero en un canal, ese canal no tiene dato ahi
                 x = np.asarray(a[ch, ev.ini:ev.fin], dtype=np.float64)
                 if x.size == 0 or np.allclose(x, 0):
                     vals[ch] = float("nan")
@@ -205,10 +196,8 @@ def razones(a, catalogo, canales, ocupado):
     return pd.DataFrame(filas)
 
 
-# Detecciones en los puntos de operacion de significancia.py
-
 def banderas_deteccion(a, catalogo, valida, horas, canales, usar_cache):
-    """Vector booleano por evento, por detector y por nivel."""
+    """Vector booleano por evento, detector y nivel, en los puntos de operacion de significancia.py."""
     print("\n" + "=" * 78)
     print("  DETECCIONES EN LOS PUNTOS DE OPERACION DE significancia.py")
     print("=" * 78)

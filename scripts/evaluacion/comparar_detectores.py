@@ -23,7 +23,7 @@ from evaluar_detectores import (FS, CANALES, CORTES, GUARDA_S, NPY, CSV,
 BANDA = (1.0, 20.0)
 TOL_REPORTE_S = 5.0
 
-# Rejilla centrada en la region util identificada por el barrido previo.
+# rejilla centrada en la region util que encontro el barrido previo
 REJILLA_STALTA = dict(
     lta_s=[30.0, 60.0],
     sta_s=[1.0, 2.0],
@@ -35,7 +35,7 @@ REJILLA_STALTA = dict(
 
 
 def barrer_stalta(a, catalogo, valida, horas, canales):
-    """Barrido de STA/LTA con metricas de NIVEL 1 (deteccion del momento)."""
+    """Barrido de STA/LTA con metricas del nivel 1 (deteccion del instante)."""
     from obspy.signal.trigger import classic_sta_lta, trigger_onset
     from obspy.signal.filter import bandpass
 
@@ -173,7 +173,6 @@ def main():
 
     print(f"Catalogo: {len(catalogo)} eventos | {horas:.2f} h validas\n")
 
-    # STA/LTA nivel 1 (con cache)
     ruta_st = os.path.join(SALIDA, "barrido_stalta_nivel1.csv")
     if os.path.exists(ruta_st) and not args.recalcular_stalta:
         print(f"Usando cache: {ruta_st}")
@@ -184,7 +183,6 @@ def main():
         t_st.to_csv(ruta_st, index=False)
         print(f"Guardado: {ruta_st}")
 
-    # modelos profundos
     ruta_mod = os.path.join(SALIDA, "barrido_modelos.csv")
     if not os.path.exists(ruta_mod):
         print(f"\nFalta {ruta_mod}. Corre primero barrido_modelos.py")
@@ -194,7 +192,6 @@ def main():
     tabla = pd.concat([t_st, t_mod], ignore_index=True)
     tabla.to_csv(os.path.join(SALIDA, "comparacion_nivel1.csv"), index=False)
 
-    # frontera de Pareto
     fronteras = []
     for modelo, gr in tabla.groupby("modelo"):
         f = frontera_pareto(gr)
@@ -215,7 +212,6 @@ def main():
                   f"{r.falsos_h:>10.2f}{r.err_mae:>9.2f}   "
                   f"{r.modo} k={int(r.min_est)}")
 
-    # punto de operacion con criterio unico
     print("\n" + "=" * 86)
     if args.criterio == "f1":
         print("  PUNTO DE OPERACION: mejor F1 (mismo criterio para los tres)")

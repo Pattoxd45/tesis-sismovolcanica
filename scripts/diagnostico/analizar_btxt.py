@@ -1,3 +1,9 @@
+"""
+Respuesta en frecuencia del filtro b.txt de ovdas-core (antecedente).
+
+Uso: python analizar_btxt.py
+"""
+
 import numpy as np
 from scipy.signal import freqz
 

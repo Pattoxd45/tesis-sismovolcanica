@@ -1,4 +1,9 @@
-# Detecta los cortes de la traza continua leyendo la fila 0 (tiempo Unix).
+"""
+Detecta los cortes de la traza continua leyendo la fila 0 (tiempo Unix).
+
+Uso: python verificar_bloques_traza.py
+"""
+
 import os
 import numpy as np
 from datetime import datetime, timezone
@@ -6,8 +11,7 @@ from datetime import datetime, timezone
 NPY = os.path.expanduser("~/tesis/datos/zenodo/NVCh_10h_continuous_trace.npy")
 t = np.asarray(np.load(NPY, mmap_mode="r")[0])
 
-# Paso esperado 0,01 s. En valor absoluto porque el segundo corte retrocede en el
-# tiempo.
+# valor absoluto: el segundo corte retrocede en el tiempo
 saltos = np.where(np.abs(np.diff(t) - 0.01) > 1.0)[0] + 1
 print("cortes detectados en las muestras:", saltos)
 

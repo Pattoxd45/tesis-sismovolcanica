@@ -27,8 +27,7 @@ def snr(x_ev, x_fondo):
     """Pico del evento sobre el RMS del fondo local, en decibeles."""
     rms = float(np.sqrt(np.mean(x_fondo ** 2)))
     pico = float(np.max(np.abs(x_ev)))
-    # un intervalo que cae en un hueco de datos tiene pico 0 y no admite
-    # logaritmo: se descarta en vez de propagar -inf a las estadisticas
+    # un intervalo en un hueco tiene pico 0: se descarta para no llevar -inf a las estadisticas
     if rms <= 0 or pico <= 0:
         return float("nan")
     return 20.0 * np.log10(pico / rms)
@@ -164,7 +163,6 @@ def main():
                 for r in df.itertuples()]
     catalogo = [e for e in catalogo if valida[e.ini] and valida[e.fin - 1]]
 
-    # detecciones de STA/LTA en su punto optimo
     print("Ejecutando STA/LTA en el punto de operacion optimo ...")
     por_canal = {}
     for ch in args.canales:
@@ -188,7 +186,6 @@ def main():
     pares, perdidos, fp = emparejar(catalogo, det, IOU_MIN)
     print(f"\nDetecciones: {len(det)} | TP: {len(pares)} | FP: {len(fp)}")
 
-    # control de duraciones patologicas
     durs = np.array([d.dur / FS for d in det])
     print(f"\nDuracion de las detecciones [s]: mediana {np.median(durs):.1f} | "
           f"p90 {np.percentile(durs, 90):.1f} | max {durs.max():.1f}")
@@ -199,7 +196,6 @@ def main():
         print("  Detecciones muy largas absorben eventos reales y los "
               "convierten en falsos negativos.")
 
-    # de donde vienen los falsos positivos
     clases_fp = clasificar_fp(fp, catalogo)
     print("\n" + "=" * 70)
     print("  ORIGEN DE LOS FALSOS POSITIVOS")
@@ -223,7 +219,6 @@ def main():
               f"El recall")
         print(f"  y la precision estan ambos deprimidos por la MISMA causa.")
 
-    # fondo de control
     ocupado = np.zeros(n, dtype=bool)
     for ev in catalogo:
         ocupado[max(0, ev.ini - int(30 * FS)):ev.fin + int(30 * FS)] = True
@@ -240,7 +235,6 @@ def main():
             continue
         fondos.append((s0, s0 + dur_tipica))
 
-    # SNR de los tres grupos
     print("\n" + "=" * 70)
     print(f"  RELACION SENAL/RUIDO POR GRUPO (canal {args.canal})")
     print("=" * 70)
@@ -280,7 +274,6 @@ def main():
     valen tal como estan.
 """)
 
-    # distancia al evento catalogado mas cercano
     if fp:
         inicios = np.array([ev.ini for ev in catalogo])
         d_min = [float(np.min(np.abs(inicios - d.ini))) / FS for d in fp]

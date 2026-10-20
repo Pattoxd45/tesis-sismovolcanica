@@ -1,28 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Barrido con ventanas de 5 minutos, fusion de intervalos y recorte adaptativo
-(tarea B-08).
+Barrido con ventanas de 5 minutos, fusion de intervalos y recorte adaptativo.
 """
 
 import numpy as np
 
-FS = 100.0            # Hz
+FS = 100.0
 
-VENTANA_S = 300.0     # ventana de barrido
-PASO_S = 55.0         # paso entre ventanas
-DUR_MAX_CAT_S = 240.8 # evento mas largo del catalogo
-GAP_FUSION_S = 5.0    # igual a FUSION_S de evaluar_detectores.py
-MARGEN_PRE_S = 2.5    # cubre el error de onset medido (1,7 a 2,4 s)
-MARGEN_POST_S = 0.0   # el diseno solo pide margen previo
+VENTANA_S = 300.0
+PASO_S = 55.0
+DUR_MAX_CAT_S = 240.8  # evento mas largo del catalogo
+GAP_FUSION_S = 5.0  # igual a FUSION_S de evaluar_detectores.py
+MARGEN_PRE_S = 2.5  # cubre el error de onset medido (1,7 a 2,4 s)
+MARGEN_POST_S = 0.0  # el diseno solo pide margen previo
 VENTANA_FIJA_S = 81.92  # 8.192 muestras, ventana del pool de entrenamiento
 
-# La condicion de diseno se verifica al importar: si alguien cambia los
-# parametros y la rompe, el modulo falla de inmediato.
+# se verifica al importar: si un cambio de parametros rompe la condicion, el modulo falla
 assert PASO_S <= VENTANA_S - DUR_MAX_CAT_S, "paso incompatible con la ventana"
 
-
-# 1. Barrido
 
 def ventanas_de_tramo(ini, fin, ventana, paso):
     """Ventanas [a, a + ventana) dentro del tramo; la ultima se alinea al final para
@@ -56,11 +52,8 @@ def ventanas_que_tocan(ini, fin, ventanas):
     return [k for k, (a, b) in enumerate(ventanas) if a < fin and ini < b]
 
 
-# 2. Deteccion por ventana
-
 def detectar_por_ventanas(senal, ventanas, detector):
-    """Aplica `detector` a cada ventana y devuelve los intervalos en indices globales.
-    """
+    """Aplica `detector` a cada ventana y devuelve los intervalos en indices globales."""
     salida = []
     for k, (a, b) in enumerate(ventanas):
         x = np.asarray(senal[a:b], dtype=np.float64)
@@ -70,8 +63,6 @@ def detectar_por_ventanas(senal, ventanas, detector):
                            "toca_borde_der": int(e) >= (b - a) - 1})
     return salida
 
-
-# 3. Fusion
 
 def fusionar(intervalos, gap):
     """Une intervalos que se solapan o estan separados por menos de `gap` muestras."""
@@ -86,8 +77,6 @@ def fusionar(intervalos, gap):
             out.append([s, e])
     return [tuple(x) for x in out]
 
-
-# 4. Recorte adaptativo
 
 def tramo_de(muestra, n, cortes):
     """Limites [ini, fin) del tramo que contiene la muestra."""
@@ -116,8 +105,6 @@ def recorte_fijo(ini, n, cortes, margen_pre_s=MARGEN_PRE_S,
     a = max(t0, ini - int(round(margen_pre_s * FS)))
     return a, min(t1, a + int(round(dur_s * FS)))
 
-
-# Detector STA/LTA para una ventana
 
 def stalta_en_ventana(x, cfg):
     """STA/LTA clasico sobre una ventana, con la misma configuracion que

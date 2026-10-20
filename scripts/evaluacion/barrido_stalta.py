@@ -18,16 +18,15 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from evaluar_detectores import (Intervalo, metricas, CLASES, FS,
                                 CORTES, GUARDA_S, NPY, CSV, SALIDA)
 
-# Rejilla de busqueda
 
 REJILLA = dict(
     lta_s=[10.0, 30.0, 60.0],
     sta_s=[0.5, 1.0, 2.0],
     thr_on=[2.5, 3.0, 4.0],
     thr_off=[1.05, 1.2, 1.5],
-    fusion_s=[5.0, 15.0],       # union de disparos dentro de un canal
-    min_est=[1, 2],             # estaciones que deben coincidir
-    tol_s=[5.0],                # tolerancia de coincidencia entre canales
+    fusion_s=[5.0, 15.0],  # union de disparos dentro de un canal
+    min_est=[1, 2],  # estaciones que deben coincidir
+    tol_s=[5.0],  # tolerancia de coincidencia entre canales
 )
 
 REJILLA_RAPIDA = dict(
@@ -50,10 +49,8 @@ def segmentos(n):
     return [(b[i], b[i + 1]) for i in range(len(b) - 1)]
 
 
-# Agregacion corregida
-
 def fusionar_canal(trigs, gap):
-    """Une disparos del MISMO canal separados por menos de gap muestras."""
+    """Une disparos del mismo canal separados por menos de gap muestras."""
     if not trigs:
         return []
     trigs = sorted(trigs)

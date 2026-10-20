@@ -19,7 +19,7 @@ import fre3c_lib as lib
 
 FS = lib.FS
 TOL = int(round(lib.TOL_S * FS))
-TARDIOS_S = [5, 10, 20, 30, 60]      # el tremor empieza de a poco y PhaseNet avisa tarde
+TARDIOS_S = [5, 10, 20, 30, 60]  # el tremor empieza de a poco y PhaseNet avisa tarde
 
 
 def onsets_pn_ps(curvas, umbral):

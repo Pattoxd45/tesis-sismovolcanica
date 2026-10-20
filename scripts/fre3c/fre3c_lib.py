@@ -20,7 +20,7 @@ TOL_S = 5.0
 CLASES = ["VT", "LP", "TR", "AV", "IC"]
 VOLCANICAS = ["VT", "LP", "TR"]
 
-# Butterworth orden 5, fase cero. 1-15 Hz: traza de Zenodo; 1-45 Hz: banda de EQTransformer
+# 1-15 Hz: banda de la traza de Zenodo; 1-45 Hz: banda del filtro interno de EQTransformer
 FILTROS = {"f1_15": (1.0, 15.0), "f1_45": (1.0, 45.0)}
 
 UMBRALES = [0.02, 0.03, 0.05] + [round(0.05 * i, 2) for i in range(2, 20)]
@@ -46,6 +46,7 @@ RUTA_EVENTOS = os.path.join(DIR_SALIDA, "eventos_fre3c.csv")
 
 def sos_filtro(banda):
     from scipy.signal import butter
+    # orden 5 y fase cero: asi la Z cruda reproduce la fila 1 de Zenodo con r >= 0,99
     return butter(5, list(banda), btype="bandpass", fs=FS, output="sos")
 
 
@@ -146,7 +147,7 @@ def dentro_de_intervalos(t, inis, fins):
     orden = np.argsort(inis)
     inis = np.asarray(inis, dtype=np.int64)[orden]
     fins = np.asarray(fins, dtype=np.int64)[orden]
-    # fusion de intervalos solapados
+    # se unen los intervalos solapados para que la busqueda con searchsorted sea correcta
     mi, mf = [inis[0]], [fins[0]]
     for a, b in zip(inis[1:], fins[1:]):
         if a <= mf[-1]:
@@ -222,7 +223,6 @@ def resumir(res, eventos, horas, mascara_eventos=None, mascara_onsets=None):
 
     cat = res["cat"][mascara_onsets]
     n_det = int(cat.size)
-    # aciertos sobre eventos VT, LP o TR
     volc_ev = np.isin(clases, VOLCANICAS) & mascara_eventos & acierta
     idx_volc = set(res["asignado"][volc_ev].tolist())
     idx_sel = np.where(mascara_onsets)[0]

@@ -1,8 +1,5 @@
-%% Respuestas a lo pedido en la revision: deteccion con FRE y sus tres
-%% componentes. Documento corto, sin portada ni bibliografia.
-%% Vive en informe/ y toma las figuras de ../resultados/fre3c/, que generan
-%% figuras_fre3c.py, sensibilidad_fre3c.py y recorte_fre3c.py --figura.
-%% Compilar con: latexmk -pdf avance_fre3c.tex
+% Avance de la deteccion con FRE; toma las figuras de ../resultados/fre3c/.
+% Compilar con: latexmk -pdf avance_fre3c.tex
 
 \documentclass[11pt,a4paper,oneside,spanish,oldfontcommands]{memoir}
 
@@ -65,9 +62,7 @@
 \sloppy
 \pagestyle{plain}
 
-% ======================================================================
 \section{Datos}
-% ======================================================================
 
 Uso la estación FRE con sus tres componentes, filtradas en dos rangos de
 frecuencia: 1--15~Hz, el mismo de la traza, y 1--45~Hz, el rango con que se
@@ -91,9 +86,7 @@ Total & 205 & 179 & Volcánicos evaluados: 125 (VT 36, LP 52, TR 37) \\
 \end{longtable}
 }
 
-% ======================================================================
 \section{Detectores y sus parámetros}\label{sec:parametros}
-% ======================================================================
 
 Comparo tres detectores. Cada uno viene de una librería que define sus
 parámetros, con su nombre y su valor por defecto. Solo cambio esos parámetros,
@@ -138,7 +131,7 @@ apliqué tal cual y comprobé que entrega los mismos avisos que su función
 \texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 3000 & 3000 & Sin cambio. \\
 \texttt{blinding} & Muestras que se descartan en cada borde. & 500 por lado & 500 por lado & Sin cambio. \\
 \texttt{stacking} & Cómo se juntan las ventanas que se solapan. & \texttt{max} & \texttt{max} & Sin cambio. \\
-Filtro interno & Deja pasar solo 1--45~Hz antes de entrar a la red. & 1--45~Hz & 1--45~Hz & No se puede cambiar: viene con los pesos. \\
+Filtro interno & Deja pasar solo 1--45~Hz antes de entrar a la red (orden 2, sin correr la señal en el tiempo). & 1--45~Hz & 1--45~Hz & No se puede cambiar: viene con los pesos. \\
 \midrule
 \multicolumn{5}{l}{\textit{STA/LTA (ObsPy: \texttt{classic\_sta\_lta}, \texttt{trigger\_onset} y \texttt{bandpass})}}\\
 \addlinespace
@@ -192,9 +185,7 @@ contar aciertos y cómo recortar. Las aplico igual a los tres detectores.
   \end{itemize}
 \end{itemize}
 
-% ======================================================================
 \section{Sensibilidad por clase}
-% ======================================================================
 
 Un evento cuenta como detectado si hay un aviso a 5~s o menos de su inicio,
 antes o después. El Cuadro~\ref{tab:por-clase} y la
@@ -226,9 +217,7 @@ clases.
 
 \figura{fig1_por_clase.png}{0.92}{Sensibilidad por clase de cada red (FRE, tres componentes, umbral 0,10, filtro 1--15~Hz). Barras finas: intervalo de confianza del 95\,\%.}{fig:por-clase}
 
-% ======================================================================
 \section{PhaseNet con P y S por separado, y las salidas de EQTransformer}
-% ======================================================================
 
 {\small
 \setlength{\tabcolsep}{5pt}
@@ -251,9 +240,7 @@ cuya P es débil, sobre todo LP (de 45 a 52) y TR (de 19 a 26). Para juntarlas,
 los avisos de P y S que caen a 5~s o menos uno del otro cuentan como uno solo.
 En EQTransformer, la curva de detección es la mejor salida.
 
-% ======================================================================
 \section{EQTransformer: filtro de 1--45~Hz y umbral}
-% ======================================================================
 
 EQTransformer ya filtra la señal en 1--45~Hz por dentro, y su umbral por
 defecto es 0,30. Probé las dos bandas y umbrales desde 0,02 hasta 0,95. Usar
@@ -266,9 +253,7 @@ formas.
 
 \figura{fig4_filtros.png}{0.98}{Sensibilidad volcánica por umbral con la señal filtrada en 1--15~Hz y en 1--45~Hz.}{fig:filtros}
 
-% ======================================================================
 \section{Curvas de sensibilidad por clase y FDR}\label{sec:curvas}
-% ======================================================================
 
 La sensibilidad es la parte de los eventos del catálogo que el detector
 encuentra: 0,904 quiere decir que encuentra 113 de los 125 volcánicos. La FDR
@@ -286,9 +271,7 @@ aceptar dependerá de cuántas descarte la clase de rechazo del clasificador.
 
 \figura{fig2_costo_fp.png}{0.92}{Sensibilidad volcánica contra falsas alarmas por hora; cada punto es un umbral (filtro 1--15~Hz).}{fig:costo}
 
-% ======================================================================
 \section{Cuadro de metas}\label{sec:metas}
-% ======================================================================
 
 Para cada detector, el Cuadro~\ref{tab:metas} muestra con qué umbral llega a
 detectar el 80\,\% y el 90\,\% de los volcánicos y cuántas falsas alarmas por
@@ -320,9 +303,7 @@ EQTransformer, recorte propio & --- & --- & 0,088 \\
 \end{longtable}
 }
 
-% ======================================================================
 \section{Las tres componentes y la meta de 0,95}\label{sec:componentes}
-% ======================================================================
 
 PhaseNet y EQTransformer esperan tres señales por estación: Z, N y E. En la
 Etapa~2 solo tenía la vertical (Z), así que las otras dos se rellenaban con
@@ -343,9 +324,7 @@ llega a 0,95: el máximo es 0,936.
 
 \figura{fig3_antes_ahora.png}{0.98}{Misma estación y mismos eventos; solo cambia lo que recibe cada red: ceros, copias de la vertical o Z, N y E reales.}{fig:antes-ahora}
 
-% ======================================================================
 \section{TR: probar con distintas tolerancias}
-% ======================================================================
 
 De los 11 TR que PhaseNet pierde, 6 sí tienen aviso, pero entre 5,9 y 7,3~s
 después del inicio, justo fuera de los 5~s; 2 tienen aviso mucho después (22 y
@@ -370,9 +349,7 @@ Con 10~s, TR sube a 32 de 37 y el total volcánico llega a 0,952. Más allá de
 10~s se suman pocos TR, y mientras más ancha es la ventana, más fácil es que el
 aviso aceptado no venga del tremor sino de otra cosa que pasó en esos segundos.
 
-% ======================================================================
 \section{Recorte de PhaseNet por energía}\label{sec:recorte}
-% ======================================================================
 
 PhaseNet marca el inicio del evento, pero no su fin. Por eso el fin lo defino
 con la energía de la señal:
@@ -434,9 +411,7 @@ tremor. Otros 6 TR quedan cortos porque en FRE casi no sobresalen del ruido
 
 \figura{fig6_fallas.png}{0.80}{Por qué falla el recorte por energía: un LP con recorte demasiado largo y un TR con recorte demasiado corto. La energía está medida en veces el ruido previo; el recorte termina cuando baja de la línea punteada durante 5~s.}{fig:fallas}
 
-% ======================================================================
 \section{PhaseNet y EQTransformer juntos}\label{sec:fusion}
-% ======================================================================
 
 Junté los avisos de las dos redes: si un aviso de PhaseNet y uno de
 EQTransformer caen a 5~s o menos uno del otro, cuentan como una sola

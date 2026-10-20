@@ -23,17 +23,13 @@ import significancia as sig
 FS = ed.FS
 CACHE_STALTA = os.path.join(ed.SALIDA, "cache_stalta")
 
-# Valores citados en el informe que hay que reproducir antes de
-# reportar cualquier cosa por tramo.
+# cifras del informe que se deben reproducir antes de reportar por tramo
 OBJETIVO_N1 = {"stalta": 0.542, "phasenet": 0.527, "eqtransformer": 0.581}
 OBJETIVO_N2_EQT = {"recall": 0.330, "iou_medio": 0.479}
 
-# Los valores citados estan redondeados a tres decimales, asi que el
-# margen de comparacion es medio paso de ese redondeo.
+# medio paso del redondeo a tres decimales de las cifras citadas
 TOL_REPRODUCE = 5e-4
 
-
-# Las dos configuraciones
 
 def configuraciones():
     """Devuelve las dos configuraciones a comparar."""
@@ -79,10 +75,8 @@ def etiqueta(cfg, nombre, nivel):
     return base + f", min_est {c['min_est']}"
 
 
-# Reconstruccion de las salidas
-
 def stalta_por_canal_cacheado(a, canales, cfg, usar_cache=True):
-    """sig.stalta_por_canal con cacha en disco, indexada por configuracion."""
+    """sig.stalta_por_canal con cache en disco, indexada por configuracion."""
     clave = (f"sta{cfg['sta_s']:g}_lta{cfg['lta_s']:g}_on{cfg['thr_on']:g}"
              f"_off{cfg['thr_off']:g}_fus{cfg['fusion_s']:g}"
              f"_ch{'-'.join(map(str, canales))}")
@@ -127,8 +121,6 @@ def detecciones_de(nombre, cfg, a, valida, canales, usar_cache=True):
             return None
     return ed.coincidencia(pc, valida, c["min_est"])
 
-
-# Verificacion contra los valores citados
 
 def globales(cfg, a, catalogo, valida, horas, canales, usar_cache):
     """Nivel 1 y nivel 2 globales de una configuracion."""
@@ -215,8 +207,6 @@ def verificar(todo, cfgs):
             elegida = clave
     return elegida
 
-
-# Reporte por tramo
 
 def ambitos(a, valida):
     """Lista de (nombre, ini, fin, horas validas) global y por tramo."""

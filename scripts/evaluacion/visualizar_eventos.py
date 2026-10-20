@@ -29,7 +29,7 @@ CACHE_PICKS = os.path.join(SALIDA, "cache_picks")
 COLOR = {"VT": "#df8d5e", "LP": "#2ca02c", "TR": "#d62728",
          "AV": "#9467bd", "IC": "#8c564b"}
 
-# Espectrograma: valores iniciales, PENDIENTE de verificar contra Curilem
+# valores iniciales; falta verificarlos contra el codigo de Curilem
 NPERSEG = 256
 NOVERLAP = 128
 
@@ -48,7 +48,6 @@ def stalta_ventana(x, cfg=STALTA, descartar=0):
     trg = [(int(s), int(e)) for s, e in
            trigger_onset(cft, cfg["thr_on"], cfg["thr_off"])]
     trg = fusionar_canal(trg, int(5.0 * FS))
-    # trasladar al origen de la ventana visible y recortar
     out = []
     for s, e in trg:
         s2, e2 = s - descartar, e - descartar
@@ -78,8 +77,7 @@ def figura_validacion(a, ev, canal, destino, catalogo=None):
     x = np.asarray(a[canal, ini:fin], dtype=np.float64)
     t = np.arange(len(x)) / FS
 
-    # contexto previo para que la LTA de 60 s este caliente al llegar
-    # a la ventana visible; si no, STA/LTA no dispara nunca
+    # contexto previo: sin la LTA de 60 s ya llena, STA/LTA no dispara en la ventana visible
     lead = int(3 * STALTA["lta_s"] * FS)
     ini_ext = max(0, ini - lead)
     x_ext = np.asarray(a[canal, ini_ext:fin], dtype=np.float64)
@@ -94,8 +92,7 @@ def figura_validacion(a, ev, canal, destino, catalogo=None):
                                                                "gray"),
                alpha=0.25, label=f"catalogo {ev.event_type} ({dur / FS:.1f} s)")
 
-    # otros eventos del catalogo en la ventana (energia sin sombrear = catalogo no
-    # exhaustivo)
+    # se sombrean los otros eventos del catalogo; energia sin sombrear = evento no catalogado
     otros = 0
     if catalogo is not None:
         vecinos = catalogo[(catalogo.idx_end > ini) &
@@ -154,7 +151,7 @@ def figura_validacion(a, ev, canal, destino, catalogo=None):
 
 
 def figura_representacion(a, ev, canal, destino):
-    """Panel B: lo que realmente ve el VGG16 (espectrograma + onda)."""
+    """Panel B: lo que ve el VGG16 (espectrograma y onda)."""
     from scipy.signal import spectrogram
 
     s, e = int(ev.idx_start), int(ev.idx_end)

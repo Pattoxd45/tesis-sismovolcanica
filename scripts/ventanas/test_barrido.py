@@ -19,8 +19,7 @@ FS = br.FS
 RNG = np.random.default_rng(20261002)
 SIGMA_RUIDO = 0.05
 
-# Configuracion STA/LTA real (optimo del barrido de 324 combinaciones),
-# copiada de evaluar_detectores.py para no depender de sus rutas.
+# configuracion real de STA/LTA, copiada de evaluar_detectores.py para no depender de sus rutas
 STALTA = dict(sta_s=2.0, lta_s=60.0, thr_on=4.0, thr_off=1.05,
               banda=(1.0, 20.0))
 
@@ -32,8 +31,6 @@ def informar(nombre, ok, detalle=""):
     print(f"  [{'PASA ' if ok else 'FALLA'}] {nombre}" +
           (f"\n          {detalle}" if detalle else ""))
 
-
-# Senal sintetica
 
 def ruido(n):
     return RNG.normal(0.0, SIGMA_RUIDO, n)
@@ -56,7 +53,7 @@ def insertar(x, ini_s, ev):
     return i, i + len(ev)
 
 
-# Detector oraculo (envolvente RMS de 1 s con umbral fijo)
+# detector oraculo: envolvente RMS de 1 s con umbral fijo
 
 UMBRAL_ORACULO = 0.25
 
@@ -70,7 +67,7 @@ def oraculo(x, umbral=UMBRAL_ORACULO):
 
 
 def oraculo_normalizado(x):
-    """Variante PROHIBIDA por el diseno: normaliza la ventana por su maximo."""
+    """Variante que el diseno prohibe: normaliza la ventana por su maximo."""
     return oraculo(x / (np.max(np.abs(x)) + 1e-12))
 
 
@@ -115,8 +112,7 @@ def prueba_ventanas():
     informar(f"{len(v)} ventanas para la traza real; ninguna cruza un corte",
              not cruza, f"ventanas que cruzan: {len(cruza)}")
 
-    # Todo intervalo de hasta 240,8 s dentro de un tramo debe caber entero
-    # en alguna ventana. Se prueban posiciones al azar y los extremos.
+    # cada intervalo de hasta 240,8 s debe caber entero en alguna ventana
     d = int(round(br.DUR_MAX_CAT_S * FS))
     fallos = 0
     for i in range(len(bordes) - 1):
@@ -128,7 +124,7 @@ def prueba_ventanas():
     informar("todo evento de 240,8 s cabe entero en al menos una ventana",
              fallos == 0, f"intervalos sin ventana que los contenga: {fallos}")
 
-    # Control negativo: con paso de 65 s (> 59,2 s) la garantia se rompe.
+    # control negativo: con paso de 65 s (> 59,2 s) la garantia se rompe
     v2 = br.generar_ventanas(n, cortes, paso_s=65.0)
     sin = sum(1 for p in RNG.integers(0, cortes[0] - d, 3000)
               if not br.ventanas_que_contienen(p, p + d, v2))
@@ -182,8 +178,7 @@ def caso_2():
              f"fusionado {fus[0][0] / FS:.1f}-{fus[0][1] / FS:.1f} s | verdadero "
              f"{verdad[0] / FS:.1f}-{verdad[1] / FS:.1f} s")
 
-    # Red de seguridad: se quitan las ventanas que contienen el evento entero
-    # y la fusion debe reconstruirlo solo con los trozos cortados.
+    # sin las ventanas que contienen el evento entero, la fusion debe reconstruirlo con los trozos
     contenedoras = br.ventanas_que_contienen(*verdad, v)
     v_sin = [w for k, w in enumerate(v) if k not in contenedoras]
     fus2, _, _ = barrer(x, [], oraculo, ventanas=v_sin)
@@ -234,7 +229,7 @@ def prueba_stalta():
     if importlib.util.find_spec("obspy") is None:
         print("  (se omite: obspy no esta instalado)")
         return None
-    # Tres tramos, como la traza real, con eventos de duraciones del catalogo.
+    # tres tramos, como la traza real, con duraciones del catalogo
     tramos_s = [3600.0, 1800.0, 900.0]
     n = int(sum(tramos_s) * FS)
     cortes = [int(tramos_s[0] * FS), int((tramos_s[0] + tramos_s[1]) * FS)]
@@ -266,7 +261,7 @@ def prueba_stalta():
     informar("y todo intervalo del barrido tiene par en la traza completa",
              min(i_fus, default=1) >= 0.9, f"IoU minimo {min(i_fus, default=1):.3f}")
 
-    # Medicion (no prueba): duracion que STA/LTA asigna a eventos largos.
+    # medicion, no prueba: duracion que STA/LTA asigna a eventos largos
     largos = [v for v in verdad if (v[1] - v[0]) / FS > 150]
     if largos:
         print("\n  Medicion: cobertura de STA/LTA sobre eventos de mas de 150 s")

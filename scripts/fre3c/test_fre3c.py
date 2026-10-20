@@ -17,7 +17,7 @@ sys.path.insert(0, AQUI)
 import fre3c_lib as lib
 
 FS = lib.FS
-S = int(FS)  # muestras por segundo
+S = int(FS)
 RESULTADOS = []
 
 
@@ -85,12 +85,12 @@ def test_evaluar():
     print("\n4. Clasificacion de detecciones y metricas")
     n = 2000 * S
     valida = np.ones(n, dtype=bool)
-    valida[1500 * S:1600 * S] = False                     # zona no valida
+    valida[1500 * S:1600 * S] = False  # zona no valida
     eventos = pd.DataFrame([
-        dict(ini=100 * S, fin=190 * S, clase="TR"),       # TR de 90 s
+        dict(ini=100 * S, fin=190 * S, clase="TR"),  # TR de 90 s
         dict(ini=300 * S, fin=315 * S, clase="VT"),
         dict(ini=500 * S, fin=508 * S, clase="IC"),
-        dict(ini=700 * S, fin=730 * S, clase="LP"),       # no se detecta
+        dict(ini=700 * S, fin=730 * S, clase="LP"),  # no se detecta
     ])
     zona_ini = np.r_[eventos.ini.to_numpy() - 5 * S]
     zona_fin = np.r_[eventos.fin.to_numpy()]
@@ -102,7 +102,7 @@ def test_evaluar():
         500 * S,
         900 * S,
         1000 * S,
-        1550 * S,       # zona no valida: se descarta
+        1550 * S,  # zona no valida: se descarta
     ])
     res = lib.evaluar(onsets, eventos, zona_ini, zona_fin, valida)
     cats = dict(zip(res["onsets"].tolist(), res["cat"].tolist()))
@@ -190,7 +190,7 @@ def test_preparar_tramo():
              and valida[200 * S:400 * S].all())
     z = sosfiltfilt(sos15, out["Z"])
     m = valida & (fila1 != 0)
-    m[:20 * S] = False   # bordes del tramo
+    m[:20 * S] = False  # bordes del tramo
     m[-20 * S:] = False
     r = np.corrcoef(z[m], fila1[m])[0, 1]
     informar("tras corregir el desfase, Z filtrada reproduce la fila 1 lejos de bordes "

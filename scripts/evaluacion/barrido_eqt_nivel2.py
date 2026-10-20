@@ -23,7 +23,7 @@ from evaluar_detectores import (FS, CANALES, CORTES, GUARDA_S, NPY, CSV,
 CACHE = os.path.join(SALIDA, "cache_detection")
 
 UMBRALES = [0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50]
-FUSION_S = [5.0, 15.0, 30.0]   # 30 s: los tremores duran 88 s de mediana
+FUSION_S = [5.0, 15.0, 30.0]  # 30 s: los tremores duran 88 s de mediana
 MIN_EST = [1, 2]
 DUR_MIN_S = 3.0
 IOU_MIN = 0.30
@@ -147,7 +147,6 @@ def main():
     print(buenos[cols].head(8).to_string(index=False, float_format=fmt)
           if len(buenos) else "  ninguna combinacion supera recall 0,30")
 
-    # comparacion contra STA/LTA
     ruta_st = os.path.join(SALIDA, "barrido_stalta.csv")
     if os.path.exists(ruta_st):
         st = pd.read_csv(ruta_st)

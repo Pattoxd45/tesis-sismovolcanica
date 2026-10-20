@@ -25,45 +25,40 @@ NPY = f"{BASE}/NVCh_10h_continuous_trace.npy"
 CSV = f"{BASE}/NVCh_10h_continuous_trace_reference.csv"
 SALIDA = "/home/patto/tesis/resultados"
 
-FS = 100.0  # Hz
+FS = 100.0
 
-# Estaciones utilizables: se excluyen la 8 (cero), la 7 (70,8 % sin dato) y la 4
-# (ganancia anomala).
+# sin la 8 (cero), la 7 (70,8 % sin dato) ni la 4 (ganancia anomala)
 CANALES = [1, 2, 3, 5, 6]
 
-# La traza concatena tres segmentos de fechas distintas (saltos de anos).
+# la traza une tres tramos de fechas distintas
 CORTES = [2_160_000, 3_240_001]
 GUARDA_S = 30.0
 
-# Nivel 1: deteccion del momento
-TOL_ONSET_S = [1.0, 2.0, 5.0]   # tolerancias reportadas
-TOL_RED_ONSET_S = 3.0           # agrupacion de onsets entre estaciones
+TOL_ONSET_S = [1.0, 2.0, 5.0]
+TOL_RED_ONSET_S = 3.0  # agrupacion de onsets entre estaciones
 
-# Nivel 2: calidad del recorte
 IOU_MIN = 0.30
 
-# Agregacion a nivel de red
 MIN_ESTACIONES = 2
 TOL_COINCIDENCIA_S = 5.0
 FUSION_S = 5.0
 DUR_MIN_S = 3.0
-# Tope de duracion de una deteccion de red: corta el encadenamiento transitivo.
+# tope de duracion de una deteccion de red: corta el encadenamiento transitivo
 DUR_MAX_S = 400.0
 
-# STA/LTA (optimo del barrido de 324 combinaciones)
+# optimo del barrido de 324 combinaciones
 STALTA = dict(sta_s=2.0, lta_s=60.0, thr_on=4.0, thr_off=1.05,
               banda=(1.0, 20.0))
 
-# Modelos SeisBench
 PESOS = {"phasenet": "original", "eqtransformer": "original"}
 COMPONENTES_POR_MODELO = {"phasenet": "duplicar", "eqtransformer": "ceros"}
-UMBRAL_PROB = 0.30   # sobre la curva Detection (solo EQTransformer)
-UMBRAL_PICK = 0.20   # confianza minima de un pick
+UMBRAL_PROB = 0.30  # sobre la curva Detection (solo EQTransformer)
+UMBRAL_PICK = 0.20  # confianza minima de un pick
 
 CLASES = ["VT", "LP", "TR", "AV", "IC"]
 
 
-# NUCLEO (testeable sin SeisBench)
+# funciones sin SeisBench: se prueban con --autotest
 
 @dataclass
 class Intervalo:
@@ -97,7 +92,7 @@ def binaria_a_intervalos(mask, dur_min=0):
 
 
 def fusionar_canal(trigs, gap):
-    """Une disparos del MISMO canal separados por menos de gap muestras."""
+    """Une disparos del mismo canal separados por menos de gap muestras."""
     if not trigs:
         return []
     trigs = sorted(trigs)
@@ -128,7 +123,7 @@ def coincidencia(por_canal, valida, min_est=MIN_ESTACIONES,
 
     grupos, actual, fin_act = [], [todos[0]], todos[0][1]
     for s, e, ch in todos[1:]:
-        # se corta si no hay contacto O si el grupo ya es demasiado largo
+        # se corta si no hay contacto o si el grupo ya es demasiado largo
         if s <= fin_act + tol and (max(fin_act, e) - actual[0][0]) <= dur_max:
             actual.append((s, e, ch))
             fin_act = max(fin_act, e)
@@ -150,8 +145,8 @@ def coincidencia(por_canal, valida, min_est=MIN_ESTACIONES,
 
 def coincidencia_onsets(por_canal, valida, min_est=MIN_ESTACIONES,
                         tol_s=TOL_RED_ONSET_S):
-    """Agrupa onsets (instantes) de distintas estaciones y emite un onset de red por
-    grupo, usando la MEDIANA del grupo como estimador robusto.
+    """Agrupa onsets de distintas estaciones y emite un onset de red por grupo,
+    con la mediana del grupo.
     """
     tol = int(tol_s * FS)
     todos = sorted((int(t), ch) for ch, d in por_canal.items()
@@ -177,8 +172,6 @@ def coincidencia_onsets(por_canal, valida, min_est=MIN_ESTACIONES,
             salida.append(t)
     return sorted(salida)
 
-
-# NIVEL 1: metricas de deteccion del momento
 
 def metricas_onset(catalogo, onsets, horas, tolerancias=TOL_ONSET_S):
     """Empareja cada evento del catalogo con el onset detectado mas cercano a su inicio,
@@ -221,7 +214,6 @@ def metricas_onset(catalogo, onsets, horas, tolerancias=TOL_ONSET_S):
             d_res["error_mediano_s"] = float("nan")
             d_res["error_mae_s"] = float("nan")
 
-        # desglose por clase
         d_res["por_clase"] = {}
         for c in CLASES:
             n_c = sum(1 for ev in catalogo if ev.clase == c)
@@ -231,8 +223,6 @@ def metricas_onset(catalogo, onsets, horas, tolerancias=TOL_ONSET_S):
         res[clave] = d_res
     return res
 
-
-# NIVEL 2: metricas de calidad del recorte
 
 def emparejar(catalogo, detecciones, iou_min=IOU_MIN):
     cand = []
@@ -403,7 +393,6 @@ def detector_seisbench(a, canales, nombre, modo):
                 continue
             st = _stream(x, ini, modo, estacion=f"S{ch}")
 
-            # onsets: picks
             try:
                 out = modelo.classify(st)
                 for p in getattr(out, "picks", []):
@@ -416,7 +405,6 @@ def detector_seisbench(a, canales, nombre, modo):
             except Exception as ex:
                 print(f"      aviso: classify() fallo ({type(ex).__name__})")
 
-            # intervalos: canal Detection, si existe
             ann = modelo.annotate(st)
             canal_det = next((tr for tr in ann
                               if tr.stats.channel.endswith("Detection")), None)
@@ -505,7 +493,7 @@ def autotest():
           3: {"intervalos": [(90000, 90200)]}}
     d = coincidencia(pc, valida, 2, 5.0, 1.0)
     assert len(d) == 1 and d[0].ini == 1000 and d[0].fin == 1400
-    # disparos desfasados SIN solape: la tolerancia es lo que los rescata
+    # disparos desfasados sin solape: la tolerancia es lo que los rescata
     pc2 = {1: {"intervalos": [(1000, 1200)]},
            2: {"intervalos": [(1300, 1500)]}}
     assert len(coincidencia(pc2, valida, 2, 5.0, 1.0)) == 1
@@ -515,13 +503,12 @@ def autotest():
     pco = {1: {"onsets": [1000, 50000]}, 2: {"onsets": [1120]},
            3: {"onsets": [1050]}}
     o = coincidencia_onsets(pco, valida, 2, 3.0)
-    assert o == [1050], o           # mediana del grupo; 50000 va solo
+    assert o == [1050], o  # mediana del grupo; 50000 va solo
     print("  [ok] coincidencia_onsets usa la mediana y filtra solitarios")
 
     cat = [Intervalo(1000, 2000, "VT"), Intervalo(5000, 8000, "LP"),
            Intervalo(20000, 21000, "IC")]
-    # 1050 esta a 0,5 s de 1000 -> entra en ambas tolerancias
-    # 5150 esta a 1,5 s de 5000 -> entra en +-2 s pero no en +-1 s
+    # 1050 esta a 0,5 s de 1000 (entra en ambas tolerancias); 5150 a 1,5 s de 5000 (solo en +-2 s)
     r1 = metricas_onset(cat, [1050, 5150, 90000], horas=10.0)
     assert abs(r1["tol_2s"]["recall"] - 2 / 3) < 1e-9, r1["tol_2s"]
     assert abs(r1["tol_1s"]["recall"] - 1 / 3) < 1e-9, r1["tol_1s"]

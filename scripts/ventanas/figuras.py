@@ -21,7 +21,6 @@ def figura_barrido(t, x, ref, color_ref, etiqueta_ref, ventanas, disparos,
         2, 1, figsize=(10, 3.2 + 0.28 * len(ventanas)), sharex=True,
         gridspec_kw={"height_ratios": [2.2, 0.35 * len(ventanas) + 0.6]})
 
-    # panel superior: onda y resultado
     esc = float(np.percentile(np.abs(x), 99.5)) or 1.0
     ax.plot(t, np.clip(x, -esc, esc), lw=0.3, color="0.25")
     ax.axvspan(ref[0], ref[1], color=color_ref, alpha=0.15, label=etiqueta_ref)
@@ -40,7 +39,6 @@ def figura_barrido(t, x, ref, color_ref, etiqueta_ref, ventanas, disparos,
     ax.legend(loc="lower right", fontsize=7, ncol=2, framealpha=0.9)
     ax.set_title(titulo, fontsize=8)
 
-    # panel inferior: una barra por ventana
     for fila, (k, a, b) in enumerate(ventanas):
         y = len(ventanas) - 1 - fila
         bx.barh(y, b - a, left=a, height=0.62, color="0.93",

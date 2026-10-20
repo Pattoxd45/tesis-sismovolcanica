@@ -1,3 +1,9 @@
+"""
+Perfil de cada fila de la traza y control de las mascaras de clase contra el catalogo.
+
+Uso: python inspeccionar_filas.py
+"""
+
 import numpy as np
 import pandas as pd
 
@@ -19,7 +25,7 @@ print("  inicio:", pd.to_datetime(float(a[0, 0]), unit="s", errors="coerce"))
 print("  fin   :", pd.to_datetime(float(a[0, -1]), unit="s", errors="coerce"))
 print("  dt medio (s):", float(a[0, 1000]) - float(a[0, 999]))
 
-# Validacion cruzada: la mascara one-hot debe activarse en los intervalos del CSV
+# la mascara one-hot debe activarse en los intervalos del CSV
 print("\nValidacion mascaras vs CSV (primeros 3 eventos):")
 for _, ev in df.head(3).iterrows():
     s, e = int(ev.idx_start), int(ev.idx_end)

@@ -25,8 +25,7 @@ BANDA = (1.0, 20.0)
 TOL_ONSET_S = 5.0
 IOUS = [0.10, 0.20, 0.30, 0.40, 0.50]
 
-# Puntos de operacion elegidos por "mejor F1", el mismo criterio para los
-# tres. Salen de comparacion_nivel1.csv y barrido_eqt_nivel2.csv.
+# mejor F1, el mismo criterio para los tres; de comparacion_nivel1.csv y barrido_eqt_nivel2.csv
 OP_NIVEL1 = {
     "stalta": dict(sta_s=2.0, lta_s=30.0, thr_on=5.0, thr_off=1.05,
                    fusion_s=5.0, min_est=2),
@@ -40,8 +39,6 @@ OP_NIVEL2 = {
                           min_est=2),
 }
 
-
-# Reconstruccion de las salidas de cada detector
 
 def stalta_por_canal(a, canales, cfg):
     from obspy.signal.trigger import classic_sta_lta, trigger_onset
@@ -93,8 +90,6 @@ def eqt_intervalos(modo, umbral, fusion_s, canales):
     return salida
 
 
-# Emparejamiento -> vector booleano por evento
-
 def acertados_onset(catalogo, onsets, tol_s=TOL_ONSET_S):
     """Devuelve (vector booleano por evento, n_onsets, n_acertados)."""
     onsets = np.asarray(sorted(onsets), dtype=np.int64)
@@ -123,8 +118,6 @@ def acertados_iou(catalogo, detecciones, iou_min):
     return v, len(detecciones), len(pares)
 
 
-# Bootstrap
-
 def ic_bootstrap(v, n_boot, rng):
     """IC 95% de la proporcion de aciertos, remuestreando eventos."""
     n = len(v)
@@ -134,7 +127,7 @@ def ic_bootstrap(v, n_boot, rng):
 
 
 def ic_diferencia(v_a, v_b, n_boot, rng):
-    """IC 95% de la diferencia de recall, con remuestreo PAREADO."""
+    """IC 95 % de la diferencia de recall, con remuestreo pareado."""
     n = len(v_a)
     idx = rng.integers(0, n, size=(n_boot, n))
     d = v_a[idx].mean(axis=1) - v_b[idx].mean(axis=1)
@@ -165,7 +158,6 @@ def main():
     print(f"Catalogo: {len(catalogo)} eventos | {horas:.2f} h")
     print(f"Bootstrap: {args.n_boot} remuestreos pareados\n")
 
-    # Nivel 1
     print("Reconstruyendo salidas del Nivel 1 ...", flush=True)
     aciertos, resumen = {}, []
 
@@ -215,7 +207,6 @@ def main():
             print(f"  {na:<14} - {nb:<14} = {m:+.3f}  "
                   f"IC [{lo:+.3f} , {hi:+.3f}]   significativa: {signif}")
 
-    # Nivel 1 por clase
     clases_ev = np.array([ev.clase for ev in catalogo])
 
     print("\n" + "=" * 78)
@@ -269,7 +260,6 @@ def main():
     print(f"\n  Comparaciones significativas: {n_signif} de "
           f"{len(CLASES) * len(nombres) * (len(nombres) - 1) // 2}")
 
-    # NIVEL 2: sensibilidad al IoU
     print("\n" + "=" * 78)
     print("  NIVEL 2 - SENSIBILIDAD AL UMBRAL DE IoU")
     print("=" * 78)

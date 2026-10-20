@@ -21,7 +21,7 @@ from evaluar_detectores import (FS, CANALES, CORTES, GUARDA_S, NPY, CSV,
 
 CACHE = os.path.join(SALIDA, "cache_picks")
 
-# Umbrales muy bajos en la inferencia: se filtran despues por confianza.
+# umbrales muy bajos al inferir: despues se filtra por confianza sin volver a correr la red
 KWARGS_BAJOS = {
     "phasenet": dict(P_threshold=0.02, S_threshold=0.02),
     "eqtransformer": dict(detection_threshold=0.02, P_threshold=0.02,

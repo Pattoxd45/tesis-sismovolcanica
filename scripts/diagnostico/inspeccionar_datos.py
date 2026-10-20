@@ -1,3 +1,9 @@
+"""
+Primera inspeccion de la traza continua y de su catalogo: forma, rangos y columnas.
+
+Uso: python inspeccionar_datos.py
+"""
+
 import numpy as np
 import pandas as pd
 
@@ -17,13 +23,11 @@ print("-" * 70)
 print(df.dtypes)
 print("=" * 70)
 
-# Rango de columnas numericas -> permite inferir la unidad de los tiempos
 print("RANGOS NUMERICOS (para deducir si son muestras, segundos o timestamps):")
 for c in df.select_dtypes(include="number").columns:
     print(f"  {c:<25} min={df[c].min():<20} max={df[c].max():<20}")
 print("=" * 70)
 
-# Conteo de clases: detecta automaticamente columnas categoricas
 print("COLUMNAS CATEGORICAS:")
 for c in df.columns:
     if df[c].nunique() <= 20:

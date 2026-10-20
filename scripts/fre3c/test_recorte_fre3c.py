@@ -52,8 +52,7 @@ def test_fin():
     t0 = 100 * S
     valida = np.ones(n, dtype=bool)
 
-    # decaimiento exponencial: la envolvente^2 es 3 sigma^2 + A^2 exp(-2t/tau) / 2, asi que
-    # cae bajo el umbral u en t = (tau/2) ln(A^2 / (2 (u^2 - 3 sigma^2)))
+    # fin esperado: t = (tau/2) ln(A^2 / (2 (u^2 - 3 sigma^2)))
     z, nn, e = ruido(n)
     A, tau, k = 50.0, 10.0, 2.0
     t = np.arange(n - t0) / FS
@@ -122,9 +121,9 @@ def test_recortes_y_nivel2():
 
     inc = pd.DataFrame([dict(ini=1000 * S, fin=1060 * S, clase="TR"),
                         dict(ini=2000 * S, fin=2010 * S, clase="VT")])
-    ivs = [(1010 * S, 1070 * S),          # IoU 50/70 = 0,71: acierto TR
-           (2005 * S, 2200 * S),          # IoU 5/200: no acierta el VT
-           (3000 * S, 3020 * S)]          # fuera de todo evento
+    ivs = [(1010 * S, 1070 * S),  # IoU 50/70 = 0,71: acierto TR
+           (2005 * S, 2200 * S),  # IoU 5/200: no acierta el VT
+           (3000 * S, 3020 * S)]  # fuera de todo evento
     filas, tot = rc.evaluar_nivel2(ivs, inc, (inc.ini - 500).to_numpy(), inc.fin.to_numpy(), 1.0)
     f = {r["clase"]: r for r in filas}
     informar("TR 1/1 con IoU 0,71; VT 0/1",
@@ -141,10 +140,10 @@ def test_propios():
     valida[500 * S:520 * S] = False
     det = np.zeros(n)
     det[100 * S:110 * S] = 0.8
-    det[113 * S:120 * S] = 0.8      # a 3 s del anterior: se une
+    det[113 * S:120 * S] = 0.8  # a 3 s del anterior: se une
     det[200 * S:230 * S] = 0.8
-    det[505 * S:510 * S] = 0.8      # empieza en zona no valida: se descarta
-    det[300 * S:305 * S] = 0.2      # bajo el umbral
+    det[505 * S:510 * S] = 0.8  # empieza en zona no valida: se descarta
+    det[300 * S:305 * S] = 0.2  # bajo el umbral
     iv = rc.recortes_eqt(det, 0.3, valida, lim)
     esperado = [(100 * S, 120 * S), (200 * S, 230 * S)]
     # trigger_onset marca el fin en la ultima muestra sobre el umbral de apagado

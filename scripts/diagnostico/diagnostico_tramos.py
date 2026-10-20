@@ -62,8 +62,6 @@ def evento_solapado(d, catalogo):
     return e, v
 
 
-# 1. Catalogo y sensibilidad por tramo y clase
-
 def parte1(res):
     """Lee el desglose por tramo y clase del JSON de comparacion."""
     print("=" * 78)
@@ -113,8 +111,6 @@ def parte1(res):
               f"{sum(faltan.values()):>9}")
 
 
-# 2. Calidad de senal por tramo y canal
-
 def parte2(a, segmentos):
     """Fraccion de muestras exactamente cero y desviacion estandar."""
     print("\n" + "=" * 78)
@@ -146,10 +142,8 @@ def parte2(a, segmentos):
     return filas
 
 
-# 3. Detecciones que difieren entre completa y barrido
-
 def calcular_detecciones(a, valida, ventanas):
-    """Detecciones de red de las dos corridas, con la logica ya existente."""
+    """Detecciones de red de la corrida completa y de la de barrido."""
     print("  STA/LTA sobre la traza completa ...")
     det_c = ed.coincidencia(ed.detector_stalta(a, ed.CANALES), valida)
     print("  STA/LTA con barrido de 5 minutos ...")
@@ -184,7 +178,7 @@ def parte3(a, catalogo, det_c, det_b, ventanas, segmentos, res):
     print("  3. DETECCIONES DE RED QUE DIFIEREN ENTRE COMPLETA Y BARRIDO")
     print("=" * 78)
 
-    # Control: las cuentas recalculadas deben coincidir con el JSON.
+    # las cuentas recalculadas deben coincidir con el JSON guardado
     for nombre, det in (("completa", det_c), ("barrido", det_b)):
         esperado = res[nombre]["global"]["n_detecciones"]
         marca = "ok" if len(det) == esperado else "DISCREPA"
@@ -227,8 +221,7 @@ def parte3(a, catalogo, det_c, det_b, ventanas, segmentos, res):
                   f"{d.dur / FS:>9.2f}"
                   f"{distancia_al_borde(ini, bordes) / FS:>13.2f}"
                   f"{distancia_al_borde(fin, bordes) / FS:>13.2f}  {txt}")
-            # Contraparte en la otra corrida: distingue una deteccion nueva
-            # de un corrimiento de los limites de una ya existente.
+            # contraparte en la otra corrida: separa una deteccion nueva de un corrimiento de limites
             cont = [(ed.iou(d, o), o) for o in otros
                     if o.ini < d.fin and d.ini < o.fin]
             if cont:

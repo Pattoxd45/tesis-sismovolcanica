@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-B-11: recorte de PhaseNet por energia. El recorte parte 2,5 s antes del arribo
-y termina cuando la envolvente de Z, N y E vuelve al nivel del ruido previo.
-Evalua el nivel 2 (IoU >= 0,30 contra el catalogo) y lo compara con la ventana
-fija de 81,92 s y con los recortes propios de EQTransformer y STA/LTA.
+Recorte de PhaseNet por energia: parte 2,5 s antes del arribo y termina cuando la
+envolvente de Z, N y E vuelve al nivel del ruido previo. Evalua el recorte
+(IoU >= 0,30) y lo compara con la ventana fija de 81,92 s y con los recortes
+propios de EQTransformer y STA/LTA.
 
 Uso: python recorte_fre3c.py [--umbral 0.10] [--figura]
 """
@@ -25,21 +25,21 @@ import evaluar_detectores as ed
 FS = lib.FS
 TOL = int(round(lib.TOL_S * FS))
 VENTANA_ENV_S = 1.0
-RUIDO_S = (120.0, 5.0)       # ruido: de 120 s a 5 s antes del arribo
-PERCENTIL_RUIDO = 20         # robusto a la coda de un evento anterior
+RUIDO_S = (120.0, 5.0)  # ruido: de 120 s a 5 s antes del arribo
+PERCENTIL_RUIDO = 20  # robusto a la coda de un evento anterior
 K_RUIDO = 2.0
 CALMA_S = 5.0
 DUR_MIN_S = 2.0
 DUR_MAX_S = 300.0
-MARGEN_PREVIO_S = 2.5        # el mismo del barrido de 5 min (B-08)
+MARGEN_PREVIO_S = 2.5  # cubre el error de inicio medido (1,7 a 2,4 s), como en ventanas/barrido.py
 VENTANA_FIJA_S = 81.92
 UMBRALES = [0.05, 0.10, 0.30]
 KS = [1.5, 2.0, 3.0]
 IOU_ALTO = 0.5
-UMBRAL_EQT = 0.3             # el de SeisBench
+UMBRAL_EQT = 0.3  # umbral por defecto de SeisBench
 UMBRALES_EQT = [0.1, 0.3, 0.5]
 THR_ON_STALTA = [3.0, 4.0, 5.0]
-DESPUES_S = (5.0, 65.0)      # nivel despues del evento, solo para el diagnostico
+DESPUES_S = (5.0, 65.0)  # nivel despues del evento, solo para el diagnostico
 
 
 def media_movil(x, w):

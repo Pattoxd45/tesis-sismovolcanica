@@ -1,6 +1,10 @@
-# Tarea B-01: busca ventanas del pool de entrenamiento (NVCHVC_8192.zip) dentro de
-# la traza continua por correlacion de forma de onda. Solo mide; no excluye nada.
-# Uso: python superposicion_pool_traza.py [--todo]
+"""
+Busca ventanas del pool de entrenamiento (NVCHVC_8192.zip) dentro de la traza
+continua por correlacion de forma de onda. Solo mide; no excluye nada.
+
+Uso: python superposicion_pool_traza.py [--todo]
+"""
+
 import os
 import io
 import re
@@ -23,33 +27,29 @@ DIR_SALIDA = os.path.expanduser("~/tesis/resultados")
 FS = 100.0
 M = 8192
 SOS = butter(5, [1.0, 15.0], btype="bandpass", fs=FS, output="sos")
-CLASES_MASCARA = ("BG", "VT", "LP", "TR", "AV", "IC")   # filas 8-13 del pool, 9-14 de la traza
+CLASES_MASCARA = ("BG", "VT", "LP", "TR", "AV", "IC")  # filas 8-13 del pool, 9-14 de la traza
 
-# Tramos de la traza (indices de muestra) y fecha UTC de cada uno
 TRAMOS = [
     (1, 0, 2_160_000, "2018-02-09"),
     (2, 2_160_000, 3_240_001, "2020-01-14"),
     (3, 3_240_001, 3_664_193, "2017-01-10"),
 ]
-# Criterio de los 31 candidatos: mes, dia y hora del nombre dentro de las
-# horas cubiertas por cada tramo (horas UTC 04-10, 01-04 y 06-07)
+# 31 candidatos: mes, dia y hora del nombre dentro de las horas UTC de cada tramo
 HORAS_TRAMO = {("02", "09"): range(4, 11), ("01", "14"): range(1, 5), ("01", "10"): range(6, 8)}
-# Para el nulo se excluyen ademas los dias vecinos, por si el nombre estuviera
-# en hora local (Chile, UTC-3/-4) y cambiara de dia
+# se excluyen los dias vecinos por si el nombre estuviera en hora local de Chile
 FECHAS_EXCLUIDAS_NULO = {("02", "08"), ("02", "09"), ("02", "10"),
                          ("01", "13"), ("01", "14"), ("01", "15"),
                          ("01", "09"), ("01", "10"), ("01", "11")}
 
-# Los 17 AV del tramo 1 sin contraparte en el crudo de FRE (idx_start del catalogo).
+# 17 AV del tramo 1 sin contraparte en el crudo de FRE (idx_start del catalogo)
 AV_SIN_CRUDO = {9005, 169581, 176397, 187288, 242412, 273545, 433062, 455131, 478537,
                 803794, 872366, 967042, 1142426, 1149460, 1425188, 1636140, 1722083}
 
-UMBRAL_VENTANA = 0.90   # se justifica con el paso 2 (se imprime la comparacion)
+UMBRAL_VENTANA = 0.90  # lo justifica la validacion con solucion conocida
 UMBRAL_EVENTO = 0.90
-# Criterio por estacion: la mejor estacion sola, en modo evento. Necesario
-# porque una coincidencia en una sola estacion se diluye en la media
+# mejor estacion sola: una coincidencia en una sola estacion se diluye en la media
 UMBRAL_1EST = 0.98
-GUARDA_STD = 1e-3       # std local minima, relativa a la std global de la fila
+GUARDA_STD = 1e-3  # std local minima, relativa a la std global de la fila
 N_NULO = 300
 N_POSITIVOS = 24
 SEMILLA = 0
@@ -85,7 +85,7 @@ def leer(z, ruta):
 
 
 def segmento_evento(w):
-    # Tramo contiguo mas largo con mascara distinta de BG (fila 8 = BG)
+    # tramo contiguo mas largo fuera de BG (fila 8)
     ev = w[8] < 0.5
     if not ev.any():
         return None
@@ -95,10 +95,9 @@ def segmento_evento(w):
     return int(ini[k]), int(fin[k])
 
 
-# Correlacion cruzada normalizada contra la traza
 class Buscador:
-    # Precalcula FFT y sumas acumuladas por fila para la correlacion normalizada en
-    # todos los desfases.
+    """Correlacion cruzada normalizada (NCC) de una plantilla contra cada fila de la traza."""
+
     def __init__(self, traza):
         self.N = traza.shape[1]
         self.nfft = sf.next_fast_len(self.N + M, real=True)
@@ -107,7 +106,7 @@ class Buscador:
             x = np.asarray(traza[fila], dtype=np.float64)
             nz = x[x != 0]
             if nz.size < M or nz.std() == 0:
-                continue        # fila sin datos utilizables (la 8 es identicamente cero)
+                continue  # fila sin datos utilizables (la 8 es identicamente cero)
             self.x[fila] = x
             self.X[fila] = sf.rfft(x.astype(np.float32), self.nfft, workers=-1)
             self.S1[fila] = np.r_[0.0, np.cumsum(x)]
@@ -131,7 +130,7 @@ class Buscador:
         return r
 
     def ncc_exacta(self, plantilla, fila, l):
-        # Recalculo en float64 en un desfase dado (verifica el resultado FFT)
+        # recalculo en float64 para verificar el resultado de la FFT
         L = len(plantilla)
         a = plantilla - plantilla.mean()
         b = self.x[fila][l:l + L] - self.x[fila][l:l + L].mean()
@@ -139,8 +138,7 @@ class Buscador:
         return float(np.dot(a, b) / d) if d > 0 else 0.0
 
     def buscar(self, w, ini=0, fin=M):
-        # Correlaciona cada estacion de la ventana w (14, 8192) contra su fila de la
-        # traza, promedia y devuelve la mejor posicion.
+        """Mejor posicion de la ventana w (14, 8192), promediando sus estaciones contra la traza."""
         filas = [i for i in range(8) if w[i, ini:fin].std() > 0 and (i + 1) in self.X]
         if not filas:
             return None
@@ -148,7 +146,7 @@ class Buscador:
         media = np.mean(rs, axis=0)
         l = int(np.argmax(media))
         por_est = [float(r[l]) for r in rs]
-        # Mejor estacion individual (en su propio desfase)
+        # mejor estacion sola, cada una en su propio desfase
         mejores = [(float(r.max()), int(r.argmax()), i) for r, i in zip(rs, filas)]
         r1, l1, i1 = max(mejores)
         r1 = self.ncc_exacta(w[i1, ini:fin].astype(np.float64), i1 + 1, l1)
@@ -160,7 +158,6 @@ class Buscador:
                     ncc_1est=r1, idx_1est=l1 - ini, fila_1est=i1)
 
 
-# 1. Inspeccion
 def inspeccionar(z, nombres, traza, rng):
     print("=" * 78)
     print("1. INSPECCION DEL POOL (NVCHVC_8192.zip)")
@@ -170,7 +167,7 @@ def inspeccionar(z, nombres, traza, rng):
           f"{len(nombres):,} archivos)")
     print("Archivos por carpeta:", pd.Series([n.split("/")[0] for n in nombres]).value_counts().to_dict())
 
-    # Cabecera de todos los .npy (sin leer los datos)
+    # solo la cabecera de cada .npy: no se leen los datos
     formas = {}
     for n in nombres:
         with z.open(n) as f:
@@ -195,7 +192,6 @@ def inspeccionar(z, nombres, traza, rng):
           f"(el nombre no identifica de forma unica una ventana)")
     print("  El nombre NO trae anio ni zona horaria; tampoco hay fila de tiempo en el arreglo.")
 
-    # Contenido de una muestra aleatoria
     muestra = rng.choice(nombres, 400, replace=False)
     maxabs, fila_max, presentes, uno_caliente, coincide_clase = [], [], np.zeros(8, int), [], []
     dur_ev, en_borde, refilt, esp_lo, esp_hi = [], [], [], [], []
@@ -232,7 +228,6 @@ def inspeccionar(z, nombres, traza, rng):
     print(f"  duracion del evento en la mascara: min={np.min(dur_ev):.1f} s mediana={np.median(dur_ev):.1f} s "
           f"max={np.max(dur_ev):.1f} s; tocan el borde de la ventana: {np.mean(en_borde):.1%}")
 
-    # Comparacion espectral y de re-filtrado con la traza
     t_lo, t_hi, t_ref = [], [], []
     for fila in range(1, 8):
         x = np.asarray(traza[fila])
@@ -256,10 +251,8 @@ def inspeccionar(z, nombres, traza, rng):
     return partes
 
 
-# 2. Validacion con solucion conocida
 def fragmento_traza(traza, a):
-    # Construye una ventana con el formato del pool a partir de la traza:
-    # filas 1-8 -> 0-7, mascaras 9-14 -> 8-13, normalizada por max|x| global
+    # formato del pool: filas 1-8 -> 0-7, mascaras 9-14 -> 8-13, normalizada por max|x|
     w = np.asarray(traza[1:15, a:a + M], dtype=np.float64).copy()
     w[:8] /= np.abs(w[:8]).max()
     return w
@@ -269,7 +262,7 @@ def validar(z, partes, traza, cat, bus, rng):
     print("\n" + "=" * 78)
     print("2. VALIDACION DEL METODO CON SOLUCION CONOCIDA")
     print("=" * 78)
-    # Positivos: posiciones aleatorias por tramo, la mitad centradas en eventos
+    # positivos: posiciones aleatorias por tramo, la mitad centradas en eventos
     filas_pos = []
     for n_tr, a, b, _ in TRAMOS:
         ev = cat[(cat.idx_start >= a + M) & (cat.idx_end < b - M)]
@@ -288,8 +281,7 @@ def validar(z, partes, traza, cat, bus, rng):
         rv = bus.buscar(w)
         fila = dict(tramo=n_tr, idx_real=p, ncc_ventana=rv["ncc"], idx_ventana=rv["idx"],
                     n_est=rv["n_est"])
-        # Version re-filtrada: muestra cuanto baja la NCC si el pool tuviera un
-        # filtrado distinto del de la traza
+        # cuanto baja la NCC si el pool tuviera otro filtrado que la traza
         wf = w.copy()
         for i in range(8):
             if wf[i].std() > 0:
@@ -314,7 +306,7 @@ def validar(z, partes, traza, cat, bus, rng):
     print(f"  NCC tras re-filtrar el fragmento: min={pos.ncc_refiltrado.min():.4f} "
           f"mediana={pos.ncc_refiltrado.median():.4f}")
 
-    # Nulo: ventanas del pool de fechas ajenas a la traza
+    # nulo: ventanas del pool de fechas ajenas a la traza
     ajenas = partes[[(m, d) not in FECHAS_EXCLUIDAS_NULO for m, d in zip(partes.mes, partes.dia)]]
     sel = ajenas.groupby("carpeta").sample(N_NULO // 5, random_state=SEMILLA)
     print(f"\nNulo: {len(sel)} ventanas del pool con mes-dia fuera de {sorted(FECHAS_EXCLUIDAS_NULO)} "
@@ -355,8 +347,7 @@ def validar(z, partes, traza, cat, bus, rng):
         mn = pos[col_pos].min() if col_pos in pos else np.nan
         print(f"  {modo:7}: max del nulo {mx:.4f} < {u} <= min de positivos {mn:.4f}: "
               f"{'SEPARA' if mx < u <= mn else 'NO SEPARA, revisar umbral'}")
-    # Para la estacion sola, el nulo solo es valido si sus valores altos no
-    # caen sobre los AV sin crudo (si caen ahi, el nulo esta contaminado)
+    # el nulo de estacion sola vale solo si sus valores altos no caen sobre los AV sin crudo
     limpio = nulo[~nulo.av_sin_crudo_1est]
     mx = limpio.ncc1_evento.max()
     print(f"  1 estac.: max del nulo fuera de los AV sin crudo {mx:.4f} < {UMBRAL_1EST} <= 1,0000 "
@@ -365,7 +356,6 @@ def validar(z, partes, traza, cat, bus, rng):
     return pos, nulo
 
 
-# 3. Busqueda
 def medir(z, r, bus):
     w = leer(z, r.archivo)
     fila = dict(archivo=r.archivo, clase=r.carpeta)
@@ -401,7 +391,6 @@ def buscar_conjunto(z, sel, bus, etiqueta):
     return df
 
 
-# 4. Reporte
 def iou(a0, a1, b0, b1):
     i = max(0, min(a1, b1) - max(a0, b0))
     u = max(a1, b1) - min(a0, b0)
@@ -409,8 +398,7 @@ def iou(a0, a1, b0, b1):
 
 
 def anotar(df, traza, cat):
-    # Para la mejor posicion de cada modo: tramo, hora UTC y evento del catalogo con
-    # mayor IoU ("1est" = mejor estacion sola).
+    # mejor posicion de cada modo: tramo, hora UTC y evento de mayor IoU (1est = estacion sola)
     for modo, col in (("ventana", "idx_ventana"), ("evento", "idx_evento"), ("1est", "idx1_evento")):
         tr, hora, ev_cat, ev_tipo, ev_iou, sin_crudo = [], [], [], [], [], []
         for r in df.itertuples():
@@ -472,7 +460,7 @@ def reportar(df, traza, bus):
                 "cat_tipo_1est", "cat_iou_1est", "av_sin_crudo_1est"]
         print(h1.sort_values("idx_1est")[cols].to_string(index=False, float_format=lambda v: f"{v:.3f}"))
 
-    # Siempre: las 15 mayores NCC en cada modo, aunque no superen el umbral
+    # las 15 mayores NCC de cada modo, aunque no superen el umbral
     for modo in ("ventana", "evento"):
         print(f"\n15 mayores NCC en modo {modo} (sobre o bajo el umbral):")
         cols = ["conjunto", "archivo", "clase", "n_est", "dur_ev_s", f"ncc_{modo}", f"ncc_est_{modo}",
@@ -481,7 +469,6 @@ def reportar(df, traza, bus):
         print(df.sort_values(f"ncc_{modo}", ascending=False).head(15)[cols]
               .to_string(index=False, float_format=lambda v: f"{v:.3f}"))
 
-    # Los 17 AV sin crudo: mejor ventana del pool que cae sobre cada uno
     print("\nLos 17 AV del tramo 1 sin contraparte en el crudo de FRE: ventana del pool con mayor")
     print("NCC de estacion sola (modo evento) cuya posicion se solapa con el AV (IoU > 0):")
     filas_av = []

@@ -1,5 +1,10 @@
-# Verifica los crudos de FRE (datos/crudos/FRE_*.npy) contra la traza de Zenodo:
-# filtro, fila que corresponde, desfase y coincidencia evento por evento.
+"""
+Verifica los crudos de FRE contra la traza de Zenodo: filtro, fila que corresponde,
+desfase y coincidencia por evento.
+
+Uso: python verificar_crudos.py
+"""
+
 import os
 import numpy as np
 import pandas as pd
@@ -13,7 +18,7 @@ CSV_CATALOGO = os.path.expanduser("~/tesis/datos/zenodo/NVCh_10h_continuous_trac
 FS = 100.0
 SOS = butter(5, [1.0, 15.0], btype="bandpass", fs=FS, output="sos")
 
-# Correspondencia indicada por Patricio: archivo crudo -> bloque de Zenodo
+# archivo crudo -> tramo de la traza de Zenodo
 TRAMOS = [
     ("FRE_1518149218_1518170818.npy", 1, 0, 2_160_000),
     ("FRE_1578964018_1578974818.npy", 2, 2_160_000, 3_240_001),
@@ -22,13 +27,13 @@ TRAMOS = [
 COMPONENTES = ("Z", "N", "E")
 FILAS_ZENODO = range(1, 9)
 
-LAG_MAX = 3000          # busqueda de desfase global: +-30 s
-MARGEN_HUECO = 2000     # muestras excluidas a cada lado de un hueco (transitorio del filtro)
-VENTANA_LOCAL = 30000   # ventanas de 300 s para el desfase local
-LAG_MAX_LOCAL = 500     # +-5 s alrededor del desfase global
-R_MIN_CORRESPONDE = 0.9 # |r| global minimo para considerar que hay correspondencia
-ERR_COINCIDE = 0.05     # err_rel maximo para declarar que un evento coincide
-ERR_NO_COINCIDE = 0.5   # err_rel minimo para declarar que un evento no coincide
+LAG_MAX = 3000  # +-30 s para buscar el desfase global
+MARGEN_HUECO = 2000  # 20 s a cada lado de un hueco: el filtro deja un transitorio
+VENTANA_LOCAL = 30000  # ventanas de 300 s para el desfase local
+LAG_MAX_LOCAL = 500  # +-5 s alrededor del desfase global
+R_MIN_CORRESPONDE = 0.9  # |r| global minimo para aceptar la correspondencia
+ERR_COINCIDE = 0.05  # err_rel maximo para declarar que un evento coincide
+ERR_NO_COINCIDE = 0.5  # err_rel minimo para declarar que un evento no coincide
 
 
 def utc(t):
@@ -36,12 +41,10 @@ def utc(t):
 
 
 def huecos(t):
-    # Indices donde el paso entre muestras no es 0,01 s
     dt = np.diff(t)
     return np.where(np.abs(dt - 1 / FS) > 1e-4)[0], dt
 
 
-# 1. Inspeccion
 def inspeccionar(nombre, d):
     print(f"\n### {nombre}")
     print(f"tipo del objeto cargado: {type(d).__name__}; claves: {list(d.keys())}")
@@ -72,9 +75,7 @@ def inspeccionar(nombre, d):
                 print(f"         {i:>9,}  {utc(t[i])}  {dt[i] - 1 / FS:6.2f} s")
 
 
-# 2. Validacion sintetica del filtro
 def amplitud(x, f, t):
-    # Amplitud de la componente de frecuencia f por proyeccion en seno y coseno
     return 2 * np.abs(np.mean(x * np.exp(-2j * np.pi * f * t)))
 
 
@@ -85,7 +86,7 @@ def validar_filtro():
     t = np.arange(0, 60, 1 / FS)
     x = np.sin(2 * np.pi * 0.5 * t) + np.sin(2 * np.pi * 5 * t) + np.sin(2 * np.pi * 30 * t)
     y = sosfiltfilt(SOS, x)
-    # Se evalua el tramo central de 40 s para excluir los bordes
+    # tramo central de 40 s: los bordes traen el transitorio del filtro
     c = (t >= 10) & (t < 50)
     ok = True
     for f, esperado in ((0.5, 0.0), (5.0, 1.0), (30.0, 0.0)):
@@ -102,17 +103,14 @@ def validar_filtro():
     return ok
 
 
-# 3. Emparejamiento contra Zenodo
 def a_grilla(x, t, t0_zen, n_zen):
-    # Ubica cada muestra cruda en la grilla de Zenodo; los huecos se interpolan solo
-    # para el filtro y quedan como no validos.
+    # los huecos se interpolan solo para poder filtrar y quedan marcados como no validos
     k = np.round((t - t0_zen) * FS).astype(np.int64)
     dentro = (k >= 0) & (k < n_zen)
     k, xv = k[dentro], x[dentro].astype(float)
     y = np.interp(np.arange(n_zen), k, xv)
     presente = np.zeros(n_zen, bool)
     presente[k] = True
-    # Margen alrededor de cada hueco y de los extremos sin datos
     faltante = ~presente
     if faltante.any():
         ancho = np.convolve(faltante.astype(float), np.ones(2 * MARGEN_HUECO + 1), "same") > 0
@@ -122,8 +120,7 @@ def a_grilla(x, t, t0_zen, n_zen):
 
 
 def xcorr_lags(a, b, lag_max):
-    # c[l] = sum a[n] * b[n + l] para l en [-lag_max, lag_max], via FFT.
-    # Desfase positivo: la senal de Zenodo (b) va atrasada respecto del crudo (a).
+    # desfase positivo: Zenodo (b) va atrasada respecto del crudo (a)
     full = correlate(b, a, mode="full", method="fft")
     centro = len(a) - 1
     lags = np.arange(-lag_max, lag_max + 1)
@@ -131,7 +128,6 @@ def xcorr_lags(a, b, lag_max):
 
 
 def alinear(x, z, lag):
-    # Devuelve los pares de muestras (x[n], z[n + lag]) en el solapamiento
     if lag >= 0:
         return x[: len(x) - lag], z[lag:]
     return x[-lag:], z[: len(z) + lag]
@@ -143,7 +139,7 @@ def metricas(x, z, vx, vz, lag):
     m = va & vb
     xa, za = xa[m], za[m]
     r = np.corrcoef(xa, za)[0, 1]
-    # Factor de escala por minimos cuadrados (admite signo negativo)
+    # escala por minimos cuadrados; admite signo negativo
     esc = np.dot(xa, za) / np.dot(xa, xa)
     err = np.sqrt(np.mean((za - esc * xa) ** 2)) / np.sqrt(np.mean(za ** 2))
     return r, esc, err, int(m.sum())
@@ -202,7 +198,6 @@ def emparejar(d, zen, n_tramo, ini, fin):
     print("    (muestras sin dato crudo en la grilla de Zenodo: "
           + ", ".join(f"{c}={mejores[c]['n_falt']:,}" for c in COMPONENTES) + ")")
 
-    # Desfase local por ventanas, contra la fila elegida
     print(f"\n  Desfase local por ventanas de {VENTANA_LOCAL / FS:.0f} s "
           f"(busqueda +-{LAG_MAX_LOCAL / FS:.0f} s alrededor del global; "
           f"solo ventanas con >= 50 % de muestras validas):")
@@ -217,12 +212,11 @@ def emparejar(d, zen, n_tramo, ini, fin):
         for a in range(0, n - VENTANA_LOCAL + 1, VENTANA_LOCAL):
             b = a + VENTANA_LOCAL
             vxa = m["vx"][a:b]
-            # Se exige >= 50 % de muestras validas en el crudo y en Zenodo
+            # al menos 50 % de muestras validas en el crudo y en Zenodo
             if a + m["lag"] < 0 or b + m["lag"] > n:
                 continue
             if (vxa & vz[a + m["lag"]:b + m["lag"]]).mean() < 0.5:
                 continue
-            # Ventana del crudo fija; ventana de Zenodo ampliada en +-LAG_MAX_LOCAL
             za0 = max(0, a + m["lag"] - LAG_MAX_LOCAL)
             zb0 = min(n, b + m["lag"] + LAG_MAX_LOCAL)
             xw = np.where(vxa, m["xf"][a:b], 0.0)
@@ -233,7 +227,6 @@ def emparejar(d, zen, n_tramo, ini, fin):
             lags = np.arange(len(full)) + za0 - a
             i = int(np.argmax(np.abs(full)))
             lag_loc = int(lags[i])
-            # Correlacion local exacta en el desfase encontrado
             xs = m["xf"][a:b]
             zs = zr[a + lag_loc:b + lag_loc] if 0 <= a + lag_loc and b + lag_loc <= n else None
             if zs is None:
@@ -255,10 +248,8 @@ def emparejar(d, zen, n_tramo, ini, fin):
     return mejores, filas
 
 
-# 5. Coincidencia por evento del catalogo
 def por_evento(cat, n_tramo, ini, fin, mejores, filas):
-    # Compara, dentro de cada evento del catalogo, la fila de Zenodo emparejada
-    # con la componente cruda filtrada, en el desfase global medido.
+    """Compara, dentro de cada evento, la fila de Zenodo con la componente cruda filtrada."""
     res = []
     for c in COMPONENTES:
         m = mejores[c]

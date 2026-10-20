@@ -25,7 +25,7 @@ FS = ed.FS
 COLOR = {"VT": "#df8d5e", "LP": "#2ca02c", "TR": "#d62728",
          "AV": "#9467bd", "IC": "#8c564b"}
 
-# Espectrograma ilustrativo; los parametros definitivos se fijan en OE2.
+# espectrograma solo ilustrativo; sus parametros se fijan junto con los espectrogramas
 NPERSEG, NOVERLAP = 256, 128
 
 
@@ -43,8 +43,6 @@ def stalta_barrido(a, canales, ventanas):
         crudos[ch] = c
     return por_canal, crudos
 
-
-# Metricas por ambito
 
 def tramos(n):
     return ed.segmentos(n)

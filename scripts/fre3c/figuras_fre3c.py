@@ -58,7 +58,6 @@ def fila(sc, flujo, filtro, umbral, clase, tramo="todos"):
     return r.iloc[0] if len(r) else None
 
 
-# Figura 1: sensibilidad por clase
 def fig1(plt, sc, umbral, filtro="f1_15"):
     grupos = ["VT", "LP", "TR", "volcanico", "AV", "IC"]
     etiquetas = ["VT", "LP", "TR", "Total\nvolcanico", "AV", "IC"]
@@ -96,7 +95,6 @@ def fig1(plt, sc, umbral, filtro="f1_15"):
     plt.close(fig)
 
 
-# Figura 2: costo en falsos positivos
 def fig2(plt, sc, st, filtro="f1_15"):
     fig, ax = plt.subplots(figsize=(9, 5))
     marcar = [0.05, 0.10, 0.30, 0.50]
@@ -132,7 +130,6 @@ def fig2(plt, sc, st, filtro="f1_15"):
     plt.close(fig)
 
 
-# Figura 3: antes y ahora en la misma estacion
 def sens_cache_picks(modelo, modo, inc, zona_ini, zona_fin, valida, umbrales):
     ruta = os.path.join(DIR_CACHE, "cache_picks", f"picks_{modelo}_{modo}.csv")
     if not os.path.exists(ruta):
@@ -226,7 +223,6 @@ def fig3(plt, sc, eventos, valida):
         t.to_csv(os.path.join(lib.DIR_SALIDA, "antes_ahora_fre.csv"), index=False)
 
 
-# Figura 4: filtros
 def fig4(plt, sc):
     fig, axs = plt.subplots(1, 2, figsize=(11, 4.4), sharey=True)
     for ax, fl in zip(axs, ["PN-PS", "EQT-D"]):
