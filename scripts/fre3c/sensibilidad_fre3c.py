@@ -253,21 +253,6 @@ def figuras(sc, st):
     plt.close(fig)
     print(f"\nFigura: {ruta}")
 
-    for fl in filas:
-        for fi in lib.FILTROS:
-            if sc[(sc.flujo == fl) & (sc.filtro == fi)].empty:
-                continue
-            fig, ax = plt.subplots(figsize=(6.5, 4.4))
-            panel(ax, fl, fi)
-            ax.set_xlabel("umbral de confianza", color=tinta2, fontsize=9)
-            ax.set_ylabel("sensibilidad / FDR", color=tinta2, fontsize=9)
-            ax.legend(frameon=False, fontsize=8, loc="upper center",
-                      bbox_to_anchor=(0.5, -0.16), ncol=5)
-            fig.tight_layout()
-            fig.savefig(os.path.join(lib.DIR_SALIDA, f"curva_{fl}_{fi}.png"), dpi=150,
-                        facecolor="#fcfcfb")
-            plt.close(fig)
-
 
 def main():
     if not os.path.exists(lib.RUTA_EVENTOS):

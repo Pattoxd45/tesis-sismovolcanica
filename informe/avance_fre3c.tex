@@ -102,7 +102,8 @@ los nombro como los nombra su librería y parto de su valor por defecto.
   detección: la probabilidad de que en ese instante haya un evento.
 \item \textbf{STA/LTA} (librería ObsPy): compara la energía de los últimos
   segundos (STA, ventana corta) con la del último minuto (LTA, ventana larga).
-  Cuando la razón entre las dos sube de un valor, avisa.
+  Cuando la razón entre las dos sube de un valor, avisa. Usa solo la componente
+  vertical (Z), como en la Etapa~2.
 \end{itemize}
 
 Una curva de probabilidad se convierte en avisos así: el aviso se enciende
@@ -156,7 +157,8 @@ contar aciertos y cómo recortar. Las aplico igual a los tres detectores.
 
 \begin{itemize}
 \item \textbf{Tolerancia de 5~s:} un evento cuenta como detectado si hay un
-  aviso a 5~s o menos de su inicio, antes o después.
+  aviso a 5~s o menos de su inicio, antes o después. En la
+  Sección~\ref{sec:tolerancia} pruebo otros valores.
 \item \textbf{Un aviso, un evento:} cada aviso se asigna a un solo evento, el de
   inicio más cercano.
 \item \textbf{Avisos que se juntan:} los avisos de P y de S que caen a 5~s o
@@ -222,7 +224,7 @@ clases.
 {\small
 \setlength{\tabcolsep}{5pt}
 \begin{longtable}{>{\raggedright\arraybackslash}p{5.2cm}rrrrr}
-\caption{Detección por salida de cada red (umbral 0,10, filtro 1--15~Hz). FP/h: falsas alarmas por hora.}\label{tab:salidas}\\
+\caption{Detección por salida de cada red y de STA/LTA (redes con umbral 0,10, filtro 1--15~Hz). FP/h: falsas alarmas por hora.}\label{tab:salidas}\\
 \cabecera{\textbf{Salida} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcánicos} & \textbf{FP/h}}{6}
 PhaseNet, solo P & 34/36 & 45/52 & 19/37 & 0,784 & 40,3 \\
 PhaseNet, solo S & 34/36 & 34/52 & 10/37 & 0,624 & 50,5 \\
@@ -232,13 +234,17 @@ EQTransformer, detección & 23/36 & 32/52 & 14/37 & 0,552 & 10,0 \\
 EQTransformer, solo P & 20/36 & 30/52 & 9/37 & 0,472 & 5,8 \\
 EQTransformer, solo S & 19/36 & 22/52 & 1/37 & 0,336 & 5,8 \\
 EQTransformer, P y S & 23/36 & 35/52 & 9/37 & 0,536 & 8,7 \\
+\midrule
+STA/LTA (configuración de la Etapa~2) & 30/36 & 43/52 & 16/37 & 0,712 & 18,4 \\
 \end{longtable}
 }
 
 P sola detecta 0,784 y S sola 0,624; juntas, 0,904. La S recupera eventos
 cuya P es débil, sobre todo LP (de 45 a 52) y TR (de 19 a 26). Para juntarlas,
 los avisos de P y S que caen a 5~s o menos uno del otro cuentan como uno solo.
-En EQTransformer, la curva de detección es la mejor salida.
+En EQTransformer, la curva de detección es la mejor salida. STA/LTA detecta
+0,712 con 18,4 falsas alarmas por hora: menos que PhaseNet y más que
+EQTransformer.
 
 \section{Probabilidad mínima de P y de S por separado}\label{sec:ps}
 
@@ -384,10 +390,12 @@ Para cada detector, el Cuadro~\ref{tab:metas} muestra con qué umbral llega a
 detectar el 80\,\% y el 90\,\% de los volcánicos y cuántas falsas alarmas por
 hora (FP/h) cuesta; la última columna es lo máximo que logra. ``---''
 significa que no llega con ningún umbral. En las filas de P y S, los valores
-de P y de S se eligen por separado (Sección~\ref{sec:ps}). Ningún detector
-llega al 95\,\%: el máximo es 0,936, de PhaseNet. La parte de abajo mide el recorte con el IoU
+de P y de S se eligen por separado (Sección~\ref{sec:ps}). Con 5~s de
+tolerancia ningún detector llega al 95\,\%: el máximo es 0,936, de PhaseNet
+(con 10~s, ver la Sección~\ref{sec:tolerancia}). La parte de abajo mide el recorte con el IoU
 (Sección~\ref{sec:recorte}).
 
+\Needspace*{34\baselineskip}
 {\small
 \setlength{\tabcolsep}{4pt}
 \begin{longtable}{>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{3.6cm}}
@@ -400,6 +408,7 @@ PhaseNet, solo P & umbral 0,05 (1--15~Hz); 55,5 FP/h & --- & 0,856 \\
 PhaseNet, solo S & --- & --- & 0,744 \\
 EQTransformer, detección & --- & --- & 0,576 \\
 EQTransformer, P y S & --- & --- & 0,688 \\
+STA/LTA (configuración de la Etapa~2) & --- & --- & 0,712; 18,4 FP/h (no se barre) \\
 PhaseNet y EQTransformer juntos (Sección~\ref{sec:fusion}) & PhaseNet 0,30 y EQTransformer 0,50; 29,0 FP/h & PhaseNet 0,10 y EQTransformer 0,50; 62,7 FP/h & 0,912 \\
 \midrule
 \multicolumn{4}{l}{\textit{Recorte: IoU de 0,30 o más con el evento}}\\
@@ -427,35 +436,125 @@ eventos y umbral 0,10:
 
 La cifra baja de la Etapa~2 no era un error de cálculo: venía de los ceros.
 EQTransformer rinde algo menos con las tres reales, pero las uso igual para
-tratar a las dos redes de la misma forma. Con tres componentes ningún detector
-llega a 0,95: el máximo es 0,936.
+tratar a las dos redes de la misma forma. Con tres componentes y 5~s de
+tolerancia ningún detector llega a 0,95: el máximo es 0,936.
 
 \figura{fig3_antes_ahora.png}{0.98}{Misma estación y mismos eventos; solo cambia lo que recibe cada red: ceros, copias de la vertical o Z, N y E reales.}{fig:antes-ahora}
 
-\section{TR: probar con distintas tolerancias}
+\section{Tolerancia de tiempo: los tres detectores y las tres clases}\label{sec:tolerancia}
 
-De los 11 TR que PhaseNet pierde, 6 sí tienen aviso, pero entre 5,9 y 7,3~s
-después del inicio, justo fuera de los 5~s; 2 tienen aviso mucho después (22 y
-42~s) y 3 no tienen ninguno. El tremor empieza de a poco y PhaseNet lo nota
-tarde. El Cuadro~\ref{tab:tr} muestra qué pasa si para TR se acepta un aviso
-hasta $T$ segundos después del inicio; VT y LP se siguen contando con 5~s.
+Hasta aquí, un evento cuenta como detectado si hay un aviso a 5~s o menos de su
+inicio. Para ver cuánto depende el resultado de ese valor, probé otras
+tolerancias con las mismas reglas para los tres detectores: un aviso por
+evento, las redes con umbral 0,10 y filtro de 1--15~Hz, y STA/LTA con la
+configuración de la Etapa~2. Probé dos formas:
 
-\needspace{22\baselineskip}
+\begin{itemize}
+\item \textbf{Simétrica:} el aviso puede caer hasta $T$ segundos antes o
+  después del inicio.
+\item \textbf{Tardía:} hasta 5~s antes y hasta $T$ segundos después.
+\end{itemize}
+
+También medí cuántos segundos después del inicio llega el primer aviso de cada
+evento.
+
+\needspace{12\baselineskip}
 {\small
-\begin{longtable}{rrrr}
-\caption{TR detectados si se acepta un aviso hasta $T$ segundos después del inicio (PhaseNet, P y S, umbral 0,10, filtro 1--15~Hz).}\label{tab:tr}\\
-\cabecera{\textbf{$T$ (s)} & \textbf{TR detectados} & \textbf{Sensibilidad TR} & \textbf{Volcánicos}}{4}
-5 & 26/37 & 0,703 & 113/125 = 0,904 \\
-10 & 32/37 & 0,865 & 119/125 = 0,952 \\
-20 & 32/37 & 0,865 & 119/125 = 0,952 \\
-30 & 33/37 & 0,892 & 120/125 = 0,960 \\
-60 & 36/37 & 0,973 & 123/125 = 0,984 \\
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.4cm}rrrrrrrrr}
+\caption{Sensibilidad volcánica (de 125 eventos) con tolerancia simétrica de $T$ segundos.}\label{tab:tol-sim}\\
+\cabecera{\textbf{Detector} & \textbf{1} & \textbf{2} & \textbf{3} & \textbf{5} & \textbf{7} & \textbf{10} & \textbf{15} & \textbf{20} & \textbf{30}}{10}
+PhaseNet, P y S & 0,344 & 0,584 & 0,752 & 0,904 & 0,944 & \textbf{0,968} & 0,976 & 0,984 & 0,992 \\
+EQTransformer, detección & 0,240 & 0,376 & 0,488 & 0,552 & 0,560 & 0,576 & 0,624 & 0,648 & 0,696 \\
+EQTransformer, P y S & 0,208 & 0,384 & 0,464 & 0,536 & 0,544 & 0,560 & 0,568 & 0,568 & 0,576 \\
+STA/LTA & 0,224 & 0,376 & 0,504 & 0,712 & 0,760 & 0,792 & 0,800 & 0,808 & 0,840 \\
 \end{longtable}
 }
 
-Con 10~s, TR sube a 32 de 37 y el total volcánico llega a 0,952. Más allá de
-10~s se suman pocos TR, y mientras más ancha es la ventana, más fácil es que el
-aviso aceptado no venga del tremor sino de otra cosa que pasó en esos segundos.
+{\small
+\setlength{\tabcolsep}{2.5pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.2cm}rrrrrrrrrr}
+\caption{Detectados por clase con tolerancia simétrica de 5 y de 10~s, y falsas alarmas por hora. Volcán.: detectados de 125.}\label{tab:tol-clase}\\
+\cabecera{ & \multicolumn{5}{c}{\textbf{5~s}} & \multicolumn{5}{c}{\textbf{10~s}} \\ \textbf{Detector} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcán.} & \textbf{FP/h} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcán.} & \textbf{FP/h}}{11}
+PhaseNet, P y S & 35/36 & 52/52 & 26/37 & 113 & 61,5 & 35/36 & 52/52 & 34/37 & 121 & 60,6 \\
+EQTransformer, detección & 23/36 & 32/52 & 14/37 & 69 & 10,0 & 23/36 & 35/52 & 14/37 & 72 & 9,8 \\
+EQTransformer, P y S & 23/36 & 35/52 & 9/37 & 67 & 8,7 & 23/36 & 36/52 & 11/37 & 70 & 8,4 \\
+STA/LTA & 30/36 & 43/52 & 16/37 & 89 & 18,4 & 31/36 & 45/52 & 23/37 & 99 & 18,3 \\
+\end{longtable}
+}
+
+{\small
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.4cm}rrrrrrr}
+\caption{Sensibilidad volcánica con tolerancia tardía: hasta 5~s antes y hasta $T$ segundos después del inicio.}\label{tab:tol-tardia}\\
+\cabecera{\textbf{Detector} & \textbf{5} & \textbf{7} & \textbf{10} & \textbf{15} & \textbf{20} & \textbf{30} & \textbf{60}}{8}
+PhaseNet, P y S & 0,904 & 0,936 & 0,952 & 0,952 & 0,952 & 0,960 & 0,992 \\
+EQTransformer, detección & 0,552 & 0,560 & 0,560 & 0,560 & 0,560 & 0,576 & 0,624 \\
+EQTransformer, P y S & 0,536 & 0,544 & 0,552 & 0,552 & 0,552 & 0,560 & 0,584 \\
+STA/LTA & 0,712 & 0,760 & 0,784 & 0,784 & 0,792 & 0,816 & 0,824 \\
+\end{longtable}
+}
+
+El Cuadro~\ref{tab:retraso} muestra cuándo llega el primer aviso de cada
+evento, contado entre 5~s antes de su inicio y su fin. La mitad de los avisos
+llega antes de la mediana y el 90\,\%, antes del valor de la columna ``90\,\%''.
+``Sin aviso'' son los eventos que no tienen ningún aviso en ese tramo.
+
+\needspace{18\baselineskip}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.4cm}lrrrrr}
+\caption{Retraso del primer aviso respecto del inicio, en segundos.}\label{tab:retraso}\\
+\cabecera{\textbf{Detector} & \textbf{Clase} & \textbf{Con aviso} & \textbf{Mediana} & \textbf{90\,\%} & \textbf{Más de 5~s} & \textbf{Sin aviso}}{7}
+PhaseNet, P y S & VT & 35 & 1,2 & 3,0 & 0 & 1 \\
+ & LP & 52 & 1,5 & 3,6 & 0 & 0 \\
+ & TR & 34 & 2,4 & 6,8 & 8 & 3 \\
+\midrule
+EQTransformer, detección & VT & 23 & 0,8 & 2,7 & 0 & 13 \\
+ & LP & 35 & 1,3 & 3,5 & 3 & 17 \\
+ & TR & 21 & 2,3 & 70,9 & 7 & 16 \\
+\midrule
+EQTransformer, P y S & VT & 23 & 1,4 & 2,9 & 0 & 13 \\
+ & LP & 36 & 1,4 & 3,8 & 1 & 16 \\
+ & TR & 16 & 3,2 & 101,4 & 7 & 21 \\
+\midrule
+STA/LTA & VT & 31 & 1,3 & 3,4 & 1 & 5 \\
+ & LP & 44 & 2,1 & 4,0 & 1 & 8 \\
+ & TR & 30 & 4,7 & 71,3 & 14 & 7 \\
+\end{longtable}
+}
+
+\begin{itemize}
+\item \textbf{VT y LP llegan a tiempo:} con PhaseNet, el primer aviso llega en
+  mediana 1,2~s después del inicio en VT y 1,5~s en LP, y nunca más de 5~s
+  tarde. Por eso ampliar la tolerancia no suma ningún VT ni LP hasta los 15~s.
+\item \textbf{TR llega más tarde:} mediana de 2,4~s, y 8 de los 34 TR con aviso
+  lo tienen después de los 5~s. El tremor empieza de a poco y PhaseNet lo nota
+  tarde. Casi todo lo que se gana al ampliar la tolerancia es TR: con 10~s,
+  PhaseNet pasa de 113 a 121 de 125 (0,968), sobre la meta de 0,95; con 7~s
+  llega a 118 (0,944).
+\item \textbf{Las falsas alarmas casi no cambian} (61,5 por hora con 5~s y 60,6
+  con 10~s), porque los avisos son los mismos: solo cambia cuáles se aceptan
+  como acierto. Pero mientras más ancha es la ventana, más fácil es que el aviso
+  aceptado no venga del evento sino de otra cosa que pasó en esos segundos.
+\item \textbf{EQTransformer casi no gana} (de 0,552 a 0,576 con 10~s): cuando
+  no detecta un evento no es porque avise tarde, sino porque no avisa; 16 de los
+  37 TR no tienen ningún aviso suyo.
+\item \textbf{STA/LTA gana más} (de 0,712 a 0,792 con 10~s): en TR su primer
+  aviso llega en mediana 4,7~s después del inicio, y 14 de 30 llegan pasados
+  los 5~s.
+\item \textbf{Avisos antes del inicio:} con la ventana tardía de 10~s, PhaseNet
+  llega a 119 y no a 121, porque 2 TR tienen su aviso entre 5 y 10~s antes del
+  inicio que marca el catálogo.
+\end{itemize}
+
+De los 11 TR que PhaseNet pierde con 5~s, 6 tienen aviso entre 5,9 y 7,3~s
+después del inicio, 2 lo tienen mucho después (22 y 42~s) y 3 no tienen
+ninguno.
+
+Con 5~s ningún detector llega a 0,95; con 10~s, PhaseNet llega a 0,968. El
+valor que se use en adelante es una decisión de evaluación y se aplicará igual a
+los tres detectores.
 
 \section{Recorte de PhaseNet por energía}\label{sec:recorte}
 

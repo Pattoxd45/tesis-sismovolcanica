@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Diagnostico de los TR que PhaseNet (P y S) no detecta y prueba de aceptar avisos tardios.
+Diagnostico de los TR que PhaseNet (P y S) no detecta.
 
 Uso: python diagnostico_tr_fre3c.py [--umbral 0.10] [--filtro f1_15]
 """
@@ -19,7 +19,6 @@ import fre3c_lib as lib
 
 FS = lib.FS
 TOL = int(round(lib.TOL_S * FS))
-TARDIOS_S = [5, 10, 20, 30, 60]  # el tremor empieza de a poco y PhaseNet avisa tarde
 
 
 def onsets_pn_ps(curvas, umbral):
@@ -86,28 +85,7 @@ def main():
         print(f"   TR perdidos, medianas: dur {per.dur_s.median():.1f} s | maxP_inicio "
               f"{per.maxP_inicio.median():.3f} | maxS_inicio {per.maxS_inicio.median():.3f}")
 
-    # VT y LP quedan como en la evaluacion normal: 5 s y un aviso por evento
-    volc = inc.clase.isin(lib.VOLCANICAS).to_numpy()
-    k_vt_lp = int(((res["asignado"] >= 0) & inc.clase.isin(["VT", "LP"]).to_numpy()).sum())
-    n_volc = int(volc.sum())
-    n_tr = int((inc.clase == "TR").sum())
-
-    print("\n2. SI PARA TR SE ACEPTARA UN AVISO TARDIO (entre inicio - 5 s e inicio + T):")
-    print("   TR cuenta si hay algun aviso en esa ventana; VT y LP se cuentan como siempre.")
-    print(f"   {'T (s)':>6} {'TR':>8} {'sens TR':>8} {'volcanicos':>11} {'sens volc':>10}")
-    tol_tardia = []
-    for T in TARDIOS_S:
-        k_tr = 0
-        for r in inc[inc.clase == "TR"].itertuples():
-            a = int(r.ini)
-            k_tr += bool(np.any((o >= a - TOL) & (o <= a + int(T * FS))))
-        k_v = k_vt_lp + k_tr
-        print(f"   {T:>6} {k_tr:>4}/{n_tr:<3} {k_tr / n_tr:>8.3f} {k_v:>6}/{n_volc:<4} "
-              f"{k_v / n_volc:>10.3f}")
-        tol_tardia.append(dict(T_s=T, k_tr=k_tr, n_tr=n_tr, sens_tr=k_tr / n_tr,
-                               k_volc=k_v, n_volc=n_volc, sens_volc=k_v / n_volc))
-    pd.DataFrame(tol_tardia).to_csv(os.path.join(lib.DIR_SALIDA, "tolerancia_tr.csv"), index=False)
-    print(f"\nTablas en {lib.DIR_SALIDA}/diagnostico_tr.csv y tolerancia_tr.csv")
+    print(f"\nTabla en {lib.DIR_SALIDA}/diagnostico_tr.csv")
 
 
 if __name__ == "__main__":
