@@ -68,13 +68,61 @@
 
 \section{Datos}
 
-Uso la estación FRE con sus tres componentes, filtradas en dos rangos de
-frecuencia: 1--15~Hz, el mismo de la traza, y 1--45~Hz, el rango con que se
-entrenó EQTransformer. Las cifras principales se calculan solo con los eventos
-volcánicos (VT, LP y TR); AV e IC quedan fuera, porque irán a la clase de
-rechazo, y aparecen solo como referencia. De los 205 eventos del catálogo
-evalué 179 (Cuadro~\ref{tab:eventos}); los demás no tienen señal o caen en
-huecos del registro. Quedan 125 volcánicos.
+Trabajo con registros sísmicos del Complejo Volcánico Nevados de Chillán. Una
+\emph{estación} es un sismómetro instalado en un punto fijo del volcán; uso una
+sola, la estación FRE. Un sismómetro mide el movimiento del suelo en tres
+direcciones, llamadas \emph{componentes}: vertical (Z), norte--sur (N) y
+este--oeste (E). La señal está registrada a 100 \emph{muestras} por segundo:
+una muestra es un valor cada 0,01~s, así que 1500 muestras son 15~s.
+
+Los datos vienen de dos fuentes:
+
+\begin{itemize}
+\item \textbf{La traza publicada:} un registro continuo de 10,18~h que forma
+  parte de un conjunto de datos público del Nevados de Chillán (Zenodo, DOI
+  10.5281/zenodo.17163020). Trae solo la componente vertical de cada estación y
+  une tres períodos de fechas distintas; a cada período lo llamo \emph{tramo}.
+  Viene con un \emph{catálogo}: la lista de 205 eventos, cada uno con su inicio,
+  su fin y su clase. Con ese catálogo comparo lo que encuentra cada detector.
+\item \textbf{El registro original de FRE:} la traza publicada no trae las
+  componentes N y E, así que tomé las tres componentes de FRE de su registro
+  original. Ese registro tiene \emph{huecos}: períodos sin datos.
+\end{itemize}
+
+Cada evento del catálogo tiene una de cinco clases:
+
+\begin{itemize}
+\item \textbf{VT (volcano-tectónico):} sismo causado por la ruptura de roca
+  dentro del volcán. Es corto y su inicio es claro.
+\item \textbf{LP (largo período):} sismo asociado al movimiento de fluidos
+  (gas, agua o magma) dentro del volcán. Oscila más lento que un VT.
+\item \textbf{TR (tremor):} vibración sostenida del volcán. Dura más que un VT
+  o un LP y suele empezar de a poco.
+\item \textbf{AV (avalancha):} caída de nieve, hielo o roca por la ladera. No es
+  volcánica.
+\item \textbf{IC (\emph{ice-quake}):} sismo causado por la fractura del hielo
+  del glaciar. No es volcánico.
+\end{itemize}
+
+Este trabajo tiene dos partes: primero, un detector encuentra los eventos en el
+registro continuo; después, una red neuronal, el \emph{clasificador}, dirá de
+qué clase es cada uno. El clasificador tendrá, además de VT, LP y TR, una
+\emph{clase de rechazo} para lo que no es volcánico y se descarta: AV, IC y las
+falsas alarmas del detector. Por eso las cifras principales se calculan solo con
+los volcánicos (VT, LP y TR); AV e IC aparecen solo como referencia.
+
+Para quitar las oscilaciones que no interesan, la señal pasa por un
+\emph{filtro}, que deja pasar solo un rango de frecuencias, llamado
+\emph{banda}. La frecuencia se mide en hercios (Hz): oscilaciones por segundo.
+Uso dos bandas: 1--15~Hz, la misma de la traza publicada, y 1--45~Hz, la banda
+con que se entrenó EQTransformer.
+
+De los 205 eventos del catálogo evalué 179 (Cuadro~\ref{tab:eventos}); los
+demás no tienen señal en el registro original, caen en sus huecos o caen en el
+borde entre dos tramos. Quedan 125 volcánicos.
+
+La Etapa~2, que menciono varias veces, es la entrega anterior de este trabajo:
+ahí evalué los detectores con cinco estaciones y solo su componente vertical.
 
 {\small
 \begin{longtable}{lrr>{\raggedright\arraybackslash}p{9.6cm}}
@@ -98,47 +146,53 @@ los nombro como los nombra su librería y parto de su valor por defecto.
 
 \begin{itemize}
 \item \textbf{PhaseNet y EQTransformer} (librería SeisBench): redes neuronales
-  que sus autores ya entrenaron con sismos de todo el mundo. Las uso tal como
-  vienen, con los pesos ``original'', sin volver a entrenarlas. Leen la señal
+  que sus autores ya entrenaron con sismos: PhaseNet, con registros del norte de
+  California (Estados Unidos), y EQTransformer, con sismos de todo el mundo. Los
+  \emph{pesos} de una red son los valores que aprendió en su entrenamiento; uso
+  los ``original'', que son los que publicaron sus autores, sin volver a
+  entrenarlas. Leen la señal
   por ventanas (30~s PhaseNet, 60~s EQTransformer) y entregan, para cada
   instante, la probabilidad de que ahí llegue una onda P, la primera onda de un
   sismo, o una onda S, la segunda. EQTransformer entrega además una curva de
   detección: la probabilidad de que en ese instante haya un evento.
-\item \textbf{STA/LTA} (librería ObsPy): compara la energía de los últimos
-  segundos (STA, ventana corta) con la del último minuto (LTA, ventana larga).
+\item \textbf{STA/LTA} (librería ObsPy): compara la energía promedio de los
+  últimos segundos (STA, \emph{short-term average}, ventana corta) con la del
+  último minuto (LTA, \emph{long-term average}, ventana larga).
   Cuando la razón entre las dos sube de un valor, avisa. Usa solo la componente
   vertical (Z), como en la Etapa~2.
 \end{itemize}
 
+Un \emph{aviso} es el instante en que un detector dice que empieza un evento.
+El \emph{umbral} es el valor que tiene que superar una curva para dar un aviso.
 Una curva de probabilidad se convierte en avisos así: el aviso se enciende
 cuando la curva supera el umbral, se apaga cuando baja de la mitad del umbral,
 y se ubica en el punto más alto de ese tramo. Es la regla de SeisBench; la
 apliqué tal cual y comprobé que entrega los mismos avisos que su función
-\texttt{classify}.
+\texttt{classify}, la que entrega los avisos en SeisBench.
 
 {\small
 \setlength{\tabcolsep}{4pt}
 \begin{longtable}{>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{3.4cm}}
 \caption{Parámetros de cada detector. ``Por defecto'' es el valor que trae la librería (en SeisBench, el que carga con los pesos ``original'').}\label{tab:parametros}\\
 \cabecera{\textbf{Parámetro} & \textbf{Qué hace} & \textbf{Por defecto} & \textbf{Usado} & \textbf{Por qué}}{5}
-\multicolumn{5}{l}{\textit{PhaseNet (SeisBench)}}\\
+\multicolumn{5}{l}{\textit{PhaseNet (SeisBench)}}\\*
 \addlinespace
 \texttt{P\_threshold} & Probabilidad mínima para aceptar una onda P. En el PhaseNet original se llama \texttt{min\_p\_prob}. & 0,3 & De 0,02 a 0,95; 0,10 en los cuadros & Con 0,3 se pierden muchos volcánicos, y la meta es encontrar el 95\,\%. \\
 \texttt{S\_threshold} & Lo mismo para la onda S (\texttt{min\_s\_prob}). & 0,3 & De 0,02 a 0,95, por separado de \texttt{P\_threshold} & La misma razón; resultados en la Sección~\ref{sec:ps}. \\
-\texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 1500 & 1500 & Sin cambio. \\
-\texttt{blinding} & Muestras que se descartan en cada borde de la ventana, donde la red ve menos señal. & 250 por lado & 250 por lado & Sin cambio. \\
+\texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 1500 (15~s) & 1500 & Sin cambio. \\
+\texttt{blinding} & Muestras que se descartan en cada borde de la ventana, donde la red ve menos señal. & 250 por lado (2,5~s) & 250 por lado & Sin cambio. \\
 \texttt{stacking} & Cómo se juntan las ventanas que se solapan: promedio (\texttt{avg}) o máximo (\texttt{max}). & \texttt{avg} & \texttt{avg} & Sin cambio. \\
-\midrule
-\multicolumn{5}{l}{\textit{EQTransformer (SeisBench)}}\\
+\midrule\nopagebreak
+\multicolumn{5}{l}{\textit{EQTransformer (SeisBench)}}\\*
 \addlinespace
 \texttt{detection\_\allowbreak{}threshold} & Probabilidad mínima de la curva de detección. & 0,3 & De 0,02 a 0,95; 0,10 en los cuadros & La misma razón que en PhaseNet. \\
 \texttt{P\_threshold}, \texttt{S\_threshold} & Probabilidad mínima de la onda P y de la onda S. & 0,1 & De 0,02 a 0,95, cada uno por separado & La misma razón que en PhaseNet. \\
-\texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 3000 & 3000 & Sin cambio. \\
-\texttt{blinding} & Muestras que se descartan en cada borde. & 500 por lado & 500 por lado & Sin cambio. \\
+\texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 3000 (30~s) & 3000 & Sin cambio. \\
+\texttt{blinding} & Muestras que se descartan en cada borde. & 500 por lado (5~s) & 500 por lado & Sin cambio. \\
 \texttt{stacking} & Cómo se juntan las ventanas que se solapan. & \texttt{max} & \texttt{max} & Sin cambio. \\
 Filtro interno & Deja pasar solo 1--45~Hz antes de entrar a la red (orden 2, sin correr la señal en el tiempo). & 1--45~Hz & 1--45~Hz & No se puede cambiar: viene con los pesos. \\
-\midrule
-\multicolumn{5}{l}{\textit{STA/LTA (ObsPy: \texttt{classic\_sta\_lta}, \texttt{trigger\_onset} y \texttt{bandpass})}}\\
+\midrule\nopagebreak
+\multicolumn{5}{l}{\textit{STA/LTA (ObsPy: \texttt{classic\_sta\_lta}, \texttt{trigger\_onset} y \texttt{bandpass})}}\\*
 \addlinespace
 \texttt{nsta} & Largo de la ventana corta. & No tiene & 200 muestras (2~s) & La mejor combinación del barrido de la Etapa~2; no se toca. \\
 \texttt{nlta} & Largo de la ventana larga. & No tiene & 6000 muestras (60~s) & Igual. \\
@@ -147,10 +201,10 @@ Filtro interno & Deja pasar solo 1--45~Hz antes de entrar a la red (orden 2, sin
 \texttt{freqmin}, \texttt{freqmax} & Banda que deja pasar el filtro previo. & No tiene & 1 y 20~Hz & Igual. \\
 \texttt{corners} & Orden del filtro: qué tan brusco es el corte. & 4 & 4 & Sin cambio. \\
 \texttt{zerophase} & Si el filtro se aplica sin correr la señal en el tiempo. & No & Sí & Un filtro que corre la señal atrasa el inicio de los eventos. \\
-\midrule
-\multicolumn{5}{l}{\textit{Filtro de FRE antes de las redes (SciPy: \texttt{butter} y \texttt{sosfiltfilt})}}\\
+\midrule\nopagebreak
+\multicolumn{5}{l}{\textit{Filtro de FRE antes de las redes (librería SciPy: \texttt{butter} y \texttt{sosfiltfilt})}}\\*
 \addlinespace
-\texttt{N} & Orden del filtro. & No tiene & 5 & Así la vertical de FRE coincide con la traza publicada (correlación de 0,99 o más). \\
+\texttt{N} & Orden del filtro. & No tiene & 5 & Así la vertical de FRE queda igual a la traza publicada: correlación de 0,99 o más (1 sería la misma forma). \\
 \texttt{Wn} & Banda que deja pasar. & No tiene & 1--15~Hz y 1--45~Hz & 1--15~Hz: la banda de la traza publicada; 1--45~Hz: la del filtro interno de EQTransformer. \\
 \texttt{sosfiltfilt} & Aplica el filtro sin correr la señal en el tiempo. & --- & --- & La misma razón que \texttt{zerophase}. \\
 \end{longtable}
@@ -160,9 +214,10 @@ Algunas reglas no vienen de ninguna librería: son decisiones mías sobre cómo
 contar aciertos y cómo recortar. Las aplico igual a los tres detectores.
 
 \begin{itemize}
-\item \textbf{Tolerancia de 5~s:} un evento cuenta como detectado si hay un
-  aviso a 5~s o menos de su inicio, antes o después. En la
-  Sección~\ref{sec:tolerancia} pruebo otros valores.
+\item \textbf{Tolerancia de 5 y de 10~s:} un evento cuenta como detectado si
+  hay un aviso a 5~s o menos de su inicio, antes o después. También informo los
+  resultados con 10~s; en la Sección~\ref{sec:tolerancia} explico los dos valores
+  y pruebo otros.
 \item \textbf{Un aviso, un evento:} cada aviso se asigna a un solo evento, el de
   inicio más cercano.
 \item \textbf{Avisos que se juntan:} los avisos de P y de S que caen a 5~s o
@@ -171,10 +226,16 @@ contar aciertos y cómo recortar. Las aplico igual a los tres detectores.
   STA/LTA, los avisos separados por menos de 5~s se unen en uno, como en la
   Etapa~2.
 \item \textbf{Falsa alarma:} un aviso que no cae dentro de ningún evento del
-  catálogo ni en los 5~s antes de su inicio.
+  catálogo ni en la ventana anterior a su inicio (5~s, o 10~s con la tolerancia
+  de 10~s).
+\item \textbf{Recorte:} el pedazo de señal que se corta para cada aviso, desde
+  donde empieza hasta donde termina el evento detectado. Es lo que después
+  recibirá el clasificador.
 \item \textbf{Bien recortado:} el recorte tiene un IoU de 0,30 o más con el
-  evento (Sección~\ref{sec:recorte}). En la Sección~\ref{sec:iou} muestro
-  otros umbrales.
+  evento. El IoU divide el tiempo que el recorte y el evento tienen en común por
+  el tiempo total que ocupan entre los dos: vale 1 si coinciden y 0 si no se
+  tocan (Sección~\ref{sec:recorte}). En la Sección~\ref{sec:iou} muestro otros
+  umbrales.
 \item \textbf{Recorte por energía:} PhaseNet no marca el fin del evento, así que
   lo calculo con la energía de la señal (Sección~\ref{sec:recorte}). Sus valores
   los fijé yo:
@@ -192,14 +253,23 @@ contar aciertos y cómo recortar. Las aplico igual a los tres detectores.
   \end{itemize}
 \end{itemize}
 
-\section{Sensibilidad por clase}
+\section{Sensibilidad por clase}\label{sec:sensibilidad}
+
+La \emph{sensibilidad} de una clase es la parte de sus eventos del catálogo que
+el detector encuentra: eventos detectados divididos por eventos de esa clase.
+Por ejemplo, $35/36 = 0{,}972$ quiere decir que encuentra 35 de los 36 VT. La
+meta de este trabajo es una sensibilidad volcánica (VT, LP y TR juntos) de 0,95.
 
 Un evento cuenta como detectado si hay un aviso a 5~s o menos de su inicio,
 antes o después. La Sección~\ref{sec:tolerancia} explica qué significa ese valor
 y da también los resultados con 10~s. El Cuadro~\ref{tab:por-clase} y la
 Figura~\ref{fig:por-clase} muestran qué parte de cada clase detecta cada red,
-con umbral 0,10 y filtro de 1--15~Hz. Entre corchetes va el intervalo de
-confianza del 95\,\%.
+con umbral 0,10 y filtro de 1--15~Hz.
+
+Entre corchetes va el \emph{intervalo de confianza} del 95\,\%: como hay pocos
+eventos, la cifra medida tiene incertidumbre, y el intervalo es el rango en que
+probablemente estaría la sensibilidad con otro grupo de eventos parecido.
+Mientras menos eventos tiene una clase, más ancho es.
 
 \needspace{14\baselineskip}
 {\small
@@ -448,7 +518,8 @@ TR & 10 & 12 & 12 & 3 & 3 & 6 & 2 & 26 \\
   que la P no ve, contra 7 con 5~s, y en LP los detectados por las dos ondas
   pasan de 27 a 40. En esos eventos el aviso de la S cae a más de 5~s del
   inicio, pero a 10~s o menos. Va con lo que se vio en el recorte: en los TR
-  en que avisa solo la S, su aviso llega en mediana 8,5~s después del inicio
+  en que avisa solo la S, su aviso llega en mediana (el valor del medio: la
+  mitad de los casos queda bajo él) 8,5~s después del inicio
   (Cuadro~\ref{tab:inicio-onda}).
 \item \textbf{Con 1--45~Hz} el resultado es igual o peor: PhaseNet tiene el
   mismo máximo (0,976) con más falsas alarmas, y EQTransformer llega a 0,720.
@@ -469,9 +540,9 @@ formas.
 
 \section{Curvas de sensibilidad por clase y FDR}\label{sec:curvas}
 
-La sensibilidad es la parte de los eventos del catálogo que el detector
-encuentra: 0,904 quiere decir que encuentra 113 de los 125 volcánicos. La FDR
-es la parte de los avisos que son falsas alarmas: con PhaseNet a 0,10 es 0,84,
+Una sensibilidad volcánica de 0,904 quiere decir que el detector encuentra 113
+de los 125 volcánicos. La FDR (\emph{false discovery rate}) es la parte de los
+avisos que son falsas alarmas: con PhaseNet a 0,10 es 0,84,
 o sea, por cada evento volcánico detectado hay unas 5 falsas alarmas.
 
 La Figura~\ref{fig:curvas} muestra las dos cosas para cada umbral: la
@@ -620,9 +691,8 @@ tolerancias se mantienen las mismas reglas:
 
 \subsection*{La sensibilidad con 5 y con 10~s}
 
-La \emph{sensibilidad} de una clase es la parte de sus eventos del catálogo que
-el detector encuentra: eventos detectados divididos por eventos de esa clase.
-La sensibilidad volcánica junta VT, LP y TR: detectados de las tres clases
+La sensibilidad (Sección~\ref{sec:sensibilidad}) se calcula igual con las dos tolerancias. La
+sensibilidad volcánica junta VT, LP y TR: detectados de las tres clases
 divididos por 125. La meta de 0,95 pide al menos 119 de los 125
 ($0{,}95 \times 125 = 118{,}75$); cada evento vale 0,008.
 
@@ -637,10 +707,8 @@ Con PhaseNet (P y S, umbral 0,10, filtro de 1--15~Hz):
 \end{itemize}
 
 Los 8 eventos que se ganan son todos TR: 6 tienen su aviso entre 5 y 10~s
-después del inicio y 2, entre 5 y 10~s antes. Con 125 eventos, la cifra tiene
-incertidumbre: el intervalo de confianza del 95\,\% (el rango en que
-probablemente estaría la sensibilidad con otro grupo de eventos parecido) va de
-0,840 a 0,944 con 5~s y de 0,921 a 0,987 con 10~s. Con 10~s el valor medido
+después del inicio y 2, entre 5 y 10~s antes. El intervalo de confianza del
+95\,\% va de 0,840 a 0,944 con 5~s y de 0,921 a 0,987 con 10~s. Con 10~s el valor medido
 pasa la meta, pero el intervalo todavía incluye valores bajo 0,95.
 
 El Cuadro~\ref{tab:tol-clase} hace la misma cuenta para los tres detectores.
@@ -735,8 +803,8 @@ STA/LTA & VT & 31 & 1,3 & 3,4 & 1 & 5 \\
   mediana 1,2~s después del inicio en VT y 1,5~s en LP, y nunca más de 5~s
   tarde. Por eso ampliar la tolerancia no suma ningún VT ni LP hasta los 15~s.
 \item \textbf{TR llega más tarde:} mediana de 2,4~s, y 8 de los 34 TR con aviso
-  lo tienen después de los 5~s. El tremor empieza de a poco y PhaseNet lo nota
-  tarde. Casi todo lo que se gana al ampliar la tolerancia es TR: con 10~s,
+  lo tienen después de los 5~s. Una explicación probable es que el tremor
+  empieza de a poco y PhaseNet lo nota tarde. Casi todo lo que se gana al ampliar la tolerancia es TR: con 10~s,
   PhaseNet pasa de 113 a 121 de 125 (0,968), sobre la meta de 0,95; con 7~s
   llega a 118 (0,944).
 \item \textbf{Las falsas alarmas casi no cambian} (61,5 por hora con 5~s y 60,6
@@ -818,7 +886,8 @@ El corte se agregó porque, sin él, muchos recortes salían demasiado largos:
 con eventos seguidos, el recorte se tragaba al siguiente
 (Figura~\ref{fig:fallas}, arriba). El corte sube LP de 37 a 49, pero baja TR de
 27 a 23, probablemente porque PhaseNet da varios avisos dentro de un mismo
-tremor. Otros 6 TR quedan cortos porque en FRE casi no sobresalen del ruido
+tremor. Otros 6 TR quedan cortos porque en FRE casi no sobresalen del ruido (su
+energía llega a entre 0,8 y 1,6 veces el ruido)
 (Figura~\ref{fig:fallas}, abajo).
 
 \figura{fig5_recortes.png}{0.78}{Recorte por energía (sin corte) contra la ventana fija, en un caso típico de cada clase volcánica. En el panel de TR, desde los 89~s aparece una señal mucho mayor que sale de la escala.}{fig:recortes}
