@@ -68,9 +68,9 @@
 
 \section{Datos}
 
-Trabajo con registros sísmicos del Complejo Volcánico Nevados de Chillán. Una
-\emph{estación} es un sismómetro instalado en un punto fijo del volcán; uso una
-sola, la estación FRE. Un sismómetro mide el movimiento del suelo en tres
+Se trabaja con registros sísmicos del Complejo Volcánico Nevados de Chillán.
+Una \emph{estación} es un sismómetro instalado en un punto fijo del volcán; se
+usa una sola, la estación FRE. Un sismómetro mide el movimiento del suelo en tres
 direcciones, llamadas \emph{componentes}: vertical (Z), norte--sur (N) y
 este--oeste (E). La señal está registrada a 100 \emph{muestras} por segundo:
 una muestra es un valor cada 0,01~s, así que 1500 muestras son 15~s.
@@ -81,12 +81,12 @@ Los datos vienen de dos fuentes:
 \item \textbf{La traza publicada:} un registro continuo de 10,18~h que forma
   parte de un conjunto de datos público del Nevados de Chillán (Zenodo, DOI
   10.5281/zenodo.17163020). Trae solo la componente vertical de cada estación y
-  une tres períodos de fechas distintas; a cada período lo llamo \emph{tramo}.
+  une tres períodos de fechas distintas; a cada período se le llama aquí \emph{tramo}.
   Viene con un \emph{catálogo}: la lista de 205 eventos, cada uno con su inicio,
-  su fin y su clase. Con ese catálogo comparo lo que encuentra cada detector.
+  su fin y su clase. Con ese catálogo se compara lo que encuentra cada detector.
 \item \textbf{El registro original de FRE:} la traza publicada no trae las
-  componentes N y E, así que tomé las tres componentes de FRE de su registro
-  original. Ese registro tiene \emph{huecos}: períodos sin datos.
+  componentes N y E, así que las tres componentes de FRE se tomaron de su
+  registro original. Ese registro tiene \emph{huecos}: períodos sin datos.
 \end{itemize}
 
 Cada evento del catálogo tiene una de cinco clases:
@@ -114,15 +114,16 @@ los volcánicos (VT, LP y TR); AV e IC aparecen solo como referencia.
 Para quitar las oscilaciones que no interesan, la señal pasa por un
 \emph{filtro}, que deja pasar solo un rango de frecuencias, llamado
 \emph{banda}. La frecuencia se mide en hercios (Hz): oscilaciones por segundo.
-Uso dos bandas: 1--15~Hz, la misma de la traza publicada, y 1--45~Hz, la banda
+Se usan dos bandas: 1--15~Hz, la misma de la traza publicada, y 1--45~Hz, la banda
 con que se entrenó EQTransformer.
 
-De los 205 eventos del catálogo evalué 179 (Cuadro~\ref{tab:eventos}); los
+De los 205 eventos del catálogo se evaluaron 179 (Cuadro~\ref{tab:eventos}); los
 demás no tienen señal en el registro original, caen en sus huecos o caen en el
 borde entre dos tramos. Quedan 125 volcánicos.
 
-La Etapa~2, que menciono varias veces, es la entrega anterior de este trabajo:
-ahí evalué los detectores con cinco estaciones y solo su componente vertical.
+La Etapa~2, que se menciona varias veces, es la entrega anterior de este
+trabajo: ahí se evaluaron los detectores con cinco estaciones y solo su
+componente vertical.
 
 {\small
 \begin{longtable}{lrr>{\raggedright\arraybackslash}p{9.6cm}}
@@ -140,16 +141,17 @@ Total & 205 & 179 & Volcánicos evaluados: 125 (VT 36, LP 52, TR 37) \\
 
 \section{Detectores y sus parámetros}\label{sec:parametros}
 
-Comparo tres detectores. Cada uno viene de una librería que define sus
-parámetros, con su nombre y su valor por defecto. Solo cambio esos parámetros,
-los nombro como los nombra su librería y parto de su valor por defecto.
+Se comparan tres detectores. Cada uno viene de una librería que define sus
+parámetros, con su nombre y su valor por defecto. Solo se cambian esos
+parámetros, con el nombre que les da su librería y partiendo de su valor por
+defecto.
 
 \begin{itemize}
 \item \textbf{PhaseNet y EQTransformer} (librería SeisBench): redes neuronales
   que sus autores ya entrenaron con sismos: PhaseNet, con registros del norte de
   California (Estados Unidos), y EQTransformer, con sismos de todo el mundo. Los
-  \emph{pesos} de una red son los valores que aprendió en su entrenamiento; uso
-  los ``original'', que son los que publicaron sus autores, sin volver a
+  \emph{pesos} de una red son los valores que aprendió en su entrenamiento; se
+  usan los ``original'', que son los que publicaron sus autores, sin volver a
   entrenarlas. Leen la señal
   por ventanas (30~s PhaseNet, 60~s EQTransformer) y entregan, para cada
   instante, la probabilidad de que ahí llegue una onda P, la primera onda de un
@@ -166,8 +168,8 @@ Un \emph{aviso} es el instante en que un detector dice que empieza un evento.
 El \emph{umbral} es el valor que tiene que superar una curva para dar un aviso.
 Una curva de probabilidad se convierte en avisos así: el aviso se enciende
 cuando la curva supera el umbral, se apaga cuando baja de la mitad del umbral,
-y se ubica en el punto más alto de ese tramo. Es la regla de SeisBench; la
-apliqué tal cual y comprobé que entrega los mismos avisos que su función
+y se ubica en el punto más alto de ese tramo. Es la regla de SeisBench; se
+aplicó tal cual y se comprobó que entrega los mismos avisos que su función
 \texttt{classify}, la que entrega los avisos en SeisBench.
 
 {\small
@@ -210,14 +212,15 @@ Filtro interno & Deja pasar solo 1--45~Hz antes de entrar a la red (orden 2, sin
 \end{longtable}
 }
 
-Algunas reglas no vienen de ninguna librería: son decisiones mías sobre cómo
-contar aciertos y cómo recortar. Las aplico igual a los tres detectores.
+Algunas reglas no vienen de ninguna librería: son decisiones propias de este
+trabajo sobre cómo contar aciertos y cómo recortar. Se aplican igual a los tres
+detectores.
 
 \begin{itemize}
 \item \textbf{Tolerancia de 5 y de 10~s:} un evento cuenta como detectado si
-  hay un aviso a 5~s o menos de su inicio, antes o después. También informo los
-  resultados con 10~s; en la Sección~\ref{sec:tolerancia} explico los dos valores
-  y pruebo otros.
+  hay un aviso a 5~s o menos de su inicio, antes o después. También se informan los
+  resultados con 10~s; la Sección~\ref{sec:tolerancia} explica los dos valores
+  y prueba otros.
 \item \textbf{Un aviso, un evento:} cada aviso se asigna a un solo evento, el de
   inicio más cercano.
 \item \textbf{Avisos que se juntan:} los avisos de P y de S que caen a 5~s o
@@ -234,11 +237,11 @@ contar aciertos y cómo recortar. Las aplico igual a los tres detectores.
 \item \textbf{Bien recortado:} el recorte tiene un IoU de 0,30 o más con el
   evento. El IoU divide el tiempo que el recorte y el evento tienen en común por
   el tiempo total que ocupan entre los dos: vale 1 si coinciden y 0 si no se
-  tocan (Sección~\ref{sec:recorte}). En la Sección~\ref{sec:iou} muestro otros
+  tocan (Sección~\ref{sec:recorte}). La Sección~\ref{sec:iou} muestra otros
   umbrales.
 \item \textbf{Recorte por energía:} PhaseNet no marca el fin del evento, así que
-  lo calculo con la energía de la señal (Sección~\ref{sec:recorte}). Sus valores
-  los fijé yo:
+  se calcula con la energía de la señal (Sección~\ref{sec:recorte}). Sus valores
+  son propios de este trabajo:
   \begin{itemize}
   \item empieza 2,5~s antes del aviso;
   \item la energía es la de Z, N y E juntas, promediada en ventanas de 1~s;
@@ -324,10 +327,10 @@ EQTransformer.
 
 \section{Probabilidad mínima de P y de S por separado}\label{sec:ps}
 
-Hasta aquí usé el mismo valor para \texttt{P\_threshold} y
-\texttt{S\_threshold}. Ahora probé cada uno por separado: 21 valores para P y
-21 para S, de 0,02 a 0,95, o sea, 441 combinaciones en cada red. Lo hice igual
-en PhaseNet y en EQTransformer, con la misma forma de contar. Estos valores no
+Hasta aquí se usó el mismo valor para \texttt{P\_threshold} y
+\texttt{S\_threshold}. Ahora se probó cada uno por separado: 21 valores para P
+y 21 para S, de 0,02 a 0,95, o sea, 441 combinaciones en cada red. Se hizo
+igual en PhaseNet y en EQTransformer, con la misma forma de contar. Estos valores no
 cambian lo que calcula la red: solo deciden qué avisos se aceptan. Primero va el
 resultado con 5~s de tolerancia y al final, con 10~s.
 
@@ -432,7 +435,7 @@ TR & 3 & 16 & 7 & 11 & 1 & 8 & 0 & 28 \\
 
 \subsection*{Con 10~s de tolerancia}
 
-Repetí el mismo barrido con 10~s de tolerancia (Sección~\ref{sec:tolerancia}).
+Se repitió el mismo barrido con 10~s de tolerancia (Sección~\ref{sec:tolerancia}).
 Los avisos son los mismos; solo cambia cuáles se aceptan como acierto. Los
 Cuadros~\ref{tab:ps-pn-10} y~\ref{tab:ps-eqt-10} son la misma parte de la
 rejilla que los anteriores. En negrita, en PhaseNet, la combinación que llega a
@@ -528,11 +531,11 @@ TR & 10 & 12 & 12 & 3 & 3 & 6 & 2 & 26 \\
 \section{EQTransformer: filtro de 1--45~Hz y umbral}
 
 EQTransformer ya filtra la señal en 1--45~Hz por dentro, y su umbral por
-defecto es 0,30. Probé las dos bandas y umbrales desde 0,02 hasta 0,95. Usar
+defecto es 0,30. Se probaron las dos bandas y umbrales desde 0,02 hasta 0,95. Usar
 1--45~Hz cambia uno o dos eventos, a favor o en contra
 (Figura~\ref{fig:filtros}). Bajar el umbral de 0,30 a 0,05 sube
-EQTransformer de 0,456 a 0,560, pero con ningún umbral pasa de 0,58. No probé
-rangos más altos: la señal está muestreada a 100~Hz, así que no contiene
+EQTransformer de 0,456 a 0,560, pero con ningún umbral pasa de 0,58. No se
+probaron rangos más altos: la señal está muestreada a 100~Hz, así que no contiene
 frecuencias sobre 50~Hz, y EQTransformer corta en 45~Hz por dentro de todas
 formas.
 
@@ -608,13 +611,13 @@ STA/LTA (configuración de la Etapa~2) & --- & --- & --- & 0,792; 18,3 FP/h (no 
 
 Con 10~s solo PhaseNet llega a las tres metas, y llega a 0,95 con su valor por
 defecto de \texttt{P\_threshold}. PhaseNet con solo P o solo S y las dos redes
-juntas no los medí con 10~s.
+juntas no se midieron con 10~s.
 
 \section{Las tres componentes y la meta de 0,95}\label{sec:componentes}
 
 PhaseNet y EQTransformer esperan tres señales por estación: Z, N y E. En la
-Etapa~2 solo tenía la vertical (Z), así que las otras dos se rellenaban con
-ceros o con copias de la vertical. Ahora les entrego las tres reales. La
+Etapa~2 solo se tenía la vertical (Z), así que las otras dos se rellenaban con
+ceros o con copias de la vertical. Ahora reciben las tres reales. La
 Figura~\ref{fig:antes-ahora} compara esas opciones en FRE, con los mismos
 eventos y umbral 0,10:
 
@@ -625,7 +628,7 @@ eventos y umbral 0,10:
 \end{itemize}
 
 La cifra baja de la Etapa~2 no era un error de cálculo: venía de los ceros.
-EQTransformer rinde algo menos con las tres reales, pero las uso igual para
+EQTransformer rinde algo menos con las tres reales, pero se usan igual para
 tratar a las dos redes de la misma forma. Con tres componentes y 5~s de
 tolerancia ningún detector llega a 0,95: el máximo es 0,936.
 
@@ -637,9 +640,9 @@ tolerancia ningún detector llega a 0,95: el máximo es 0,936.
 
 El catálogo marca, para cada evento, el instante en que empieza. Un detector no
 entrega eventos, sino \emph{avisos}: instantes en que su curva supera el umbral.
-Para saber si un detector encontró un evento, comparo sus avisos con ese inicio.
+Para saber si un detector encontró un evento, se comparan sus avisos con ese inicio.
 La \emph{tolerancia} es cuánto puede separarse el aviso del inicio para que el
-evento cuente como detectado. Informo dos valores:
+evento cuente como detectado. Se informan dos valores:
 
 \begin{itemize}
 \item \textbf{5~s:} el aviso tiene que caer entre 5~s antes y 5~s después del
@@ -730,10 +733,10 @@ STA/LTA & 30/36 & 43/52 & 16/37 & 89 & 18,4 & 31/36 & 45/52 & 23/37 & 99 & 18,3 
 
 \subsection*{Otras tolerancias}
 
-Para ver cuánto depende el resultado de la tolerancia, probé también otros
-valores, con las mismas reglas para los tres detectores: las redes con umbral
-0,10 y filtro de 1--15~Hz, y STA/LTA con la configuración de la Etapa~2. Probé
-dos formas:
+Para ver cuánto depende el resultado de la tolerancia, se probaron también
+otros valores, con las mismas reglas para los tres detectores: las redes con umbral
+0,10 y filtro de 1--15~Hz, y STA/LTA con la configuración de la Etapa~2. Se
+probaron dos formas:
 
 \begin{itemize}
 \item \textbf{Simétrica:} el aviso puede caer hasta $T$ segundos antes o
@@ -741,8 +744,8 @@ dos formas:
 \item \textbf{Tardía:} hasta 5~s antes y hasta $T$ segundos después.
 \end{itemize}
 
-También medí cuántos segundos después del inicio llega el primer aviso de cada
-evento.
+También se midió cuántos segundos después del inicio llega el primer aviso de
+cada evento.
 
 \needspace{12\baselineskip}
 {\small
@@ -826,14 +829,14 @@ De los 11 TR que PhaseNet pierde con 5~s, 6 tienen aviso entre 5,9 y 7,3~s
 después del inicio, 2 lo tienen mucho después (22 y 42~s) y 3 no tienen
 ninguno.
 
-Por eso informo las dos tolerancias, 5 y 10~s, siempre con las mismas reglas
+Por eso se informan las dos tolerancias, 5 y 10~s, siempre con las mismas reglas
 para los tres detectores. Con 5~s ningún detector llega a 0,95; con 10~s,
 PhaseNet llega a 0,968. La diferencia entre las dos está casi toda en TR, cuyo
 aviso llega más tarde.
 
 \section{Recorte de PhaseNet por energía}\label{sec:recorte}
 
-PhaseNet marca el inicio del evento, pero no su fin. Por eso el fin lo defino
+PhaseNet marca el inicio del evento, pero no su fin. Por eso el fin se define
 con la energía de la señal:
 
 \begin{itemize}
@@ -846,7 +849,7 @@ con la energía de la señal:
 
 Los pasos y los valores exactos están en la Sección~\ref{sec:esquema}.
 
-Para saber si un recorte es bueno uso el IoU, que mide cuánto coinciden el
+Para saber si un recorte es bueno se usa el IoU, que mide cuánto coinciden el
 recorte y el evento del catálogo: el tiempo que comparten dividido por el
 tiempo total que abarcan entre los dos. Vale 1 si coinciden exactamente y 0 si
 no se tocan. Por ejemplo, un evento de 0 a 60~s y un recorte de 10 a 70~s
@@ -898,8 +901,8 @@ energía llega a entre 0,8 y 1,6 veces el ruido)
 
 PhaseNet no usa la energía de la señal: solo entrega, para cada instante, la
 probabilidad de que llegue una onda P o una onda S. Con eso se sabe cuándo
-empieza un evento, pero no cuándo termina. El fin lo calculo yo con la energía
-de la misma señal que recibe PhaseNet: Z, N y E de FRE, filtradas en
+empieza un evento, pero no cuándo termina. El fin se calcula aparte, con la
+energía de la misma señal que recibe PhaseNet: Z, N y E de FRE, filtradas en
 1--15~Hz. La Figura~\ref{fig:esquema} muestra el esquema y estos son los pasos:
 
 \begin{enumerate}
@@ -910,17 +913,17 @@ de la misma señal que recibe PhaseNet: Z, N y E de FRE, filtradas en
 \item \textbf{P y S juntas.} Los avisos de P y de S que caen a 5~s o menos del
   primero cuentan como uno solo, con la hora del más temprano.
 \item \textbf{Inicio del recorte:} 2,5~s antes del aviso.
-\item \textbf{Energía.} En cada instante sumo los cuadrados de Z, N y E,
-  promedio esa suma en ventanas de 1~s y saco la raíz. Esta curva sube cuando
+\item \textbf{Energía.} En cada instante se suman los cuadrados de Z, N y E,
+  esa suma se promedia en ventanas de 1~s y se saca la raíz. Esta curva sube cuando
   llega el evento y baja cuando termina.
-\item \textbf{Ruido de fondo.} Tomo la energía entre 120 y 5~s antes del aviso,
+\item \textbf{Ruido de fondo.} Se toma la energía entre 120 y 5~s antes del aviso,
   solo donde hay registro. El nivel de ruido es el valor bajo el cual queda el
-  20\,\% de ese tramo. Si en ese tramo hay menos de 1~s de registro, no hago
-  recorte.
+  20\,\% de ese tramo. Si en ese tramo hay menos de 1~s de registro, no se
+  hace recorte.
 \item \textbf{Umbral de fin:} el doble del nivel de ruido.
-\item \textbf{Fin del recorte.} Entre 2 y 300~s después del aviso, busco el
+\item \textbf{Fin del recorte.} Entre 2 y 300~s después del aviso, se busca el
   primer tramo de 5~s seguidos con la energía bajo el umbral; el recorte termina
-  donde empieza ese tramo. Si no lo encuentro, termina a los 300~s. Si antes hay
+  donde empieza ese tramo. Si no se encuentra, termina a los 300~s. Si antes hay
   un hueco en el registro o termina el tramo de la traza, el recorte termina
   ahí.
 \item \textbf{Corte.} Si el siguiente aviso de PhaseNet llega antes de ese fin,
@@ -950,7 +953,7 @@ de la misma señal que recibe PhaseNet: Z, N y E de FRE, filtradas en
 \caption{Esquema del recorte por energía (no está a escala). La curva azul es la energía de Z, N y E promediada en 1~s; el recorte, en naranjo, va de 2,5~s antes del aviso hasta el fin.}\label{fig:esquema}
 \end{figure}
 
-Estos valores los fijé yo; no vienen de PhaseNet. El
+Estos valores son propios de este trabajo; no vienen de PhaseNet. El
 Cuadro~\ref{tab:esquema} dice para qué sirve cada uno.
 
 {\small
@@ -978,7 +981,7 @@ cuando no pasa nada; con ese nivel se decide dónde termina el evento (pasos 5 a
 7). El \emph{percentil} dice qué valor de ese tramo se toma como nivel: con el
 20\,\%, el nivel es la energía bajo la cual queda el 20\,\% del tramo.
 
-Para ver si esos valores importan, repetí el recorte con energía y corte
+Para ver si esos valores importan, se repitió el recorte con energía y corte
 cambiando solo el período de ruido (cuánto antes del aviso empieza y termina) y
 el percentil, sin tocar lo demás. El Cuadro~\ref{tab:ruido} muestra el
 resultado; en negrita, los valores en uso.
@@ -1028,8 +1031,8 @@ resultado; en negrita, los valores en uso.
   de los valores en uso.
 \end{itemize}
 
-No cambié los valores: elegir la mejor combinación con la misma traza con que
-evalúo es ajustar el método a estos datos. Si se cambian, quedará declarado así.
+No se cambiaron los valores: elegir la mejor combinación con la misma traza con
+que se evalúa es ajustar el método a estos datos. Si se cambian, quedará declarado así.
 
 \subsection*{¿El recorte alcanza el inicio del evento?}
 
@@ -1071,13 +1074,13 @@ S & Todas & 28 & 7 & 21 & 5,0 & 0,53 \\
 Esto afecta solo a los recortes de PhaseNet, que empiezan a partir del aviso;
 los de EQTransformer y STA/LTA tienen su propio inicio. Para que el recorte
 alcance la onda P cuando avisa solo la S habría que agregar una regla nueva al
-recorte, que no viene de PhaseNet. No la agregué.
+recorte, que no viene de PhaseNet. No se agregó.
 
 \section{Calidad del recorte con varios umbrales de IoU}\label{sec:iou}
 
 Un recorte puede tocar el evento sin coincidir bien con él. Para ver las dos
-cosas, conté cuántos volcánicos tienen un recorte que los toca (cualquier
-tiempo en común) y cuántos superan cada umbral de IoU, de 0,1 a 0,9. Lo hice
+cosas, se contó cuántos volcánicos tienen un recorte que los toca (cualquier
+tiempo en común) y cuántos superan cada umbral de IoU, de 0,1 a 0,9. Se hizo
 con las mismas reglas para los cinco recortes: un recorte por evento, las redes
 con umbral 0,10 y filtro de 1--15~Hz, y STA/LTA con la configuración de la
 Etapa~2.
@@ -1211,7 +1214,7 @@ STA/LTA, recorte propio & 0 & 14 (0,42) & 91 (0,33) & 1 (0,52) & 19 \\
 \item \textbf{Dónde falla el recorte por energía con corte:} en 81 volcánicos
   el recorte termina antes que el evento (52 + 29), y en 43 empieza después del
   inicio del catálogo (29 + 14). En esos 43, el aviso de PhaseNet llegó más de
-  2,5~s después del inicio, que es el margen que dejo antes del aviso.
+  2,5~s después del inicio, que es el margen que se deja antes del aviso.
 \item \textbf{STA/LTA y EQTransformer cortan corto:} casi siempre su recorte
   queda dentro del evento (91 y 53 casos). EQTransformer no toca 34 volcánicos.
 \end{itemize}
@@ -1221,7 +1224,7 @@ STA/LTA, recorte propio & 0 & 14 (0,42) & 91 (0,33) & 1 (0,52) & 19 \\
 El recorte propio de EQTransformer depende de su \texttt{detection\_threshold}:
 el aviso se apaga cuando la curva de detección baja de la mitad de ese valor,
 así que un umbral más bajo da recortes más largos. Es el único parámetro de
-EQTransformer que cambia su recorte, y lo probé de 0,02 a 0,95
+EQTransformer que cambia su recorte, y se probó de 0,02 a 0,95
 (Cuadro~\ref{tab:iou-eqt}).
 
 \Needspace*{16\baselineskip}
@@ -1244,13 +1247,13 @@ EQTransformer que cambia su recorte, y lo probé de 0,02 a 0,95
 Con el valor más bajo, 0,02, los recortes duran 9,5~s en mediana y 23
 volcánicos quedan con IoU de 0,3 o más (0,184), contra 107 de PhaseNet con
 energía y corte. Los eventos duran 32,6~s en mediana, así que aun así los
-recortes de EQTransformer son mucho más cortos que los eventos. STA/LTA no lo
-moví: su fin depende de \texttt{thres2}, y su configuración se mantiene la de
+recortes de EQTransformer son mucho más cortos que los eventos. STA/LTA no se
+movió: su fin depende de \texttt{thres2}, y su configuración se mantiene la de
 la Etapa~2.
 
 \section{PhaseNet y EQTransformer juntos}\label{sec:fusion}
 
-Junté los avisos de las dos redes: si un aviso de PhaseNet y uno de
+Se juntaron los avisos de las dos redes: si un aviso de PhaseNet y uno de
 EQTransformer caen a 5~s o menos uno del otro, cuentan como una sola
 detección, con la hora del más temprano. El Cuadro~\ref{tab:fusion} muestra el
 resultado con distintos umbrales para cada red.
