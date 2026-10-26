@@ -1,0 +1,43 @@
+archivo,clase,motivo,modo,ncc_media,ncc_estacion_sola,tramo_traza,utc_traza,cat_tipo_traza,cat_iou_traza,observacion
+AV/01161205.9AV.npy,AV,copia,1est,0.3700,0.9971,1,2018-02-09 04:37:57,AV,0.8113,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/01192115.9AV.npy,AV,copia,1est,0.7166,0.9965,1,2018-02-09 04:52:21,AV,0.7795,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/01192303.9AV.npy,AV,copia,1est,0.1325,0.9982,1,2018-02-09 08:53:17,AV,0.8366,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/01210111.9AV.npy,AV,copia,1est,0.7022,0.9987,1,2018-02-09 05:22:04,AV,0.8894,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/01210115.9AV.npy,AV,copia,1est,0.3356,0.9974,1,2018-02-09 06:47:43,AV,0.8496,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/01220545.9AV.npy,AV,copia,1est,0.1485,0.9903,1,2018-02-09 04:35:31,AV,0.8267,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/01281736.9AV.npy,AV,copia,1est,0.3176,0.9919,1,2018-02-09 04:34:27,AV,0.7519,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/01290614.9AV.npy,AV,copia,1est,0.2997,0.9968,1,2018-02-09 04:46:17,AV,0.7299,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/01291608.9AV.npy,AV,copia,1est,0.3235,0.9937,1,2018-02-09 04:08:20,AV,0.7535,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/02050646.9AV.npy,AV,copia,1est,0.2032,0.9859,1,2018-02-09 05:18:57,AV,0.8068,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/02090522.9AV.npy,AV,copia,1est,0.8051,1.0000,1,2018-02-09 05:22:26,AV,0.9825,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/02090526.9AV.npy,AV,copia,1est,0.6616,1.0000,1,2018-02-09 05:25:56,AV,0.8350,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/02090629.9AV.npy,AV,copia,evento,1.0000,1.0000,1,2018-02-09 06:29:10,VT,0.7551,clase del pool distinta de la del evento de la traza (VT)
+AV/02090632.9AV.npy,AV,copia,evento,1.0000,1.0000,1,2018-02-09 06:32:21,AV,0.9653,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/02090804.9AV.npy,AV,copia,evento,1.0000,1.0000,1,2018-02-09 08:04:07,AV,0.8811,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/02122130.9AV.npy,AV,copia,1est,0.3825,0.9993,1,2018-02-09 05:26:01,AV,0.8879,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/02131341.9AV.npy,AV,copia,1est,0.3521,0.9936,1,2018-02-09 07:18:01,AV,0.8126,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/02140051.9AV.npy,AV,copia,1est,0.3287,0.9848,1,2018-02-09 06:31:41,AV,0.7982,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/02230849.9AV.npy,AV,copia,1est,0.6332,0.9923,1,2018-02-09 07:17:03,AV,0.7611,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/02241837.9AV.npy,AV,copia,1est,0.3624,0.9918,1,2018-02-09 08:04:27,AV,0.7826,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+AV/02261818.9AV.npy,AV,copia,1est,0.3318,0.9970,1,2018-02-09 08:39:26,AV,0.7567,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+IC/01100705.9IC.npy,IC,copia,evento,1.0000,1.0000,3,2017-01-10 07:04:36,IC,0.5308,
+IC/01100709.9IC.npy,IC,copia,evento,1.0000,1.0000,3,2017-01-10 07:08:38,IC,0.6485,
+IC/01100713.9IC.npy,IC,copia,ventana,0.9439,1.0000,3,2017-01-10 07:12:43,IC,0.5305,
+VT/01140143.9VT.npy,VT,copia,ventana,1.0000,1.0000,2,2020-01-14 01:42:26,VT,0.5286,
+VT/01140152.9VT.npy,VT,copia,evento,1.0000,1.0000,2,2020-01-14 01:52:03,VT,0.3973,
+VT/01140402.9VT.npy,VT,copia,evento,1.0000,1.0000,2,2020-01-14 04:01:24,VT,0.4582,
+AV/02061158.9AV.npy,AV,dudosa,1est,0.3123,0.9679,1,2018-02-09 06:20:11,AV,0.7530,cae sobre un AV del tramo 1 sin senal en el crudo de FRE
+IC/01110449.9IC.npy,IC,dudosa,1est,0.3559,0.9778,3,2017-01-10 07:08:26,IC,0.5188,
+LP/02080922.9LP.npy,LP,dudosa,1est,0.8596,0.9780,1,2018-02-09 07:25:55,LP,0.8990,
+LP/02101158.9LP.npy,LP,dudosa,1est,0.7215,0.9621,1,2018-02-09 07:25:28,LP,0.7369,
+VT/01100357.9VT.npy,VT,dudosa,1est,0.3828,0.9670,2,2020-01-14 01:28:01,TR,0.1653,clase del pool distinta de la del evento de la traza (TR)
+VT/05151637.9VT.npy,VT,dudosa,1est,0.3905,0.9726,2,2020-01-14 01:27:56,TR,0.3121,clase del pool distinta de la del evento de la traza (TR)
+VT/05271804.9VT.npy,VT,dudosa,1est,0.4096,0.9812,2,2020-01-14 01:28:00,TR,0.2827,clase del pool distinta de la del evento de la traza (TR)
+LP/01250617.9LP.npy,LP,parecida,evento,0.9241,0.9658,1,2018-02-09 08:42:45,LP,0.9218,
+LP/01312122.9LP.npy,LP,parecida,evento,0.9231,0.9477,1,2018-02-09 06:13:57,LP,0.7667,
+LP/02141532.9LP.npy,LP,parecida,evento,0.9232,0.9569,1,2018-02-09 10:02:32,LP,0.5764,
+LP/02141615.9LP.npy,LP,parecida,evento,0.9011,0.9545,1,2018-02-09 10:02:17,LP,0.8839,
+LP/02152051.9LP.npy,LP,parecida,evento,0.9210,0.9710,1,2018-02-09 09:55:33,LP,0.8977,
+LP/02190710.9LP.npy,LP,parecida,evento,0.9216,0.9758,1,2018-02-09 05:36:54,LP,0.8246,
+LP/02231428.9LP.npy,LP,parecida,evento,0.9032,0.9658,1,2018-02-09 08:42:42,LP,0.8066,
+LP/03011351.9LP.npy,LP,parecida,evento,0.9082,0.9199,1,2018-02-09 05:36:50,LP,0.8530,
