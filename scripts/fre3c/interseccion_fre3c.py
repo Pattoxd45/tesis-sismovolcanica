@@ -297,6 +297,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--filtro", default="f1_15", choices=list(lib.FILTROS))
     args = ap.parse_args()
+    # con otro filtro las tablas llevan su nombre para no reemplazar las de 1-15 Hz
+    suf = "" if args.filtro == "f1_15" else f"_{args.filtro}"
 
     eventos = pd.read_csv(lib.RUTA_EVENTOS)
     inc = eventos[eventos.incluido].reset_index(drop=True)
@@ -315,7 +317,7 @@ def main():
     for r in dc.itertuples():
         print(f"   {r.detector:<25} {r.criterio:<13} {r.k_VT:>3}/{r.n_VT:<2} {r.k_LP:>3}/{r.n_LP:<2} "
               f"{r.k_TR:>3}/{r.n_TR:<2} {r.k_volc:>4}/{r.n_volc:<3} {r.sens_volc:>6.3f} {r.fp_h:>6.1f}")
-    dc.to_csv(os.path.join(lib.DIR_SALIDA, "interseccion_criterios.csv"), index=False)
+    dc.to_csv(os.path.join(lib.DIR_SALIDA, f"interseccion_criterios{suf}.csv"), index=False)
 
     print("\n   Volcanicos que detecta un criterio y no el otro (interseccion contra +-5 s), en s desde el inicio")
     print("   (intervalo: el asignado si detecta la interseccion, el mas cercano si no; aviso: el asignado si detecta +-5 s, el mas cercano si no)")
@@ -323,11 +325,11 @@ def main():
     for r in dd.itertuples():
         iv = f"{r.intervalo_ini_rel_s:.1f} a {r.intervalo_fin_rel_s:.1f}" if np.isfinite(r.intervalo_ini_rel_s) else "-"
         print(f"   {r.detector:<25} {r.id:>4} {r.clase:>5} {r.dur_s:>6.1f} {r.solo:>12} {iv:>16} {r.aviso_rel_s:>7.1f}")
-    dd.to_csv(os.path.join(lib.DIR_SALIDA, "interseccion_diferencias.csv"), index=False)
+    dd.to_csv(os.path.join(lib.DIR_SALIDA, f"interseccion_diferencias{suf}.csv"), index=False)
 
     print("\n2. BARRIDO DE UMBRALES CON INTERSECCION (traza completa)")
     df = barrer(inc, zona, valida, args.filtro)
-    df.to_csv(os.path.join(lib.DIR_SALIDA, "interseccion_barrido.csv"), index=False)
+    df.to_csv(os.path.join(lib.DIR_SALIDA, f"interseccion_barrido{suf}.csv"), index=False)
     todo = df[df.tramo == "todos"]
     for det, g in todo.groupby("detector", sort=False):
         mx = elegir(g, "max")
@@ -344,7 +346,7 @@ def main():
     print("\n3. ROTACION DE TRAMOS: se elige con dos tramos y se mide en el tercero")
     print("   max = mayor sensibilidad y luego menos FP/h; meta = menos FP/h con 0,95 (si no, max)")
     dr = rotar(df)
-    dr.to_csv(os.path.join(lib.DIR_SALIDA, "interseccion_rotacion.csv"), index=False)
+    dr.to_csv(os.path.join(lib.DIR_SALIDA, f"interseccion_rotacion{suf}.csv"), index=False)
     for (det, crit), g in dr.groupby(["detector", "criterio"], sort=False):
         print(f"   {det} [{crit}]")
         for r in g.itertuples():
@@ -355,8 +357,7 @@ def main():
                 print(f"     mide tramo {r.tramo_medido}: elegido {fmt_umbral(r)} "
                       f"(en los otros dos {r.sens_eleccion:.3f}, {r.fp_h_eleccion:.1f} FP/h) -> "
                       f"{r.k_medido}/{r.n_medido}, {r.fp_h_medido:.1f} FP/h")
-    print(f"\nTablas en {lib.DIR_SALIDA}/interseccion_criterios.csv, interseccion_diferencias.csv, "
-          "interseccion_barrido.csv e interseccion_rotacion.csv")
+    print(f"\nTablas interseccion_*{suf}.csv en {lib.DIR_SALIDA}")
 
 
 if __name__ == "__main__":
