@@ -114,9 +114,23 @@ rehízo con una sola estación, FRE, y sus tres componentes reales, y se evaluó
 con las mismas reglas para PhaseNet, EQTransformer y STA/LTA. Solo se cambian
 los parámetros que cada tecnología expone, con su nombre oficial; las
 decisiones propias del trabajo se declaran aparte (Sección~\ref{sec:parametros}).
+
+Un evento cuenta como detectado cuando el intervalo que entrega el detector se
+cruza con el evento del catálogo (Sección~\ref{sec:interseccion}). Con ese
+criterio se barrieron los parámetros de las redes que expone SeisBench
+(Secciones~\ref{sec:grilla} y~\ref{sec:rotacion}) y se eligió una
+configuración (Sección~\ref{sec:eleccion}): PhaseNet con
+\texttt{P\_threshold} en 0,40 y \texttt{S\_threshold} en 0,05 detecta 119 de
+los 125 volcánicos (0,952) con 69,0 falsas alarmas por hora. Desde la
+Sección~\ref{sec:sensibilidad} en adelante están los resultados anteriores,
+hechos con umbral 0,10 y con el criterio de tolerancia, que contaba un evento
+si había un aviso cerca de su inicio; se mantienen como referencia. La calidad
+del recorte (Secciones~\ref{sec:recorte} a~\ref{sec:iou}) no depende de ese
+criterio.
+
 Cada término se explica la primera vez que aparece. Todas las cifras están
 medidas sobre la traza continua del Nevados de Chillán; las únicas figuras con
-valores inventados son dos ejemplos, y así se indica en ellas.
+valores inventados son ejemplos, y así se indica en ellas.
 
 \section{Datos}
 
@@ -231,19 +245,19 @@ aplicó tal cual y se comprobó que entrega los mismos avisos que su función
 \cabecera{\textbf{Parámetro} & \textbf{Qué hace} & \textbf{Por defecto} & \textbf{Usado} & \textbf{Por qué}}{5}
 \multicolumn{5}{l}{\textit{PhaseNet (SeisBench)}}\\*
 \addlinespace
-\texttt{P\_threshold} & Probabilidad mínima para aceptar una onda P. En el PhaseNet original se llama \texttt{min\_p\_prob}. & 0,3 & De 0,02 a 0,95; 0,10 en los cuadros & Con 0,3 se pierden muchos volcánicos, y la meta es encontrar el 95\,\%. \\
-\texttt{S\_threshold} & Lo mismo para la onda S (\texttt{min\_s\_prob}). & 0,3 & De 0,02 a 0,95, por separado de \texttt{P\_threshold} & La misma razón; resultados en la Sección~\ref{sec:ps}. \\
-\texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 1500 (15~s) & 1500 & Sin cambio. \\
-\texttt{blinding} & Muestras que se descartan en cada borde de la ventana, donde la red ve menos señal. & 250 por lado (2,5~s) & 250 por lado & Sin cambio. \\
-\texttt{stacking} & Cómo se juntan las ventanas que se solapan: promedio (\texttt{avg}) o máximo (\texttt{max}). & \texttt{avg} & \texttt{avg} & Sin cambio. \\
+\texttt{P\_threshold} & Probabilidad mínima para aceptar una onda P. En el PhaseNet original se llama \texttt{min\_p\_prob}. & 0,3 & 0,40 en la configuración elegida; de 0,02 a 0,95 en los barridos & La meta es encontrar el 95\,\% de los volcánicos (Sección~\ref{sec:eleccion}). \\
+\texttt{S\_threshold} & Lo mismo para la onda S (\texttt{min\_s\_prob}). & 0,3 & 0,05 en la configuración elegida; de 0,02 a 0,95, por separado de \texttt{P\_threshold} & Bajar la S suma volcánicos que la P no ve (Sección~\ref{sec:interseccion}). \\
+\texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 1500 (15~s) & 1500; de 500 a 2500 en la grilla & Cambiarlo no mejora de forma estable (Secciones~\ref{sec:grilla} y~\ref{sec:rotacion}). \\
+\texttt{blinding} & Muestras que se descartan en cada borde de la ventana, donde la red ve menos señal. & 250 por lado (2,5~s) & 250 por lado; de 0 a 500 en la grilla & La misma razón. \\
+\texttt{stacking} & Cómo se juntan las ventanas que se solapan: promedio (\texttt{avg}) o máximo (\texttt{max}). & \texttt{avg} & \texttt{avg}; también \texttt{max} en la grilla & La misma razón. \\
 \midrule\nopagebreak
 \multicolumn{5}{l}{\textit{EQTransformer (SeisBench)}}\\*
 \addlinespace
 \texttt{detection\_\allowbreak{}threshold} & Probabilidad mínima de la curva de detección. & 0,3 & De 0,02 a 0,95; 0,10 en los cuadros & La misma razón que en PhaseNet. \\
 \texttt{P\_threshold}, \texttt{S\_threshold} & Probabilidad mínima de la onda P y de la onda S. & 0,1 & De 0,02 a 0,95, cada uno por separado & La misma razón que en PhaseNet. \\
-\texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 3000 (30~s) & 3000 & Sin cambio. \\
-\texttt{blinding} & Muestras que se descartan en cada borde. & 500 por lado (5~s) & 500 por lado & Sin cambio. \\
-\texttt{stacking} & Cómo se juntan las ventanas que se solapan. & \texttt{max} & \texttt{max} & Sin cambio. \\
+\texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 3000 (30~s) & 3000; de 1000 a 5000 en la grilla & Resultados en las Secciones~\ref{sec:grilla} y~\ref{sec:rotacion}. \\
+\texttt{blinding} & Muestras que se descartan en cada borde. & 500 por lado (5~s) & 500 por lado; de 0 a 1000 en la grilla & La misma razón. \\
+\texttt{stacking} & Cómo se juntan las ventanas que se solapan. & \texttt{max} & \texttt{max}; también \texttt{avg} en la grilla & La misma razón. \\
 Filtro interno & Deja pasar solo 1--45~Hz antes de entrar a la red (orden 2, sin correr la señal en el tiempo). & 1--45~Hz & 1--45~Hz & No se puede cambiar: viene con los pesos. \\
 \midrule\nopagebreak
 \multicolumn{5}{l}{\textit{STA/LTA (ObsPy: \texttt{classic\_sta\_lta}, \texttt{trigger\_onset} y \texttt{bandpass})}}\\*
@@ -269,31 +283,37 @@ trabajo sobre cómo contar aciertos y cómo recortar. Se aplican igual a los tre
 detectores.
 
 \begin{itemize}
-\item \textbf{Tolerancia de 5 y de 10~s:} un evento cuenta como detectado si
-  hay un aviso a 5~s o menos de su inicio, antes o después. También se informan los
-  resultados con 10~s; la Sección~\ref{sec:tolerancia} explica los dos valores
-  y prueba otros.
-\item \textbf{Un aviso, un evento:} cada aviso se asigna a un solo evento, el de
-  inicio más cercano.
-\item \textbf{Avisos que se juntan:} los avisos de P y de S que caen a 5~s o
-  menos del primero cuentan como uno solo, con la hora del más temprano. La
-  misma regla junta PhaseNet con EQTransformer (Sección~\ref{sec:fusion}). En
-  STA/LTA, los avisos separados por menos de 5~s se unen en uno, como en la
-  Etapa~2.
-\item \textbf{Falsa alarma:} un aviso que no cae dentro de ningún evento del
-  catálogo ni en la ventana anterior a su inicio (5~s, o 10~s con la tolerancia
-  de 10~s).
-\item \textbf{Recorte:} el pedazo de señal que se corta para cada aviso, desde
-  donde empieza hasta donde termina el evento detectado. Es lo que después
-  recibirá el clasificador.
-\item \textbf{Bien recortado:} el recorte tiene un IoU de 0,30 o más con el
-  evento. El IoU divide el tiempo que el recorte y el evento tienen en común por
-  el tiempo total que ocupan entre los dos: vale 1 si coinciden y 0 si no se
-  tocan (Sección~\ref{sec:recorte}). La Sección~\ref{sec:iou} muestra otros
-  umbrales.
-\item \textbf{Recorte por energía:} PhaseNet no marca el fin del evento, así que
-  se calcula con la energía de la señal (Sección~\ref{sec:recorte}). Sus valores
-  son propios de este trabajo:
+\item Un evento cuenta como detectado si algún intervalo que entrega el detector
+  se cruza con él, aunque sea en un instante (Sección~\ref{sec:interseccion}).
+  Antes se contaba con una tolerancia de 5 o 10~s alrededor del inicio
+  (Sección~\ref{sec:tolerancia}).
+\item Cada intervalo cuenta para un solo evento, y cada evento para un solo
+  intervalo. Si un intervalo se cruza con dos eventos, se asigna a uno, de modo
+  que el total de eventos detectados sea el mayor posible.
+\item Los avisos de P y de S que empiezan a 5~s o menos del primero cuentan como
+  uno solo, que va desde el inicio del primero hasta el fin del último. La misma
+  regla junta PhaseNet con EQTransformer (Sección~\ref{sec:fusion}).
+\item Con la intersección, los intervalos de EQTransformer y STA/LTA se usan tal
+  como los entregan SeisBench y ObsPy. En la Etapa~2 y en las secciones con el
+  criterio anterior, los avisos de STA/LTA separados por menos de 5~s se unían en
+  uno.
+\item Una falsa alarma es un intervalo que no se cruza con ningún evento del
+  catálogo, volcánico o no. Con el criterio anterior era un aviso fuera de todo
+  evento y de la ventana anterior a su inicio (5~s, o 10~s con la tolerancia de
+  10~s).
+\item Los parámetros se eligen con la misma traza con que se evalúan. Para ver
+  cuánto pesa eso, también se eligieron con dos de los tres tramos y se midieron
+  en el tercero (Sección~\ref{sec:rotacion}).
+\item El recorte es el pedazo de señal que se corta para cada aviso, desde donde
+  empieza hasta donde termina el evento detectado. Es lo que después recibirá el
+  clasificador. Un evento queda bien recortado si su recorte tiene un IoU de
+  0,30 o más con él. El IoU divide el tiempo que el recorte y el evento tienen en
+  común por el tiempo total que ocupan entre los dos: vale 1 si coinciden y 0 si
+  no se tocan (Sección~\ref{sec:recorte}). La Sección~\ref{sec:iou} muestra
+  otros umbrales.
+\item PhaseNet no marca el fin del evento, así que su recorte se calcula con la
+  energía de la señal (Sección~\ref{sec:recorte}). Sus valores son propios de
+  este trabajo:
   \begin{itemize}
   \item empieza 2,5~s antes del aviso;
   \item la energía es la de Z, N y E juntas, promediada en ventanas de 1~s;
@@ -303,12 +323,310 @@ detectores.
   \item el fin está donde empieza el primer tramo de 5~s seguidos con la
     energía bajo el doble del ruido, buscado entre 2 y 300~s después del aviso;
     si antes hay un hueco en el registro, termina ahí;
-  \item \textbf{con corte:} si llega otro aviso antes de ese fin, el recorte
-    termina 2,5~s antes de ese aviso, donde empieza el recorte siguiente.
+  \item si llega otro aviso antes de ese fin, el recorte termina 2,5~s antes de
+    ese aviso, donde empieza el recorte siguiente (recorte \emph{con corte}).
   \end{itemize}
 \end{itemize}
 
+\section{Detección por intersección}\label{sec:interseccion}
+
+El catálogo marca, para cada evento, su inicio y su fin. Cada detector entrega
+\emph{intervalos}: tramos de tiempo en que dice que hay algo. Un evento cuenta
+como detectado si al menos uno de esos intervalos se cruza con él, es decir, si
+comparten algún instante, aunque sea uno solo. Cuánto se cruzan no importa para
+contar la detección; eso se mide después con el IoU del recorte
+(Sección~\ref{sec:iou}).
+
+Se usa el intervalo que entrega cada librería, sin agregarle nada:
+
+\begin{itemize}
+\item En PhaseNet, cada aviso es un intervalo: va desde que la probabilidad de
+  la onda supera el umbral hasta que baja de la mitad del umbral. SeisBench lo
+  entrega como inicio y fin de cada aviso (\texttt{start\_time} y
+  \texttt{end\_time}). Es corto: 0,8~s en mediana con umbral 0,10.
+\item En EQTransformer, el intervalo de su curva de detección, con la misma
+  regla de encendido y apagado; dura 8,7~s en mediana. EQTransformer también
+  se evalúa con sus avisos de P y S, igual que PhaseNet.
+\item En STA/LTA, desde que la razón STA/LTA supera \texttt{thres1} hasta que
+  baja de \texttt{thres2}, tal como lo entrega \texttt{trigger\_onset}; dura
+  7,8~s en mediana.
+\end{itemize}
+
+La \emph{sensibilidad} es la parte de los eventos que el detector encuentra:
+detectados divididos por el total. La meta es 0,95 con los 125 volcánicos, o
+sea, al menos 119. Una \emph{falsa alarma} es un intervalo que no se cruza con
+ningún evento del catálogo, y se cuentan por hora de registro (FP/h). La
+Figura~\ref{fig:interseccion} muestra los casos con un evento de ejemplo.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.145cm, y=1cm, font=\footnotesize]
+\fill[black!10] (0,0.45) rectangle (30,4.35);
+\foreach \y/\a/\b/\n/\d in {3.9/-4/1/A/{empieza antes y entra al evento:\\lo detecta},
+                            2.9/12/13/B/{queda dentro del evento:\\lo detecta},
+                            1.9/-8/-2/C/{termina antes del inicio: no lo detecta;\\si no toca otro evento, es falsa alarma},
+                            0.9/36/40/D/{empieza después del fin: no lo detecta;\\si no toca otro evento, es falsa alarma}} {
+  \fill[naranjo] (\a,\y-0.12) rectangle (\b,\y+0.12);
+  \node[anchor=east] at (-11,\y) {Intervalo \n};
+  \node[anchor=west, align=left] at (45,\y) {\d};
+}
+\draw[dashed, black!70] (0,0.3) -- (0,4.5);
+\draw[dashed, black!70] (30,0.3) -- (30,4.5);
+\node[above] at (15,4.4) {evento del catálogo};
+\draw[->, black!60] (-12,0.3) -- (42,0.3) node[right] {s};
+\foreach \x in {-10,0,10,20,30,40} {
+  \draw[black!60] (\x,0.3) -- (\x,0.22) node[below] {\x};
+}
+\end{tikzpicture}
+\caption{Un evento de ejemplo que va de 0 a 30~s (franja gris) y cuatro intervalos de un detector (naranjo). Basta compartir un instante con el evento para detectarlo.}\label{fig:interseccion}
+\end{figure}
+
+\subsection*{Resultado con umbral 0,10}
+
+El Cuadro~\ref{tab:criterios} compara la intersección con el criterio
+anterior, que contaba un evento como detectado si había un aviso a 5 o 10~s de
+su inicio (Sección~\ref{sec:tolerancia}). Las redes usan umbral 0,10 y filtro
+de 1--15~Hz, y STA/LTA la configuración de la Etapa~2.
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.2cm}rrrrrrr}
+\caption{Detección por intersección y con el criterio anterior. Volcánicos: detectados de 125.}\label{tab:criterios}\\
+\cabecera{ & \multicolumn{5}{c}{\textbf{Intersección}} & \multicolumn{2}{c}{\textbf{Antes: volcánicos}} \\ \textbf{Detector} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcánicos} & \textbf{FP/h} & \textbf{5~s} & \textbf{10~s}}{8}
+PhaseNet, P y S & 34/36 & 49/52 & 34/37 & 117 = 0,936 & 62,7 & 113 & 121 \\
+EQTransformer, detección & 27/36 & 43/52 & 22/37 & 92 = 0,736 & 7,9 & 69 & 72 \\
+EQTransformer, P y S & 22/36 & 33/52 & 16/37 & 71 = 0,568 & 9,3 & 67 & 70 \\
+STA/LTA & 32/36 & 44/52 & 30/37 & 106 = 0,848 & 19,0 & 89 & 99 \\
+\end{longtable}
+}
+
+Con la intersección, PhaseNet detecta 117 de 125 (0,936 [0,879; 0,967]): 4
+más que con 5~s y 4 menos que con 10~s. Los que más suben son EQTransformer con
+su curva de detección, de 69 a 92, y STA/LTA, de 89 a 106. Las falsas alarmas
+casi no cambian.
+
+Para saber de dónde salen las diferencias se revisaron, evento por evento, los
+volcánicos que detecta un criterio y no el otro. En PhaseNet:
+
+\begin{itemize}
+\item Gana 8 TR. En 6, el intervalo del aviso está entre 4,6 y 8,2~s después
+  del inicio, y en 2, a los 22 y 42~s: con 5~s quedaban fuera de la ventana, y
+  con la intersección cuentan porque el aviso cae dentro del evento.
+\item Pierde 4 (3 LP y 1 VT). En los cuatro, el intervalo del aviso termina
+  entre 0,0 y 1,1~s antes del inicio que marca el catálogo: PhaseNet avisa un
+  poco antes de la etiqueta. Con 5~s esos avisos contaban; con la intersección,
+  no. Con estos datos no se puede saber si en esos eventos el catálogo marca el
+  inicio algo tarde o si PhaseNet avisa antes de tiempo.
+\end{itemize}
+
+EQTransformer, con su curva de detección, gana 24 volcánicos y pierde 1. En 16
+de los 24, su intervalo empieza entre 9 y 46~s antes del inicio y sigue dentro
+del evento; en los otros 8 empieza dentro del evento, entre 6,9 y 154,5~s
+después del inicio. STA/LTA gana 18 y pierde 1; 14 de los 18 son TR, con el
+intervalo dentro del evento y 5~s o más después de su inicio. Que un intervalo cruce
+el evento no dice si sirve para recortarlo: eso lo mide el IoU, y ahí
+EQTransformer y STA/LTA quedan bajo PhaseNet (Sección~\ref{sec:iou}).
+
+\subsection*{Umbrales con intersección}
+
+Se repitió el barrido de umbrales con la intersección: 441 combinaciones de
+\texttt{P\_threshold} y \texttt{S\_threshold} en cada red y 21 valores de
+\texttt{detection\_threshold} en EQTransformer, de 0,02 a 0,95. El
+Cuadro~\ref{tab:metas-int} muestra con qué valores llega cada detector a cada
+meta y con cuántas falsas alarmas.
+
+\Needspace*{14\baselineskip}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{3.2cm}}
+\caption{Valores con que cada detector llega a cada meta de sensibilidad volcánica con la intersección (125 eventos, filtro 1--15~Hz, ventanas por defecto). Entre paréntesis, detectados y FP/h.}\label{tab:metas-int}\\
+\cabecera{\textbf{Detector} & \textbf{Meta 0,80} & \textbf{Meta 0,90} & \textbf{Meta 0,95} & \textbf{Máximo}}{5}
+PhaseNet, P y S & P 0,40 y S 0,25 (101; 28,6) & P 0,40 y S 0,15 (114; 41,8) & P 0,40 y S 0,05 (119; 69,0) & 0,984 con P 0,03 y S 0,02 (123; 104,4) \\
+EQTransformer, detección & umbral 0,05 (100; 10,3) & --- & --- & 0,864 con umbral 0,02 (108; 13,1) \\
+EQTransformer, P y S & --- & --- & --- & 0,736 con P 0,03 y S 0,02 (92; 14,4) \\
+STA/LTA (no se barre) & configuración de la Etapa~2 (106; 19,0) & --- & --- & 0,848 (106; 19,0) \\
+\end{longtable}
+}
+
+Solo PhaseNet llega a 0,95. Las tres metas las alcanza con
+\texttt{P\_threshold} en 0,40; lo que cambia de una a otra es
+\texttt{S\_threshold}: 0,25, 0,15 y 0,05. Lo que suma eventos es bajar el
+umbral de la S, que detecta volcánicos, sobre todo LP y TR, en que la P no da
+aviso (Cuadro~\ref{tab:solo-ps}).
+
+\section{Grilla de los parámetros de las redes}\label{sec:grilla}
+
+Además de los umbrales, SeisBench expone tres parámetros que deciden cómo la
+red recorre la traza. La red no lee la traza completa de una vez, sino por
+ventanas: de 30~s en PhaseNet (3001 muestras) y de 60~s en EQTransformer (6000
+muestras).
+
+\begin{itemize}
+\item \texttt{overlap} es cuántas muestras comparten dos ventanas seguidas. Con
+  más overlap, cada instante queda dentro de más ventanas y recibe más
+  predicciones.
+\item \texttt{stacking} decide cómo se juntan las predicciones de un mismo
+  instante: con el promedio (\texttt{avg}) o con el máximo (\texttt{max}).
+\item \texttt{blinding} descarta las predicciones de cada borde de la ventana,
+  donde la red ve señal solo hacia un lado.
+\end{itemize}
+
+A diferencia de los umbrales, estos parámetros cambian las curvas de
+probabilidad, así que con cada combinación se volvió a correr la red sobre toda
+la traza. Se probaron los valores del Cuadro~\ref{tab:grilla-valores}, todos
+con el filtro de 1--15~Hz.
+
+{\small
+\setlength{\tabcolsep}{5pt}
+\begin{longtable}{lllll}
+\caption{Valores probados de cada parámetro (en negrita, el valor por defecto).}\label{tab:grilla-valores}\\
+\cabecera{\textbf{Red} & \textbf{\texttt{overlap} (muestras)} & \textbf{\texttt{blinding} (por lado)} & \textbf{\texttt{stacking}} & \textbf{Combinaciones}}{5}
+PhaseNet & 500, 1000, \textbf{1500}, 2000, 2500 & 0, 100, \textbf{250}, 500 & \textbf{avg}, max & 38 \\
+EQTransformer & 1000, 2000, \textbf{3000}, 4000, 5000 & 0, 250, \textbf{500}, 1000 & avg, \textbf{max} & 38 \\
+\end{longtable}
+}
+
+Se omitieron las 2 combinaciones de cada red con \texttt{overlap} menor que el
+doble de \texttt{blinding}: en ellas se descarta más de lo que se solapan las
+ventanas, y quedan tramos de la traza sin predicción. En cada combinación se
+barrieron otra vez los umbrales, así que PhaseNet suma 16.758 casos y
+EQTransformer 17.556. La combinación por defecto repitió exactamente las curvas
+ya calculadas, lo que confirma que la grilla corre igual que el resto.
+
+\Needspace*{22\baselineskip}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}p{5.0cm}}
+\caption{Ventanas por defecto contra la mejor combinación de la grilla (traza completa). En las metas, FP/h con que se alcanzan; en el máximo, sensibilidad y FP/h.}\label{tab:grilla}\\
+\cabecera{\textbf{Detector y meta} & \textbf{Ventanas por defecto} & \textbf{Mejor de la grilla} & \textbf{Valores de la mejor}}{4}
+\multicolumn{4}{l}{\textit{PhaseNet, P y S}}\\*
+\addlinespace
+Meta 0,80 & 28,6 & 25,3 & overlap 2500, blinding 0, max; P 0,95, S 0,40 \\
+Meta 0,90 & 41,8 & 39,3 & overlap 2000, blinding 0, avg; P 0,45, S 0,15 \\
+Meta 0,95 & 69,0 & 48,1 & overlap 2500, blinding 0, max; P 0,95, S 0,25 \\
+Máximo & 0,984; 104,4 & 1,000; 115,2 & overlap 2500, blinding 500, max; P 0,90, S 0,02 \\
+\midrule
+\multicolumn{4}{l}{\textit{EQTransformer, detección}}\\*
+\addlinespace
+Meta 0,80 & 10,3 & 8,5 & overlap 4000, blinding 500, max; umbral 0,15 \\
+Meta 0,90 & --- & 14,3 & overlap 4000, blinding 1000, max; umbral 0,02 \\
+Meta 0,95 & --- & --- & \\
+Máximo & 0,864; 13,1 & 0,936; 52,7 & overlap 4000, blinding 0, max; umbral 0,02 \\
+\midrule
+\multicolumn{4}{l}{\textit{EQTransformer, P y S}}\\*
+\addlinespace
+Meta 0,80 & --- & 12,5 & overlap 5000, blinding 1000, max; P 0,65, S 0,03 \\
+Meta 0,90 y 0,95 & --- & --- & \\
+Máximo & 0,736; 14,4 & 0,872; 25,0 & overlap 5000, blinding 500, max; P 0,03, S 0,02 \\
+\end{longtable}
+}
+
+En EQTransformer las ventanas pesan mucho: con más \texttt{overlap} y
+\texttt{stacking} en \texttt{max}, su curva de detección llega a 0,90 con 14,3
+falsas alarmas por hora, algo que con las ventanas por defecto no alcanza. Aun
+así, ninguna combinación llega a 0,95. En PhaseNet la sensibilidad casi no
+cambia, porque ya llega a 0,95 con las ventanas por defecto; lo que cambia son
+las falsas alarmas: para 0,95, de 69,0 a 48,1 por hora. En esa combinación
+\texttt{P\_threshold} queda en 0,95, así que la onda P casi no da avisos y la
+detección queda en manos de la S. No se midió cómo afecta eso al inicio del
+recorte, que se apoya en el aviso de la P (Sección~\ref{sec:recorte}).
+
+\section{Rotación de tramos}\label{sec:rotacion}
+
+Todos los valores anteriores se eligieron con la misma traza con que se
+evalúan. Con tantas combinaciones, más de 16 mil en PhaseNet, alguna puede
+salir bien en esta traza por casualidad y no repetirse en otra. Para medirlo,
+los parámetros se eligieron con dos de los tres tramos de la traza y se
+midieron en el tercero, rotando:
+
+\begin{enumerate}
+\item se eligen con los tramos 1 y 2 y se miden en el 3;
+\item se eligen con los tramos 1 y 3 y se miden en el 2;
+\item se eligen con los tramos 2 y 3 y se miden en el 1.
+\end{enumerate}
+
+Al sumar las tres mediciones, los 125 volcánicos quedan medidos con parámetros
+que no se eligieron con ellos. En cada rotación se toma la combinación con
+menos falsas alarmas que llega a 0,95 en los dos tramos de elección; si
+ninguna llega, la de mayor sensibilidad.
+
+Los volcánicos no están repartidos parejo entre los tramos
+(Cuadro~\ref{tab:tramos}): el tramo 1 tiene casi todos los LP y TR, el 2 tiene
+sobre todo VT y el 3 casi solo IC. En la práctica, la prueba compara los tramos
+1 y 2, que tienen eventos de distinto tipo.
+
+{\small
+\setlength{\tabcolsep}{5pt}
+\begin{longtable}{lrrrrrrr}
+\caption{Eventos evaluados por tramo y horas con registro.}\label{tab:tramos}\\
+\cabecera{\textbf{Tramo} & \textbf{Horas} & \textbf{VT} & \textbf{LP} & \textbf{TR} & \textbf{Volcánicos} & \textbf{AV} & \textbf{IC}}{8}
+1 & 5,75 & 12 & 48 & 33 & 93 & 2 & 12 \\
+2 & 2,82 & 22 & 4 & 4 & 30 & 2 & 9 \\
+3 & 1,16 & 2 & 0 & 0 & 2 & 2 & 27 \\
+\midrule
+Total & 9,73 & 36 & 52 & 37 & 125 & 6 & 48 \\
+\end{longtable}
+}
+
+\Needspace*{16\baselineskip}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.8cm}>{\raggedright\arraybackslash}p{4.0cm}>{\raggedright\arraybackslash}p{4.0cm}}
+\caption{Elección con la traza completa contra elección rotando los tramos. Volcánicos detectados de 125 y FP/h.}\label{tab:rotacion}\\
+\cabecera{\textbf{Detector y qué se elige} & \textbf{Traza completa} & \textbf{Rotación de tramos}}{3}
+PhaseNet, solo umbrales & 119 = 0,952; 69,0 & 120 = 0,960; 79,7 \\
+PhaseNet, umbrales y ventanas & 120 = 0,960; 48,1 & 116 = 0,928; 59,5 \\
+\midrule
+EQTransformer detección, solo umbral & 108 = 0,864; 13,1 & 108 = 0,864; 13,1 \\
+EQTransformer detección, umbral y ventanas & 117 = 0,936; 52,7 & 114 = 0,912; 42,3 \\
+\midrule
+EQTransformer P y S, solo umbrales & 92 = 0,736; 14,4 & 89 = 0,712; 12,2 \\
+EQTransformer P y S, umbrales y ventanas & 109 = 0,872; 25,0 & 103 = 0,824; 18,4 \\
+\end{longtable}
+}
+
+Con solo los umbrales, PhaseNet mantiene la meta al medir en tramos que no se
+usaron para elegir: 120 de 125 (0,960). Con las ventanas, la mejora en falsas
+alarmas no se sostiene: baja a 116 (0,928), bajo la meta. Con más parámetros
+para elegir, la elección se ajusta más a los tramos con que se hace. En
+EQTransformer, en cambio, las ventanas mejoran también en la rotación: su curva
+de detección pasa de 0,864 a 0,912, con más falsas alarmas (de 13,1 a 42,3 por
+hora).
+
+\section{Configuración elegida}\label{sec:eleccion}
+
+Para lo que sigue se elige PhaseNet con P y S, las ventanas por defecto de
+SeisBench (\texttt{overlap} 1500, \texttt{blinding} 250 por lado,
+\texttt{stacking} \texttt{avg}), \texttt{P\_threshold} en 0,40,
+\texttt{S\_threshold} en 0,05 y filtro de 1--15~Hz. Detecta 119 de los 125
+volcánicos, 0,952 [0,899; 0,978], con 69,0 falsas alarmas por hora: VT 34/36,
+LP 50/52 y TR 35/37.
+
+Es la que llega a 0,95 con menos falsas alarmas sin cambiar las ventanas: solo
+mueve los dos umbrales de PhaseNet, partiendo de su valor por defecto. Además,
+eligiendo solo los umbrales la meta se mantiene en la rotación de tramos, y
+eligiendo también las ventanas, no (Cuadro~\ref{tab:rotacion}). La combinación con ventanas cambiadas tiene
+menos falsas alarmas en la traza completa, 48,1 por hora, pero no se sostiene
+al medir en tramos que no se usaron para elegir.
+
+El intervalo de confianza del 95\,\% va de 0,899 a 0,978: con 125 eventos, el
+valor medido pasa la meta, pero el intervalo incluye valores bajo ella. Con esta
+configuración, el recorte por energía con corte deja 108 de los 125 volcánicos
+con IoU de 0,30 o más (107 con 0,10 para las dos ondas); las demás cifras del
+recorte (Secciones~\ref{sec:recorte} a~\ref{sec:iou}) se calcularon con 0,10.
+
+Las 69,0 falsas alarmas por hora irán a la clase de rechazo del clasificador.
+No hay una tasa aceptable publicada para este caso, y el período evaluado es de
+alta actividad del volcán. Queda para después analizar la relación
+señal-ruido (SNR, cuánto sobresale un evento del ruido de fondo) de los eventos
+y de las falsas alarmas, y evaluar un clasificador que las descarte.
+
 \section{Sensibilidad por clase}\label{sec:sensibilidad}
+
+Esta sección y las siguientes, hasta la Sección~\ref{sec:tolerancia}, usan el
+criterio anterior: un evento cuenta si hay un aviso a 5~s o menos de su inicio
+(o a 10~s donde se indica), con las redes en umbral 0,10. Se mantienen como
+referencia; el criterio vigente es el de la Sección~\ref{sec:interseccion}.
 
 La \emph{sensibilidad} de una clase es la parte de sus eventos del catálogo que
 el detector encuentra: eventos detectados divididos por eventos de esa clase.
@@ -621,7 +939,8 @@ de P y de S se eligen por separado (Sección~\ref{sec:ps}). Con 5~s de
 tolerancia ningún detector llega al 95\,\%: el máximo es 0,936, de PhaseNet.
 La parte de abajo mide el recorte con el IoU (Sección~\ref{sec:recorte}), que
 no depende de la tolerancia. El Cuadro~\ref{tab:metas-10} repite la parte de
-detección con 10~s.
+detección con 10~s. Con la intersección, el cuadro que vale es el
+Cuadro~\ref{tab:metas-int}.
 
 \Needspace*{34\baselineskip}
 {\small
@@ -884,7 +1203,9 @@ ninguno.
 Por eso se informan las dos tolerancias, 5 y 10~s, siempre con las mismas reglas
 para los tres detectores. Con 5~s ningún detector llega a 0,95; con 10~s,
 PhaseNet llega a 0,968. La diferencia entre las dos está casi toda en TR, cuyo
-aviso llega más tarde.
+aviso llega más tarde. Con la intersección (Sección~\ref{sec:interseccion}) ya
+no hace falta elegir una tolerancia: un evento cuenta si el intervalo del
+detector se cruza con él, llegue antes o después.
 
 \section{Recorte de PhaseNet por energía}\label{sec:recorte}
 
@@ -1124,9 +1445,33 @@ S & Todas & 28 & 7 & 21 & 5,0 & 0,53 \\
 \end{itemize}
 
 Esto afecta solo a los recortes de PhaseNet, que empiezan a partir del aviso;
-los de EQTransformer y STA/LTA tienen su propio inicio. Para que el recorte
-alcance la onda P cuando avisa solo la S habría que agregar una regla nueva al
-recorte, que no viene de PhaseNet. No se agregó.
+los de EQTransformer y STA/LTA tienen su propio inicio. Dentro de PhaseNet, lo
+que puede adelantar el aviso es bajar \texttt{P\_threshold}: con un umbral más
+bajo, PhaseNet podría marcar la P en eventos en que hoy solo marca la S. Se
+probó con los 21 recortes que empiezan tarde, dejando el resto del recorte igual
+(Cuadro~\ref{tab:p-threshold}).
+
+{\small
+\setlength{\tabcolsep}{5pt}
+\begin{longtable}{rr>{\raggedleft\arraybackslash}p{2.2cm}>{\raggedleft\arraybackslash}p{2.2cm}>{\raggedleft\arraybackslash}p{2.0cm}>{\raggedleft\arraybackslash}p{2.8cm}}
+\caption{Los 21 recortes que empiezan tarde con 0,10 para las dos ondas, con otros valores de \texttt{P\_threshold} y \texttt{S\_threshold}. Última columna: todos los volcánicos con IoU de 0,30 o más.}\label{tab:p-threshold}\\
+\cabecera{\textbf{P} & \textbf{S} & \textbf{Ahora avisa la P} & \textbf{Ahora empieza antes} & \textbf{Sigue tarde} & \textbf{IoU 0,30 (de 125)}}{6}
+0,10 & 0,10 & 0 & 0 & 21 & 107 \\
+0,05 & 0,10 & 0 & 0 & 21 & 107 \\
+0,03 & 0,10 & 1 & 0 & 21 & 107 \\
+0,02 & 0,10 & 4 & 1 & 20 & 107 \\
+\midrule
+0,30 & 0,10 & 0 & 0 & 21 & 105 \\
+0,40 & 0,05 & 0 & 1 & 20 & 108 \\
+\end{longtable}
+}
+
+Bajar \texttt{P\_threshold} casi no corrige estos recortes: con 0,02, en 4 de
+los 21 el aviso pasa a venir de la P, pero solo 1 empieza antes del inicio. En
+estos eventos, casi todos TR, PhaseNet no marca una onda P temprana ni con
+umbrales muy bajos. Corregirlo requeriría una regla nueva en el recorte, que no
+viene de PhaseNet, así que queda como limitación: cuando avisa solo la S, el
+recorte puede empezar después del inicio del evento y perder la onda P.
 
 \section{Calidad del recorte con varios umbrales de IoU}\label{sec:iou}
 
