@@ -304,7 +304,8 @@ detectores.
   10~s).
 \item Los parámetros se eligen con la misma traza con que se evalúan. Para ver
   cuánto pesa eso, también se eligieron con dos de los tres tramos y se midieron
-  en el tercero (Sección~\ref{sec:rotacion}).
+  en el tercero (Sección~\ref{sec:rotacion}). Esa prueba no agrega variables:
+  usa las mismas cifras sobre partes distintas de la traza.
 \item La configuración de cada red se elige con la misma regla, aplicada igual a
   PhaseNet y a EQTransformer (Sección~\ref{sec:eleccion}). El recorte por
   energía es solo de PhaseNet; en EQTransformer y STA/LTA se usa el intervalo
@@ -540,11 +541,13 @@ defecto y EQTransformer con las de la grilla.
 
 \section{Rotación de tramos}\label{sec:rotacion}
 
-Todos los valores anteriores se eligieron con la misma traza con que se
-evalúan. Con tantas combinaciones, más de 16 mil en PhaseNet, alguna puede
-salir bien en esta traza por casualidad y no repetirse en otra. Para medirlo,
-los parámetros se eligieron con dos de los tres tramos de la traza y se
-midieron en el tercero, rotando:
+Todos los valores anteriores se eligieron mirando la misma traza con que se
+evalúan. Con más de 16 mil combinaciones en PhaseNet, la mejor en esta traza
+puede depender de rasgos propios de estos eventos y no repetirse con otros. Para
+medirlo se usa una prueba habitual cuando hay que elegir y evaluar con los
+mismos datos: los parámetros se eligen con una parte de los eventos y se miden
+con otra que no se usó para elegir. Aquí las partes son los tres tramos de la
+traza, que son registros de fechas distintas:
 
 \begin{enumerate}
 \item se eligen con los tramos 1 y 2 y se miden en el 3;
@@ -556,6 +559,12 @@ Al sumar las tres mediciones, los 125 volcánicos quedan medidos con parámetros
 que no se eligieron con ellos. En cada rotación se toma la combinación con
 menos falsas alarmas que llega a 0,95 en los dos tramos de elección; si
 ninguna llega, la de mayor sensibilidad.
+
+La prueba no agrega parámetros ni cambia la forma de contar. Usa las mismas
+variables de cada red, la misma intersección y las mismas cifras de la
+Sección~\ref{sec:interseccion}; lo único que cambia es qué tramos se miran al
+elegir. Se aplica igual a PhaseNet y a EQTransformer. STA/LTA no entra, porque
+sus parámetros no se mueven.
 
 Los volcánicos no están repartidos parejo entre los tramos
 (Cuadro~\ref{tab:tramos}): el tramo 1 tiene casi todos los LP y TR, el 2 tiene
@@ -667,6 +676,39 @@ pierde 6 VT. Con PhaseNet la FDR es 0,85: hay unas 5,7 falsas alarmas por cada
 volcánico detectado. Su intervalo de confianza va de 0,899 a 0,978: con 125
 eventos, el valor medido pasa la meta, pero el intervalo incluye valores bajo
 ella.
+
+\subsection*{Curvas por umbral}
+
+La Figura~\ref{fig:curvas-int} muestra cómo cambian la sensibilidad de cada
+clase y la FDR al mover un umbral, con cada red en las ventanas de su
+configuración. En los paneles de P y S se mueve uno de los dos umbrales y el
+otro queda en el valor elegido; la línea punteada vertical marca el valor
+elegido y la horizontal, la meta de 0,95.
+
+\figura{fig8_curvas_interseccion.png}{0.98}{Sensibilidad por clase, sensibilidad volcánica y FDR según el umbral, con la intersección y las ventanas de la configuración de cada red (filtro 1--15~Hz).}{fig:curvas-int}
+
+En PhaseNet, con \texttt{S\_threshold} en 0,05, mover \texttt{P\_threshold} de
+0,02 a 0,95 casi no cambia la sensibilidad: la curva volcánica queda cerca de
+0,95 en todo el rango, porque la S detecta la mayor parte de los volcánicos
+(Cuadro~\ref{tab:onda-config}), y la FDR baja apenas. Con \texttt{P\_threshold}
+en 0,40, en cambio, subir \texttt{S\_threshold} baja la sensibilidad en todas
+las clases, y más en TR, que llega a 0,43 desde 0,60. En EQTransformer pasa lo
+mismo con sus umbrales de P y S: mover el de P casi no cambia nada y subir el de
+S baja la sensibilidad. Con su curva de detección, la sensibilidad y la FDR
+bajan juntas al subir el umbral.
+
+La Figura~\ref{fig:costo-int} muestra el costo de cada nivel de sensibilidad en
+falsas alarmas por hora. Cada punto es una combinación de umbrales con las
+ventanas de la configuración de cada red; los puntos grandes son las
+configuraciones elegidas, y STA/LTA aparece como un solo punto porque sus
+parámetros no se mueven.
+
+\figura{fig9_costo_interseccion.png}{0.85}{Sensibilidad volcánica contra falsas alarmas por hora con la intersección. Cada punto es una combinación de umbrales; los puntos grandes, la configuración elegida de cada detector.}{fig:costo-int}
+
+Con menos de 20 falsas alarmas por hora, EQTransformer con P y S y STA/LTA
+llegan cerca de 0,85, más que PhaseNet con la misma cantidad de falsas alarmas.
+Para pasar de ahí el costo sube rápido, y solo PhaseNet supera 0,94: para llegar
+a 0,95 necesita 69,0 falsas alarmas por hora.
 
 \subsection*{Qué onda detecta}
 
