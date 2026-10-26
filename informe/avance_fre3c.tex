@@ -145,13 +145,13 @@ una muestra es un valor cada 0,01~s, así que 1500 muestras son 15~s.
 Los datos vienen de dos fuentes:
 
 \begin{itemize}
-\item \textbf{La traza publicada:} un registro continuo de 10,18~h que forma
+\item La traza publicada: un registro continuo de 10,18~h que forma
   parte de un conjunto de datos público del Nevados de Chillán (Zenodo, DOI
   10.5281/zenodo.17163020). Trae solo la componente vertical de cada estación y
   une tres períodos de fechas distintas; a cada período se le llama aquí \emph{tramo}.
   Viene con un \emph{catálogo}: la lista de 205 eventos, cada uno con su inicio,
   su fin y su clase. Con ese catálogo se compara lo que encuentra cada detector.
-\item \textbf{El registro original de FRE:} la traza publicada no trae las
+\item El registro original de FRE: la traza publicada no trae las
   componentes N y E, así que las tres componentes de FRE se tomaron de su
   registro original. Ese registro tiene \emph{huecos}: períodos sin datos.
 \end{itemize}
@@ -159,15 +159,15 @@ Los datos vienen de dos fuentes:
 Cada evento del catálogo tiene una de cinco clases:
 
 \begin{itemize}
-\item \textbf{VT (volcano-tectónico):} sismo causado por la ruptura de roca
+\item VT (volcano-tectónico): sismo causado por la ruptura de roca
   dentro del volcán. Es corto y su inicio es claro.
-\item \textbf{LP (largo período):} sismo asociado al movimiento de fluidos
+\item LP (largo período): sismo asociado al movimiento de fluidos
   (gas, agua o magma) dentro del volcán. Oscila más lento que un VT.
-\item \textbf{TR (tremor):} vibración sostenida del volcán. Dura más que un VT
+\item TR (tremor): vibración sostenida del volcán. Dura más que un VT
   o un LP y suele empezar de a poco.
-\item \textbf{AV (avalancha):} caída de nieve, hielo o roca por la ladera. No es
+\item AV (avalancha): caída de nieve, hielo o roca por la ladera. No es
   volcánica.
-\item \textbf{IC (\emph{ice-quake}):} sismo causado por la fractura del hielo
+\item IC (\emph{ice-quake}): sismo causado por la fractura del hielo
   del glaciar. No es volcánico.
 \end{itemize}
 
@@ -214,7 +214,7 @@ parámetros, con el nombre que les da su librería y partiendo de su valor por
 defecto.
 
 \begin{itemize}
-\item \textbf{PhaseNet y EQTransformer} (librería SeisBench): redes neuronales
+\item PhaseNet y EQTransformer (librería SeisBench): redes neuronales
   que sus autores ya entrenaron con sismos: PhaseNet, con registros del norte de
   California (Estados Unidos), y EQTransformer, con sismos de todo el mundo. Los
   \emph{pesos} de una red son los valores que aprendió en su entrenamiento; se
@@ -224,7 +224,7 @@ defecto.
   instante, la probabilidad de que ahí llegue una onda P, la primera onda de un
   sismo, o una onda S, la segunda. EQTransformer entrega además una curva de
   detección: la probabilidad de que en ese instante haya un evento.
-\item \textbf{STA/LTA} (librería ObsPy): compara la energía promedio de los
+\item STA/LTA (librería ObsPy): compara la energía promedio de los
   últimos segundos (STA, \emph{short-term average}, ventana corta) con la del
   último minuto (LTA, \emph{long-term average}, ventana larga).
   Cuando la razón entre las dos sube de un valor, avisa. Usa solo la componente
@@ -863,18 +863,15 @@ falsas alarmas por hora. Las filas son \texttt{P\_threshold} y las columnas,
 \end{longtable}
 }
 
-\begin{itemize}
-\item \textbf{El máximo no sube:} con valores separados PhaseNet sigue en 0,936
-  y EQTransformer en 0,688. Con 5~s, ninguna combinación llega a 0,95.
-\item \textbf{En PhaseNet, bajar S de 0,10 no suma eventos, solo falsas
-  alarmas:} con P en 0,02, S en 0,10 detecta lo mismo que S en 0,02 (117 de
-  125), con 82,5 falsas alarmas por hora en vez de 107,2. Bajar P sí suma
-  eventos: con S en 0,10, pasar P de 0,10 a 0,02 sube de 113 a 117.
-\item \textbf{EQTransformer} da pocas falsas alarmas (14,3 por hora como máximo),
-  pero con ninguna combinación pasa de 0,70.
-\item \textbf{Con 1--45~Hz} el máximo es 0,928 para PhaseNet y 0,688 para
-  EQTransformer: el filtro de 1--15~Hz sigue siendo igual o mejor.
-\end{itemize}
+Separar los valores no sube el máximo: PhaseNet sigue en 0,936 y EQTransformer
+en 0,688, y con 5~s ninguna combinación llega a 0,95. En PhaseNet, bajar S de
+0,10 no suma eventos, solo falsas alarmas: con P en 0,02, S en 0,10 detecta lo
+mismo que S en 0,02 (117 de 125), con 82,5 falsas alarmas por hora en vez de
+107,2. Bajar P sí suma eventos: con S en 0,10, pasar P de 0,10 a 0,02 sube de 113
+a 117. EQTransformer da pocas falsas alarmas, 14,3 por hora como máximo, pero con
+ninguna combinación pasa de 0,70. Con 1--45~Hz el máximo es 0,928 para PhaseNet y
+0,688 para EQTransformer, así que el filtro de 1--15~Hz sigue siendo igual o
+mejor.
 
 El Cuadro~\ref{tab:ps-casos} junta los casos principales: los valores por
 defecto, los que alcanzan cada meta con menos falsas alarmas y los máximos.
@@ -1002,25 +999,22 @@ TR & 10 & 12 & 12 & 3 & 3 & 6 & 2 & 26 \\
 \end{longtable}
 }
 
-\begin{itemize}
-\item \textbf{Con 10~s, PhaseNet llega a 0,95 con su valor por defecto de P:}
-  con \texttt{P\_threshold} en 0,30 y \texttt{S\_threshold} en 0,10 detecta
-  119 de 125 (0,952) con 52,7 falsas alarmas por hora. Con el mismo valor para
-  las dos hace falta bajar a 0,10: 121 de 125 (0,968) con 60,6.
-\item \textbf{El máximo sube de 0,936 a 0,976} (122 de 125). Con valores
-  separados (P 0,03 y S 0,10) cuesta 75,2 falsas alarmas por hora, contra 94,2
-  con el mismo valor.
-\item \textbf{EQTransformer sube de 0,688 a 0,728}, y sigue sin llegar a 0,80.
-\item \textbf{Con 10~s, la S suma más:} en PhaseNet, la S sola detecta 12 TR
-  que la P no ve, contra 7 con 5~s, y en LP los detectados por las dos ondas
-  pasan de 27 a 40. En esos eventos el aviso de la S cae a más de 5~s del
-  inicio, pero a 10~s o menos. Va con lo que se vio en el recorte: en los TR
-  en que avisa solo la S, su aviso llega en mediana (el valor del medio: la
-  mitad de los casos queda bajo él) 8,5~s después del inicio
-  (Cuadro~\ref{tab:inicio-onda}).
-\item \textbf{Con 1--45~Hz} el resultado es igual o peor: PhaseNet tiene el
-  mismo máximo (0,976) con más falsas alarmas, y EQTransformer llega a 0,720.
-\end{itemize}
+Con 10~s, PhaseNet llega a 0,95 con el valor por defecto de P: con
+\texttt{P\_threshold} en 0,30 y \texttt{S\_threshold} en 0,10 detecta 119 de
+125 (0,952) con 52,7 falsas alarmas por hora. Con el mismo valor para las dos
+hace falta bajar a 0,10: 121 de 125 (0,968) con 60,6. El máximo sube de 0,936 a
+0,976 (122 de 125); con valores separados (P 0,03 y S 0,10) cuesta 75,2 falsas
+alarmas por hora, contra 94,2 con el mismo valor. EQTransformer sube de 0,688 a
+0,728 y sigue sin llegar a 0,80.
+
+Con 10~s la S suma más. En PhaseNet, la S sola detecta 12 TR que la P no ve,
+contra 7 con 5~s, y en LP los detectados por las dos ondas pasan de 27 a 40. En
+esos eventos el aviso de la S cae a más de 5~s del inicio, pero a 10~s o menos.
+Va con lo que se vio en el recorte con umbral 0,10: en los TR en que avisaba
+solo la S, su aviso llegaba en mediana (el valor del medio: la mitad de los
+casos queda bajo él) 8,5~s después del inicio. Con 1--45~Hz el resultado es
+igual o peor: PhaseNet tiene el mismo máximo (0,976) con más falsas alarmas, y
+EQTransformer llega a 0,720.
 
 \section{EQTransformer: filtro de 1--45~Hz y umbral}
 
@@ -1124,13 +1118,9 @@ PhaseNet y EQTransformer esperan tres señales por estación: Z, N y E. En la
 Etapa~2 solo se tenía la vertical (Z), así que las otras dos se rellenaban con
 ceros o con copias de la vertical. Ahora reciben las tres reales. La
 Figura~\ref{fig:antes-ahora} compara esas opciones en FRE, con los mismos
-eventos y umbral 0,10:
-
-\begin{itemize}
-\item \textbf{PhaseNet:} 0,656 con ceros, 0,912 copiando la vertical y 0,904
-  con las tres reales.
-\item \textbf{EQTransformer:} 0,624 con ceros y 0,552 con las tres reales.
-\end{itemize}
+eventos y umbral 0,10. PhaseNet detecta 0,656 con ceros, 0,912 copiando la
+vertical y 0,904 con las tres reales; EQTransformer, 0,624 con ceros y 0,552 con
+las tres reales.
 
 La cifra baja de la Etapa~2 no era un error de cálculo: venía de los ceros.
 EQTransformer rinde algo menos con las tres reales, pero se usan igual para
@@ -1150,9 +1140,9 @@ La \emph{tolerancia} es cuánto puede separarse el aviso del inicio para que el
 evento cuente como detectado. Se informan dos valores:
 
 \begin{itemize}
-\item \textbf{5~s:} el aviso tiene que caer entre 5~s antes y 5~s después del
+\item 5~s: el aviso tiene que caer entre 5~s antes y 5~s después del
   inicio, una ventana de 10~s en total. Es el valor usado hasta aquí.
-\item \textbf{10~s:} entre 10~s antes y 10~s después del inicio, una ventana de
+\item 10~s: entre 10~s antes y 10~s después del inicio, una ventana de
   20~s.
 \end{itemize}
 
@@ -1207,10 +1197,10 @@ divididos por 125. La meta de 0,95 pide al menos 119 de los 125
 Con PhaseNet (P y S, umbral 0,10, filtro de 1--15~Hz):
 
 \begin{itemize}
-\item \textbf{5~s:} VT $35/36 = 0{,}972$; LP $52/52 = 1{,}000$; TR
+\item 5~s: VT $35/36 = 0{,}972$; LP $52/52 = 1{,}000$; TR
   $26/37 = 0{,}703$. Volcánicos: $(35 + 52 + 26)/125 = 113/125 = 0{,}904$.
   Faltan 6 eventos para la meta.
-\item \textbf{10~s:} VT y LP no cambian; TR sube a $34/37 = 0{,}919$.
+\item 10~s: VT y LP no cambian; TR sube a $34/37 = 0{,}919$.
   Volcánicos: $121/125 = 0{,}968$, 2 eventos sobre la meta.
 \end{itemize}
 
@@ -1244,9 +1234,9 @@ otros valores, con las mismas reglas para los tres detectores: las redes con umb
 probaron dos formas:
 
 \begin{itemize}
-\item \textbf{Simétrica:} el aviso puede caer hasta $T$ segundos antes o
+\item Simétrica: el aviso puede caer hasta $T$ segundos antes o
   después del inicio.
-\item \textbf{Tardía:} hasta 5~s antes y hasta $T$ segundos después.
+\item Tardía: hasta 5~s antes y hasta $T$ segundos después.
 \end{itemize}
 
 También se midió cuántos segundos después del inicio llega el primer aviso de
@@ -1306,29 +1296,26 @@ STA/LTA & VT & 31 & 1,3 & 3,4 & 1 & 5 \\
 \end{longtable}
 }
 
-\begin{itemize}
-\item \textbf{VT y LP llegan a tiempo:} con PhaseNet, el primer aviso llega en
-  mediana 1,2~s después del inicio en VT y 1,5~s en LP, y nunca más de 5~s
-  tarde. Por eso ampliar la tolerancia no suma ningún VT ni LP hasta los 15~s.
-\item \textbf{TR llega más tarde:} mediana de 2,4~s, y 8 de los 34 TR con aviso
-  lo tienen después de los 5~s. Una explicación probable es que el tremor
-  empieza de a poco y PhaseNet lo nota tarde. Casi todo lo que se gana al ampliar la tolerancia es TR: con 10~s,
-  PhaseNet pasa de 113 a 121 de 125 (0,968), sobre la meta de 0,95; con 7~s
-  llega a 118 (0,944).
-\item \textbf{Las falsas alarmas casi no cambian} (61,5 por hora con 5~s y 60,6
-  con 10~s), porque los avisos son los mismos: solo cambia cuáles se aceptan
-  como acierto. Pero mientras más ancha es la ventana, más fácil es que el aviso
-  aceptado no venga del evento sino de otra cosa que pasó en esos segundos.
-\item \textbf{EQTransformer casi no gana} (de 0,552 a 0,576 con 10~s): cuando
-  no detecta un evento no es porque avise tarde, sino porque no avisa; 16 de los
-  37 TR no tienen ningún aviso suyo.
-\item \textbf{STA/LTA gana más} (de 0,712 a 0,792 con 10~s): en TR su primer
-  aviso llega en mediana 4,7~s después del inicio, y 14 de 30 llegan pasados
-  los 5~s.
-\item \textbf{Avisos antes del inicio:} con la ventana tardía de 10~s, PhaseNet
-  llega a 119 y no a 121, porque 2 TR tienen su aviso entre 5 y 10~s antes del
-  inicio que marca el catálogo.
-\end{itemize}
+Con PhaseNet, en VT y LP el primer aviso llega a tiempo: en mediana 1,2~s
+después del inicio en VT y 1,5~s en LP, y nunca más de 5~s tarde. Por eso
+ampliar la tolerancia no suma ningún VT ni LP hasta los 15~s. En TR llega más
+tarde: mediana de 2,4~s, y 8 de los 34 TR con aviso lo tienen después de los
+5~s. Una explicación probable es que el tremor empieza de a poco y PhaseNet lo
+nota tarde. Casi todo lo que se gana al ampliar la tolerancia es TR: con 10~s,
+PhaseNet pasa de 113 a 121 de 125 (0,968), sobre la meta de 0,95; con 7~s llega
+a 118 (0,944).
+
+Las falsas alarmas casi no cambian (61,5 por hora con 5~s y 60,6 con 10~s),
+porque los avisos son los mismos: solo cambia cuáles se aceptan como acierto.
+Pero mientras más ancha es la ventana, más fácil es que el aviso aceptado no
+venga del evento sino de otra cosa que pasó en esos segundos.
+
+EQTransformer casi no gana (de 0,552 a 0,576 con 10~s): cuando no detecta un
+evento no es porque avise tarde, sino porque no avisa; 16 de los 37 TR no tienen
+ningún aviso suyo. STA/LTA gana más (de 0,712 a 0,792 con 10~s): en TR su primer
+aviso llega en mediana 4,7~s después del inicio, y 14 de 30 llegan pasados los
+5~s. Con la ventana tardía de 10~s, PhaseNet llega a 119 y no a 121, porque 2 TR
+tienen su aviso entre 5 y 10~s antes del inicio que marca el catálogo.
 
 De los 11 TR que PhaseNet pierde con 5~s, 6 tienen aviso entre 5,9 y 7,3~s
 después del inicio, 2 lo tienen mucho después (22 y 42~s) y 3 no tienen
@@ -1417,28 +1404,28 @@ energía de la misma señal que recibe PhaseNet: Z, N y E de FRE, filtradas en
 1--15~Hz. La Figura~\ref{fig:esquema} muestra el esquema y estos son los pasos:
 
 \begin{enumerate}
-\item \textbf{Avisos.} PhaseNet lee la señal en ventanas de 30~s que se solapan
+\item Avisos: PhaseNet lee la señal en ventanas de 30~s que se solapan
   en 15~s y entrega las curvas de P y de S. Cada curva da un aviso cuando
   supera su umbral (\texttt{P\_threshold} en 0,40 y \texttt{S\_threshold} en
   0,05, la configuración elegida), y el
   aviso se ubica en el punto más alto de ese tramo.
-\item \textbf{P y S juntas.} Los avisos de P y de S que caen a 5~s o menos del
+\item P y S juntas: Los avisos de P y de S que caen a 5~s o menos del
   primero cuentan como uno solo, con la hora del más temprano.
-\item \textbf{Inicio del recorte:} 2,5~s antes del aviso.
-\item \textbf{Energía.} En cada instante se suman los cuadrados de Z, N y E,
+\item Inicio del recorte: 2,5~s antes del aviso.
+\item Energía: En cada instante se suman los cuadrados de Z, N y E,
   esa suma se promedia en ventanas de 1~s y se saca la raíz. Esta curva sube cuando
   llega el evento y baja cuando termina.
-\item \textbf{Ruido de fondo.} Se toma la energía entre 120 y 5~s antes del aviso,
+\item Ruido de fondo: Se toma la energía entre 120 y 5~s antes del aviso,
   solo donde hay registro. El nivel de ruido es el valor bajo el cual queda el
   20\,\% de ese tramo. Si en ese tramo hay menos de 1~s de registro, no se
   hace recorte.
-\item \textbf{Umbral de fin:} el doble del nivel de ruido.
-\item \textbf{Fin del recorte.} Entre 2 y 300~s después del aviso, se busca el
+\item Umbral de fin: el doble del nivel de ruido.
+\item Fin del recorte: Entre 2 y 300~s después del aviso, se busca el
   primer tramo de 5~s seguidos con la energía bajo el umbral; el recorte termina
   donde empieza ese tramo. Si no se encuentra, termina a los 300~s. Si antes hay
   un hueco en el registro o termina el tramo de la traza, el recorte termina
   ahí.
-\item \textbf{Corte.} Si el siguiente aviso de PhaseNet llega antes de ese fin,
+\item Corte: Si el siguiente aviso de PhaseNet llega antes de ese fin,
   el recorte termina 2,5~s antes de ese aviso, que es donde empieza el recorte
   siguiente.
 \end{enumerate}
@@ -1669,18 +1656,18 @@ Figura~\ref{fig:iou-casos} las muestra con un evento de ejemplo que va de 0 a
 60~s:
 
 \begin{itemize}
-\item \textbf{Cubre todo:} empieza antes del evento y termina después. De
+\item Cubre todo: empieza antes del evento y termina después. De
   $-10$ a 70~s: en común, los 60~s del evento; total, de $-10$ a 70~s, 80~s.
   IoU $= 60/80 = 0{,}75$.
-\item \textbf{Le falta el final:} empieza antes y termina dentro del evento. De
+\item Le falta el final: empieza antes y termina dentro del evento. De
   $-10$ a 40~s: en común, de 0 a 40~s, 40~s; total, de $-10$ a 60~s, 70~s.
   IoU $= 40/70 = 0{,}57$.
-\item \textbf{Le faltan el inicio y el fin:} queda dentro del evento. De 10 a
+\item Le faltan el inicio y el fin: queda dentro del evento. De 10 a
   40~s: en común, 30~s; total, el evento entero, 60~s. IoU $= 30/60 = 0{,}50$.
-\item \textbf{Le falta el inicio:} empieza dentro del evento y termina después.
+\item Le falta el inicio: empieza dentro del evento y termina después.
   De 20 a 80~s: en común, de 20 a 60~s, 40~s; total, de 0 a 80~s, 80~s.
   IoU $= 40/80 = 0{,}50$.
-\item \textbf{No lo toca:} no hay tiempo en común. IoU $= 0$.
+\item No lo toca: no hay tiempo en común. IoU $= 0$.
 \end{itemize}
 
 \begin{figure}[H]
