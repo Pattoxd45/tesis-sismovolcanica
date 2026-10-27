@@ -110,14 +110,20 @@ Profesor guía: Ricardo Soto
 \section*{Presentación}
 
 Este avance reúne las correcciones de la etapa de detección. La detección se
-rehízo con una sola estación, FRE, y sus tres componentes reales, y se evaluó
-con las mismas reglas para PhaseNet, EQTransformer y STA/LTA. Solo se cambian
+rehízo con una sola estación, FRE, y sus tres componentes reales. PhaseNet y
+EQTransformer se entrenaron con tres componentes, la traza publicada trae solo
+la vertical y FRE es la única estación de la que se tiene el registro original
+con las tres (Sección~\ref{sec:componentes}). Los
+tres detectores se evaluaron con las mismas reglas para que la comparación entre
+ellos sea pareja. Solo se cambian
 los parámetros que cada tecnología expone, con su nombre oficial; las
 decisiones propias del trabajo se declaran aparte (Sección~\ref{sec:parametros}).
 
 Un evento cuenta como detectado cuando el intervalo que entrega el detector se
-cruza con el evento del catálogo (Sección~\ref{sec:interseccion}). Con ese
-criterio se barrieron los parámetros de las redes que expone SeisBench
+cruza con el evento del catálogo (Sección~\ref{sec:interseccion}). Este
+criterio reemplaza a la tolerancia de 5 o 10~s alrededor del inicio, que era un
+valor elegido en este trabajo y del que dependía el resultado. Con la intersección
+se barrieron los parámetros de las redes que expone SeisBench
 (Secciones~\ref{sec:grilla} y~\ref{sec:rotacion}) y se eligió, con la misma
 regla para todas, la configuración de cada detector
 (Sección~\ref{sec:eleccion}). PhaseNet, con \texttt{P\_threshold} en 0,40 y
@@ -127,7 +133,8 @@ volcánicos (0,952) con 69,0 falsas alarmas por hora. Los recortes y el IoU
 EQTransformer (Sección~\ref{sec:fusion}) usan esa misma configuración. Las
 Secciones~\ref{sec:sensibilidad} a~\ref{sec:tolerancia} están hechas con el
 criterio anterior, que contaba un evento si había un aviso cerca de su inicio, y
-con umbral 0,10; se mantienen como referencia. La excepción es el último párrafo
+con umbral 0,10. Se mantienen como referencia, porque muestran por qué se
+cambió de criterio. La excepción es el último párrafo
 de la Sección~\ref{sec:filtro}, que revisa el filtro con la intersección.
 
 Cada término se explica la primera vez que aparece. Todas las cifras están
@@ -153,8 +160,8 @@ Los datos vienen de dos fuentes:
   Viene con un \emph{catálogo}: la lista de 205 eventos, cada uno con su inicio,
   su fin y su clase. Con ese catálogo se compara lo que encuentra cada detector.
 \item El registro original de FRE: la traza publicada no trae las
-  componentes N y E, así que las tres componentes de FRE se tomaron de su
-  registro original. Ese registro tiene \emph{huecos}: períodos sin datos.
+  componentes N y E, así que las tres componentes de FRE se tomaron de su  registro original. Es la única estación de la que se tiene ese registro, y
+  tiene \emph{huecos}: períodos sin datos.
 \end{itemize}
 
 Cada evento del catálogo tiene una de cinco clases:
@@ -187,7 +194,8 @@ con que se entrenó EQTransformer.
 
 De los 205 eventos del catálogo se evaluaron 179 (Cuadro~\ref{tab:eventos}); los
 demás no tienen señal en el registro original, caen en sus huecos o caen en el
-borde entre dos tramos. Quedan 125 volcánicos.
+borde entre dos tramos, donde la traza pasa de un registro a otro de fecha
+distinta. Quedan 125 volcánicos.
 
 La Etapa~2, que se menciona varias veces, es la entrega anterior de este
 trabajo: ahí se evaluaron los detectores con cinco estaciones y solo su
@@ -235,9 +243,10 @@ Un \emph{aviso} es el instante en que un detector dice que empieza un evento.
 El \emph{umbral} es el valor que tiene que superar una curva para dar un aviso.
 Una curva de probabilidad se convierte en avisos así: el aviso se enciende
 cuando la curva supera el umbral, se apaga cuando baja de la mitad del umbral,
-y se ubica en el punto más alto de ese tramo. Es la regla de SeisBench; se
-aplicó tal cual y se comprobó que entrega los mismos avisos que su función
-\texttt{classify}, la que entrega los avisos en SeisBench.
+y se ubica en el punto más alto de ese tramo. Es la regla de SeisBench. Se
+aplicó sobre las curvas guardadas, en vez de llamar a su función
+\texttt{classify} con cada umbral, para barrer los umbrales sin volver a correr
+la red, y se comprobó que entrega los mismos avisos que \texttt{classify}.
 
 {\small
 \setlength{\tabcolsep}{4pt}
@@ -285,21 +294,24 @@ detectores.
 
 \begin{itemize}
 \item Un evento cuenta como detectado si algún intervalo que entrega el detector
-  se cruza con él, aunque sea en un instante (Sección~\ref{sec:interseccion}).
-  Antes se contaba con una tolerancia de 5 o 10~s alrededor del inicio
-  (Sección~\ref{sec:tolerancia}).
+  se cruza con él, aunque sea en un instante (Sección~\ref{sec:interseccion}).  Antes se contaba con una tolerancia de 5 o 10~s alrededor del inicio
+  (Sección~\ref{sec:tolerancia}); la Sección~\ref{sec:interseccion} explica
+  por qué se cambió.
 \item Cada intervalo cuenta para un solo evento, y cada evento para un solo
-  intervalo. Si un intervalo se cruza con dos eventos, se asigna a uno, de modo
-  que el total de eventos detectados sea el mayor posible.
-\item Los avisos de P y de S que empiezan a 5~s o menos del primero cuentan como
-  uno solo, que va desde el inicio del primero hasta el fin del último. La misma
-  regla junta PhaseNet con EQTransformer (Sección~\ref{sec:fusion}).
+  intervalo. Si un intervalo se cruza con dos eventos, se asigna a uno, de modo  que el total de eventos detectados sea el mayor posible. Así un intervalo
+  largo no puede contar como varios eventos detectados.
+\item Los avisos de P y de S que empiezan a 5~s o menos del primero cuentan como  uno solo, que va desde el inicio del primero hasta el fin del último. Se
+  juntan porque la P y la S de un mismo evento son dos avisos de la misma red, y
+  el recorte necesita un solo inicio por evento. Los 5~s son el mismo valor con
+  que en la Etapa~2 se unían los avisos de STA/LTA. La misma regla junta
+  PhaseNet con EQTransformer (Sección~\ref{sec:fusion}).
 \item Con la intersección, los intervalos de EQTransformer y STA/LTA se usan tal
-  como los entregan SeisBench y ObsPy. En la Etapa~2 y en las secciones con el
-  criterio anterior, los avisos de STA/LTA separados por menos de 5~s se unían en
-  uno.
-\item Una falsa alarma es un intervalo que no se cruza con ningún evento del
-  catálogo, volcánico o no. Con el criterio anterior era un aviso fuera de todo
+  como los entregan SeisBench y ObsPy. En la Etapa~2 y en las secciones con el  criterio anterior, los avisos de STA/LTA separados por menos de 5~s se unían en
+  uno. Con la intersección ya no hace falta unirlos, porque varios intervalos
+  dentro de un mismo evento no cuentan como falsas alarmas, y unirlos sería una
+  regla que no viene de esas librerías.
+\item Una falsa alarma es un intervalo que no se cruza con ningún evento del  catálogo, volcánico o no. Un intervalo sobre un AV o un IC no es falsa alarma,
+  porque esos eventos existen; irán a la clase de rechazo. Con el criterio anterior era un aviso fuera de todo
   evento y de la ventana anterior a su inicio (5~s, o 10~s con la tolerancia de
   10~s).
 \item Los parámetros se eligen con la misma traza con que se evalúan. Para ver
@@ -314,12 +326,11 @@ detectores.
   empieza hasta donde termina el evento detectado. Es lo que después recibirá el
   clasificador. Un evento queda bien recortado si su recorte tiene un IoU de
   0,30 o más con él. El IoU divide el tiempo que el recorte y el evento tienen en
-  común por el tiempo total que ocupan entre los dos: vale 1 si coinciden y 0 si
-  no se tocan (Sección~\ref{sec:recorte}). La Sección~\ref{sec:iou} muestra
-  otros umbrales.
-\item PhaseNet no marca el fin del evento, así que su recorte se calcula con la
-  energía de la señal (Sección~\ref{sec:recorte}). Sus valores son propios de
-  este trabajo:
+  común por el tiempo total que ocupan entre los dos: vale 1 si coinciden y 0 si  no se tocan (Sección~\ref{sec:recorte}). El 0,30 es el umbral que se usó en
+  la Etapa~2. Como es una decisión propia, la Sección~\ref{sec:iou} muestra
+  también otros umbrales, de 0,1 a 0,9.
+\item PhaseNet no marca el fin del evento, así que su recorte se calcula con la  energía de la señal (Sección~\ref{sec:recorte}). Sus valores son propios de
+  este trabajo, y el Cuadro~\ref{tab:esquema} da la razón de cada uno:
   \begin{itemize}
   \item empieza 2,5~s antes del aviso;
   \item la energía es la de Z, N y E juntas, promediada en ventanas de 1~s;
@@ -339,12 +350,15 @@ detectores.
 Los cálculos se hicieron en Python 3.14 con SeisBench 0.12.3 (sobre PyTorch
 2.13.0, en el procesador, sin tarjeta gráfica), ObsPy 1.5.0 y SciPy 1.18.0. En
 los barridos, cada umbral toma 21 valores: 0,02; 0,03; 0,05
-y de 0,10 a 0,95 cada 0,05. Los intervalos de confianza del 95\,\% se calculan con el
+y de 0,10 a 0,95 cada 0,05. Los pasos son más finos bajo 0,10 porque ahí están
+los valores con que las redes detectan más. Los intervalos de confianza del 95\,\% se calculan con el
 método de Wilson, que se comporta bien con pocos eventos y con proporciones
-cercanas a 0 o a 1. El registro original de FRE tiene huecos. Un intervalo que
-empieza donde no hay registro se descarta, y las falsas alarmas por hora se
-calculan sobre las 9,73~h con registro (Cuadro~\ref{tab:tramos}), no sobre las
-10,18~h de la traza.
+cercanas a 0 o a 1. El registro original de FRE tiene huecos, y en ellos la señal se
+rellena solo para poder filtrarla. Por eso un intervalo que empieza en un hueco
+se descarta, ya que no viene de registro real. Por la misma razón, las falsas
+alarmas por hora se calculan sobre las 9,73~h con registro
+(Cuadro~\ref{tab:tramos}) y no sobre las 10,18~h de la traza, que incluyen los
+huecos y los 30~s a cada lado de las uniones entre tramos.
 
 \section{Detección por intersección}\label{sec:interseccion}
 
@@ -355,6 +369,13 @@ comparten algún instante, aunque sea uno solo. Cuánto se cruzan no importa par
 contar la detección; eso se mide después con el IoU del recorte
 (Sección~\ref{sec:iou}).
 
+Este criterio reemplaza al anterior, que contaba un evento si había un aviso a
+5 o 10~s de su inicio (Sección~\ref{sec:tolerancia}). Esa tolerancia no viene
+de ninguna librería, y el resultado dependía de ella. Con PhaseNet en umbral
+0,10, la sensibilidad volcánica era 0,904 con 5~s y 0,968 con 10~s. La
+diferencia eran 8 TR, y en 6 de ellos el aviso cae dentro del evento, entre 5 y
+10~s después del inicio. Con la intersección no hay que elegir ese valor.
+
 Se usa el intervalo que entrega cada librería, sin agregarle nada:
 
 \begin{itemize}
@@ -362,9 +383,9 @@ Se usa el intervalo que entrega cada librería, sin agregarle nada:
   la onda supera el umbral hasta que baja de la mitad del umbral. SeisBench lo
   entrega como inicio y fin de cada aviso (\texttt{start\_time} y
   \texttt{end\_time}). Es corto, de 0,8~s en mediana con umbral 0,10.
-\item En EQTransformer, el intervalo de su curva de detección, con la misma
-  regla de encendido y apagado; dura 8,7~s en mediana con umbral 0,10. EQTransformer también
-  se evalúa con sus avisos de P y S, igual que PhaseNet.
+\item En EQTransformer, el intervalo de su curva de detección, con la misma  regla de encendido y apagado; dura 8,7~s en mediana con umbral 0,10.
+  EQTransformer también entrega curvas de P y S, así que se evalúa además con
+  esos avisos, igual que PhaseNet.
 \item En STA/LTA, desde que la razón STA/LTA supera \texttt{thres1} hasta que
   baja de \texttt{thres2}, tal como lo entrega \texttt{trigger\_onset}; dura
   7,8~s en mediana.
@@ -444,7 +465,9 @@ EQTransformer y STA/LTA quedan bajo PhaseNet (Sección~\ref{sec:iou}).
 
 \subsection*{Umbrales con intersección}
 
-Se repitió el barrido de umbrales con la intersección, con 441 combinaciones de
+Al cambiar la forma de contar cambian los valores con que cada detector llega a
+cada meta, así que se repitió el barrido de umbrales con la intersección, con
+441 combinaciones de
 \texttt{P\_threshold} y \texttt{S\_threshold} en cada red y 21 valores de
 \texttt{detection\_threshold} en EQTransformer, de 0,02 a 0,95. El
 Cuadro~\ref{tab:metas-int} muestra con qué valores llega cada detector a cada
@@ -471,7 +494,9 @@ aviso (Cuadro~\ref{tab:onda-config}).
 \section{Grilla de los parámetros de las redes}\label{sec:grilla}
 
 Además de los umbrales, SeisBench expone tres parámetros que deciden cómo la
-red recorre la traza. La red no lee la traza completa de una vez, sino por ventanas de 30~s en PhaseNet (3001 muestras) y de 60~s en EQTransformer (6000
+red recorre la traza. Hasta aquí estaban en su valor por defecto. Se barrieron
+porque son los otros parámetros que la librería expone y pueden cambiar lo que
+la red detecta. La red no lee la traza completa de una vez, sino por ventanas de 30~s en PhaseNet (3001 muestras) y de 60~s en EQTransformer (6000
 muestras).
 
 \begin{itemize}
@@ -485,8 +510,12 @@ muestras).
 
 A diferencia de los umbrales, estos parámetros cambian las curvas de
 probabilidad, así que con cada combinación se volvió a correr la red sobre toda
-la traza. Se probaron los valores del Cuadro~\ref{tab:grilla-valores}, todos
-con el filtro de 1--15~Hz.
+la traza. Se probaron los valores del Cuadro~\ref{tab:grilla-valores}. El
+\texttt{overlap} va en pasos iguales alrededor del valor por defecto y siempre
+queda bajo el largo de la ventana; el \texttt{blinding} va desde no descartar
+nada hasta el doble del valor por defecto, y \texttt{stacking} toma sus dos
+opciones. Todo se corrió con el filtro de 1--15~Hz, porque 1--45~Hz no mejoró a
+ningún detector (Sección~\ref{sec:filtro}).
 
 {\small
 \setlength{\tabcolsep}{5pt}
@@ -562,7 +591,8 @@ traza, que son registros de fechas distintas:
 Al sumar las tres mediciones, los 125 volcánicos quedan medidos con parámetros
 que no se eligieron con ellos. En cada rotación se toma la combinación con
 menos falsas alarmas que llega a 0,95 en los dos tramos de elección; si
-ninguna llega, la de mayor sensibilidad.
+ninguna llega, la de mayor sensibilidad. Es la misma regla con que se elige la
+configuración final (Sección~\ref{sec:eleccion}).
 
 La prueba no agrega parámetros ni cambia la forma de contar. Usa las mismas
 variables de cada red, la misma intersección y las mismas cifras de la
@@ -621,14 +651,22 @@ la misma regla, aplicada igual a PhaseNet y a EQTransformer:
 \item se comparan dos opciones: cambiar solo los umbrales, con las ventanas por
   defecto, o cambiar umbrales y ventanas;
 \item se queda la opción que da más sensibilidad en la rotación de tramos
-  (Sección~\ref{sec:rotacion}); si empatan, la de menos falsas alarmas;
+  (Sección~\ref{sec:rotacion}), porque esa medición se hace con eventos que no
+  se usaron para elegir; si empatan, la de menos falsas alarmas;
 \item dentro de esa opción, con la traza completa, se toma la combinación con
   menos falsas alarmas que llega a 0,95; si ninguna llega, la de mayor
   sensibilidad.
 \end{enumerate}
 
-STA/LTA queda con la configuración de la Etapa~2, sin cambiar sus parámetros.
-El Cuadro~\ref{tab:config} muestra lo que resulta.
+La meta es de sensibilidad y no de precisión porque un evento que el detector
+pierde ya no llega al clasificador, mientras que una falsa alarma todavía puede
+descartarse en la clase de rechazo. Entre las combinaciones que llegan a la
+meta se prefiere la de menos falsas alarmas, porque cada una es un recorte más
+que el clasificador tiene que descartar.
+
+STA/LTA queda con la configuración de la Etapa~2, sin cambiar sus parámetros,
+porque ya se eligió con un barrido en esa etapa. El Cuadro~\ref{tab:config}
+muestra lo que resulta.
 
 {\small
 \setlength{\tabcolsep}{4pt}
@@ -819,7 +857,8 @@ EQTransformer.
 \section{Probabilidad mínima de P y de S por separado}\label{sec:ps}
 
 Hasta aquí se usó el mismo valor para \texttt{P\_threshold} y
-\texttt{S\_threshold}. Ahora se probó cada uno por separado: 21 valores para P
+\texttt{S\_threshold}. SeisBench los expone como dos parámetros distintos, así
+que se probó cada uno por separado: 21 valores para P
 y 21 para S, de 0,02 a 0,95, o sea, 441 combinaciones en cada red. Se hizo
 igual en PhaseNet y en EQTransformer, con la misma forma de contar. Estos valores no
 cambian lo que calcula la red: solo deciden qué avisos se aceptan. Primero va el
@@ -1769,9 +1808,10 @@ mantiene la de la Etapa~2.
 
 \section{PhaseNet y EQTransformer juntos}\label{sec:fusion}
 
-Con la intersección y la configuración de cada red, los intervalos de PhaseNet
-(P y S) y de la curva de detección de EQTransformer se juntaron con la misma
-regla que P y S: los que empiezan a 5~s o menos del primero cuentan como uno.
+Se juntaron las dos redes para ver si EQTransformer suma volcánicos que
+PhaseNet no detecta. Con la intersección y la configuración de cada red, los
+intervalos de PhaseNet (P y S) y de la curva de detección de EQTransformer se
+juntaron con la misma regla que P y S: los que empiezan a 5~s o menos del primero cuentan como uno.
 Juntos detectan 122 de 125 volcánicos (0,976): VT 34/36, LP 52/52 y TR 36/37,
 con 101,0 falsas alarmas por hora. Frente a PhaseNet solo suman 2 LP y 1 TR, no
 pierden ninguno y cuestan 32 falsas alarmas por hora más.
