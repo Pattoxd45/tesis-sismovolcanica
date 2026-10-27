@@ -127,7 +127,8 @@ volcánicos (0,952) con 69,0 falsas alarmas por hora. Los recortes y el IoU
 EQTransformer (Sección~\ref{sec:fusion}) usan esa misma configuración. Las
 Secciones~\ref{sec:sensibilidad} a~\ref{sec:tolerancia} están hechas con el
 criterio anterior, que contaba un evento si había un aviso cerca de su inicio, y
-con umbral 0,10; se mantienen como referencia.
+con umbral 0,10; se mantienen como referencia. La excepción es el último párrafo
+de la Sección~\ref{sec:filtro}, que revisa el filtro con la intersección.
 
 Cada término se explica la primera vez que aparece. Todas las cifras están
 medidas sobre la traza continua del Nevados de Chillán; las únicas figuras con
@@ -246,7 +247,7 @@ aplicó tal cual y se comprobó que entrega los mismos avisos que su función
 \cabecera{\textbf{Parámetro} & \textbf{Qué hace} & \textbf{Por defecto} & \textbf{Usado} & \textbf{Por qué}}{5}
 \multicolumn{5}{l}{\textit{PhaseNet (SeisBench)}}\\*
 \addlinespace
-\texttt{P\_threshold} & Probabilidad mínima para aceptar una onda P. En el PhaseNet original se llama \texttt{min\_p\_prob}. & 0,3 & 0,40 en la configuración elegida; de 0,02 a 0,95 en los barridos & La meta es encontrar el 95\,\% de los volcánicos (Sección~\ref{sec:eleccion}). \\
+\texttt{P\_threshold} & Probabilidad mínima para aceptar una onda P. En el PhaseNet original se llama \texttt{min\_p\_prob}. & 0,3 & 0,40 en la configuración elegida; de 0,02 a 0,95 en los barridos & Regla de la Sección~\ref{sec:eleccion}: con S en 0,05, es el valor con menos falsas alarmas que llega a 0,95. \\
 \texttt{S\_threshold} & Lo mismo para la onda S (\texttt{min\_s\_prob}). & 0,3 & 0,05 en la configuración elegida; de 0,02 a 0,95, por separado de \texttt{P\_threshold} & Bajar la S suma volcánicos que la P no ve (Sección~\ref{sec:interseccion}). \\
 \texttt{overlap} & Muestras que comparten dos ventanas seguidas. & 1500 (15~s) & 1500; de 500 a 2500 en la grilla & Cambiarlo no mejora de forma estable (Secciones~\ref{sec:grilla} y~\ref{sec:rotacion}). \\
 \texttt{blinding} & Muestras que se descartan en cada borde de la ventana, donde la red ve menos señal. & 250 por lado (2,5~s) & 250 por lado; de 0 a 500 en la grilla & La misma razón. \\
@@ -351,7 +352,7 @@ Se usa el intervalo que entrega cada librería, sin agregarle nada:
   entrega como inicio y fin de cada aviso (\texttt{start\_time} y
   \texttt{end\_time}). Es corto: 0,8~s en mediana con umbral 0,10.
 \item En EQTransformer, el intervalo de su curva de detección, con la misma
-  regla de encendido y apagado; dura 8,7~s en mediana. EQTransformer también
+  regla de encendido y apagado; dura 8,7~s en mediana con umbral 0,10. EQTransformer también
   se evalúa con sus avisos de P y S, igual que PhaseNet.
 \item En STA/LTA, desde que la razón STA/LTA supera \texttt{thres1} hasta que
   baja de \texttt{thres2}, tal como lo entrega \texttt{trigger\_onset}; dura
@@ -692,7 +693,7 @@ En PhaseNet, con \texttt{S\_threshold} en 0,05, mover \texttt{P\_threshold} de
 0,95 en todo el rango, porque la S detecta la mayor parte de los volcánicos
 (Cuadro~\ref{tab:onda-config}), y la FDR baja apenas. Con \texttt{P\_threshold}
 en 0,40, en cambio, subir \texttt{S\_threshold} baja la sensibilidad en todas
-las clases, y más en TR, que llega a 0,43 desde 0,60. En EQTransformer pasa lo
+las clases, y más en TR, que baja a 0,43 cuando el umbral pasa de 0,60. En EQTransformer pasa lo
 mismo con sus umbrales de P y S: mover el de P casi no cambia nada y subir el de
 S baja la sensibilidad. Con su curva de detección, la sensibilidad y la FDR
 bajan juntas al subir el umbral.
@@ -1016,7 +1017,7 @@ casos queda bajo él) 8,5~s después del inicio. Con 1--45~Hz el resultado es
 igual o peor: PhaseNet tiene el mismo máximo (0,976) con más falsas alarmas, y
 EQTransformer llega a 0,720.
 
-\section{EQTransformer: filtro de 1--45~Hz y umbral}
+\section{EQTransformer: filtro de 1--45~Hz y umbral}\label{sec:filtro}
 
 EQTransformer ya filtra la señal en 1--45~Hz por dentro, y su umbral por
 defecto es 0,30. Se probaron las dos bandas y umbrales desde 0,02 hasta 0,95. Usar
