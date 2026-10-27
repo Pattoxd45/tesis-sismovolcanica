@@ -228,7 +228,11 @@ defecto.
   California (Estados Unidos), y EQTransformer, con sismos de todo el mundo. Los
   \emph{pesos} de una red son los valores que aprendió en su entrenamiento; se
   usan los ``original'', que son los que publicaron sus autores, sin volver a
-  entrenarlas. Leen la señal
+  entrenarlas. No se reentrenan porque en esta etapa se evalúan los detectores
+  tal como existen; el único entrenamiento del trabajo es el del clasificador.
+  Además, para reentrenarlas harían falta las llegadas de las ondas P y S
+  marcadas en cada evento, y el catálogo solo marca su inicio, su fin y su
+  clase. Leen la señal
   por ventanas (30~s PhaseNet, 60~s EQTransformer) y entregan, para cada
   instante, la probabilidad de que ahí llegue una onda P, la primera onda de un
   sismo, o una onda S, la segunda. EQTransformer entrega además una curva de detección, que es la probabilidad de que en ese instante haya un evento. Las dos redes reciben las tres componentes de FRE, Z, N y E, filtradas en 1--15~Hz.
