@@ -10,11 +10,13 @@ import os
 import struct
 import sys
 import zlib
+from datetime import date, datetime, timezone
 
 import numpy as np
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
+import extraer_winston as ew
 import winston_lib as wl
 
 # 2018-02-09 00:00 UTC, el dia con que se valido la lectura
@@ -90,6 +92,28 @@ def main():
     s = rng.integers(-1000, 1000, 20000).astype(float)
     lag, frac = wl.mejor_desfase(s, np.roll(s, 37), 100, largo=5000)
     todo &= caso("desfase conocido se encuentra", lag == 37 and frac == 1.0)
+
+    sql = wl.sql_tabla("winston", "fre_z_2018_02_09", 1.5, 2.5)
+    todo &= caso("consulta con filtro por hora J2K",
+                 sql.endswith("WHERE st >= 1.500 AND st < 2.500 ORDER BY st")
+                 and "WHERE" not in wl.sql_tabla("winston", "t"))
+
+    u = lambda s_: ew.utc(s_)
+    d9, d10 = date(2018, 2, 9), date(2018, 2, 10)
+    todo &= caso("dias de una ventana que cruza la medianoche",
+                 ew.dias(u("2018-02-09T23:59:00"), u("2018-02-10T00:10:00")) == [d9, d10])
+    todo &= caso("ventana recien pasada la medianoche incluye el dia anterior",
+                 ew.dias(u("2018-02-10T00:00:05"), u("2018-02-10T00:05:00")) == [d9, d10])
+    todo &= caso("ventana lejos de la medianoche usa un solo dia",
+                 ew.dias(u("2018-02-10T00:01:00"), u("2018-02-10T00:05:00")) == [d10])
+    todo &= caso("hora sin zona se toma como UTC",
+                 u("2018-02-09T00:00:00") == datetime(2018, 2, 9, tzinfo=timezone.utc))
+    todo &= caso("nombres en el respaldo y en la base local",
+                 ew.patron_nas("w_free$hhe$tc$99", d9) == "free$hhe$tc$99$$2018_02_09"
+                 and ew.patron_nas("W_FREZ$HHZ$TC$99", d9) == "FREZ$HHZ$TC$99$$2018_02_09"
+                 and ew.tabla_local("FRE", "Z", d9) == "fre_z_2018_02_09"
+                 and ew.nombre_local("W_FREZ$HHZ$TC$99/frez$hhz$tc$99$$2018_02_09.MYD", "fre_z_2018_02_09")
+                 == "fre_z_2018_02_09.MYD")
 
     print("TODOS PASAN" if todo else "HAY FALLAS")
     sys.exit(0 if todo else 1)

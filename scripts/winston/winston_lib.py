@@ -69,10 +69,21 @@ def parsear_salida(salida):
     return filas, nulas
 
 
-def leer_tabla(base, tabla, usuario=None):
+def sql_tabla(base, tabla, st_min=None, st_max=None):
+    """Consulta de una tabla Winston; st_min y st_max (J2K) limitan los paquetes por su inicio."""
+    filtro = []
+    if st_min is not None:
+        filtro.append(f"st >= {st_min:.3f}")
+    if st_max is not None:
+        filtro.append(f"st < {st_max:.3f}")
+    donde = f" WHERE {' AND '.join(filtro)}" if filtro else ""
+    return f"SELECT st, et, sr, datatype, HEX(tracebuf) FROM `{base}`.`{tabla}`{donde} ORDER BY st"
+
+
+def leer_tabla(base, tabla, usuario=None, st_min=None, st_max=None):
     """Lee una tabla Winston de la MariaDB local con el cliente mysql (sin contrasena: usuario del sistema)."""
     usuario = usuario or getpass.getuser()
-    sql = f"SELECT st, et, sr, datatype, HEX(tracebuf) FROM `{base}`.`{tabla}` ORDER BY st"
+    sql = sql_tabla(base, tabla, st_min, st_max)
     r = subprocess.run(["mysql", "-u", usuario, "--batch", "--raw", "--skip-column-names", "-e", sql],
                        capture_output=True, text=True, check=False)
     if r.returncode != 0:
