@@ -19,6 +19,7 @@ from evaluar_detectores import (Intervalo, metricas, CLASES, FS,
                                 CORTES, GUARDA_S, NPY, CSV, SALIDA)
 
 
+# rejilla de la Etapa 2 (324 combinaciones): sta_s y lta_s son nsta y nlta en s; thr_on y thr_off, thres1 y thres2
 REJILLA = dict(
     lta_s=[10.0, 30.0, 60.0],
     sta_s=[0.5, 1.0, 2.0],
@@ -29,6 +30,7 @@ REJILLA = dict(
     tol_s=[5.0],  # tolerancia de coincidencia entre canales
 )
 
+# subconjunto chico para probar el script en poco tiempo
 REJILLA_RAPIDA = dict(
     lta_s=[10.0, 45.0],
     sta_s=[1.0],
@@ -39,8 +41,11 @@ REJILLA_RAPIDA = dict(
     tol_s=[5.0],
 )
 
+# freqmin y freqmax del filtro de ObsPy antes de STA/LTA (1-20 Hz, Etapa 2)
 BANDA = (1.0, 20.0)
+# duracion minima de una deteccion de red (Etapa 2)
 DUR_MIN_S = 3.0
+# IoU minimo para emparejar recorte y evento (decision de la Etapa 2)
 IOU_MIN = 0.30
 
 
@@ -134,6 +139,7 @@ def main():
             if np.allclose(x, 0):
                 partes.append((ini, fin, None))
                 continue
+            # corners=4 y zerophase=True de ObsPy: orden 4 y fase cero, como en la Etapa 2
             partes.append((ini, fin, bandpass(x, BANDA[0], BANDA[1], df=FS,
                                               corners=4, zerophase=True)))
         filtrado[ch] = partes

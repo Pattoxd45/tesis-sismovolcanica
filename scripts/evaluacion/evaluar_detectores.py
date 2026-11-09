@@ -25,6 +25,7 @@ NPY = f"{BASE}/NVCh_10h_continuous_trace.npy"
 CSV = f"{BASE}/NVCh_10h_continuous_trace_reference.csv"
 SALIDA = "/home/patto/tesis/resultados"
 
+# frecuencia de muestreo de la traza de Zenodo y de los crudos de FRE (100 Hz)
 FS = 100.0
 
 # sin la 8 (cero), la 7 (70,8 % sin dato) ni la 4 (ganancia anomala)
@@ -34,11 +35,14 @@ CANALES = [1, 2, 3, 5, 6]
 CORTES = [2_160_000, 3_240_001]
 GUARDA_S = 30.0
 
+# tolerancias alrededor del inicio con que un aviso cuenta como acierto (Etapa 2)
 TOL_ONSET_S = [1.0, 2.0, 5.0]
 TOL_RED_ONSET_S = 3.0  # agrupacion de onsets entre estaciones
 
+# IoU minimo para emparejar recorte y evento (decision de la Etapa 2)
 IOU_MIN = 0.30
 
+# deteccion de red: 2 estaciones que coinciden a 5 s, disparos unidos a 5 s y al menos 3 s
 MIN_ESTACIONES = 2
 TOL_COINCIDENCIA_S = 5.0
 FUSION_S = 5.0
@@ -46,11 +50,13 @@ DUR_MIN_S = 3.0
 # tope de duracion de una deteccion de red: corta el encadenamiento transitivo
 DUR_MAX_S = 400.0
 
-# optimo del barrido de 324 combinaciones
+# STA/LTA de la Etapa 2 (optimo de 324): sta_s y lta_s son nsta y nlta en s; thr_on y thr_off, thres1 y thres2
 STALTA = dict(sta_s=2.0, lta_s=60.0, thr_on=4.0, thr_off=1.05,
               banda=(1.0, 20.0))
 
+# pesos publicados por los autores de cada red, tal como los carga SeisBench
 PESOS = {"phasenet": "original", "eqtransformer": "original"}
+# relleno de N y E con que cada red rindio mejor en la Etapa 2, cuando solo habia vertical
 COMPONENTES_POR_MODELO = {"phasenet": "duplicar", "eqtransformer": "ceros"}
 UMBRAL_PROB = 0.30  # sobre la curva Detection (solo EQTransformer)
 UMBRAL_PICK = 0.20  # confianza minima de un pick

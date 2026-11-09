@@ -14,7 +14,9 @@ import zlib
 
 import numpy as np
 
+# frecuencia de los paquetes de FRE en Winston (medida: 100 Hz)
 FS = 100.0
+# cabecera TRACEBUF2 de Earthworm: 64 bytes antes de las muestras
 TAM_CABECERA = 64
 # segundos entre 1970-01-01 y 2000-01-01 12:00 UTC (J2K de Winston)
 J2K_A_UNIX = 946728000.0

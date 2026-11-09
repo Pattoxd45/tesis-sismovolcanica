@@ -21,8 +21,11 @@ sys.path.insert(0, os.path.join(AQUI, "..", "evaluacion"))
 import fre3c_lib as lib
 
 FS = lib.FS
+# tolerancia del criterio anterior (aviso a 5 s del inicio), en muestras
 TOL = int(round(lib.TOL_S * FS))
+# umbral de las redes al comparar la interseccion con el criterio anterior
 UMBRAL_REF = 0.10
+# metas de sensibilidad volcanica; 0,95 es la meta del trabajo
 METAS = [0.80, 0.90, 0.95]
 TRAMOS = [1, 2, 3]
 

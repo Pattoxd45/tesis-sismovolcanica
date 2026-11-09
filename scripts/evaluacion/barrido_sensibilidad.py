@@ -30,12 +30,15 @@ TOL_ONSET_S = sig.TOL_ONSET_S
 # 5 s al unir avisos de detectores distintos, igual que la tolerancia del nivel 1
 FUSION_ONSETS_S = 5.0
 
+# metas de sensibilidad volcanica; 0,95 es la meta del trabajo
 OBJETIVOS = [0.80, 0.90, 0.95]
 
 # rejilla de la parte 2; el piso medido de cada cache se agrega aparte
 UMBRALES_CONF = [0.025, 0.03, 0.04, 0.05, 0.075, 0.10, 0.125, 0.15,
                  0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
+# estaciones que deben coincidir para aceptar una deteccion de red (Etapa 2)
 MIN_EST = [1, 2]
+# como se rellenan N y E cuando solo hay vertical: con ceros o copiando la Z
 MODOS = ["ceros", "duplicar"]
 MODELOS = ["phasenet", "eqtransformer"]
 

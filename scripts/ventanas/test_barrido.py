@@ -16,7 +16,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import barrido as br
 
 FS = br.FS
+# semilla fija: los casos sinteticos dan siempre lo mismo
 RNG = np.random.default_rng(20261002)
+# ruido de fondo de las senales sinteticas
 SIGMA_RUIDO = 0.05
 
 # configuracion real de STA/LTA, copiada de evaluar_detectores.py para no depender de sus rutas

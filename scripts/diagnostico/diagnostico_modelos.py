@@ -19,8 +19,10 @@ BASE = "/home/patto/tesis/datos/zenodo"
 NPY = f"{BASE}/NVCh_10h_continuous_trace.npy"
 CSV = f"{BASE}/NVCh_10h_continuous_trace_reference.csv"
 
+# frecuencia de muestreo de la traza de Zenodo y de los crudos de FRE (100 Hz)
 FS = 100.0
 CANAL = 1  # canal con mejor relacion senal/ruido (sigma mas alta)
+# senal antes y despues de cada evento que recibe la red: 60 s, una ventana de EQTransformer
 MARGEN_S = 60.0
 
 

@@ -17,7 +17,9 @@ sys.path.insert(0, AQUI)
 import recorte_fre3c as rc
 
 FS = rc.FS
+# muestras por segundo, para escribir los casos en segundos
 S = int(FS)
+# semilla fija: los casos sinteticos dan siempre lo mismo
 RNG = np.random.default_rng(7)
 RES = []
 

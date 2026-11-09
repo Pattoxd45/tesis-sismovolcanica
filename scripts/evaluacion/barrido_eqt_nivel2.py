@@ -22,10 +22,14 @@ from evaluar_detectores import (FS, CANALES, CORTES, GUARDA_S, NPY, CSV,
 
 CACHE = os.path.join(SALIDA, "cache_detection")
 
+# umbral sobre la curva de deteccion de EQTransformer (el papel de detection_threshold)
 UMBRALES = [0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50]
 FUSION_S = [5.0, 15.0, 30.0]  # 30 s: los tremores duran 88 s de mediana
+# estaciones que deben coincidir para aceptar una deteccion de red (Etapa 2)
 MIN_EST = [1, 2]
+# duracion minima de una deteccion de red (Etapa 2)
 DUR_MIN_S = 3.0
+# IoU minimo para emparejar recorte y evento (decision de la Etapa 2)
 IOU_MIN = 0.30
 
 

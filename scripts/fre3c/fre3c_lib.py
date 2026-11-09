@@ -7,7 +7,9 @@ import os
 import numpy as np
 
 
+# frecuencia de muestreo de la traza de Zenodo y de los crudos de FRE (100 Hz)
 FS = 100.0
+# muestras de la traza de Zenodo (10,18 h)
 N_TOTAL = 3_664_193
 
 # mismos cortes y guarda que evaluar_detectores.py
@@ -16,6 +18,7 @@ GUARDA_S = 30.0
 LIMITES_TRAMO = [(0, 2_160_000), (2_160_000, 3_240_001),
                  (3_240_001, N_TOTAL)]
 
+# tolerancia del criterio anterior (aviso a 5 s del inicio); el vigente es la interseccion
 TOL_S = 5.0
 CLASES = ["VT", "LP", "TR", "AV", "IC"]
 VOLCANICAS = ["VT", "LP", "TR"]
@@ -23,6 +26,7 @@ VOLCANICAS = ["VT", "LP", "TR"]
 # 1-15 Hz: banda de la traza de Zenodo; 1-45 Hz: banda del filtro interno de EQTransformer
 FILTROS = {"f1_15": (1.0, 15.0), "f1_45": (1.0, 45.0)}
 
+# 21 valores de cada umbral en los barridos; pasos finos bajo 0,10, donde las redes detectan mas
 UMBRALES = [0.02, 0.03, 0.05] + [round(0.05 * i, 2) for i in range(2, 20)]
 
 DIR_TESIS = os.path.expanduser("~/tesis")

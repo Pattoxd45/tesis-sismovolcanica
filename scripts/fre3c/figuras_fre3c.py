@@ -18,6 +18,7 @@ sys.path.insert(0, AQUI)
 import fre3c_lib as lib
 
 FS = lib.FS
+# tolerancia del criterio anterior (aviso a 5 s del inicio), en muestras
 TOL = int(round(lib.TOL_S * FS))
 CANAL_FRE = 1  # fila de FRE en la traza de Zenodo
 DIR_CACHE = os.path.join(lib.DIR_TESIS, "resultados")

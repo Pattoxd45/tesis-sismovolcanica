@@ -20,7 +20,9 @@ import fre3c_lib as lib
 import sensibilidad_fre3c as sf
 
 FS = lib.FS
+# tolerancia del criterio anterior (aviso a 5 s del inicio), en muestras
 TOL = int(round(lib.TOL_S * FS))
+# umbrales que se prueban al juntar PhaseNet (P y S) con EQTransformer (deteccion)
 UMBRALES_PN = [0.05, 0.10, 0.30]
 UMBRALES_EQT = [0.10, 0.30, 0.50]
 

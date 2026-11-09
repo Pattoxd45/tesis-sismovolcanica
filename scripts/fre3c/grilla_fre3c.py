@@ -24,6 +24,7 @@ import anotar_fre3c as an
 import interseccion_fre3c as ix
 
 FS = lib.FS
+# 1-15 Hz: la banda que se mantuvo (1-45 Hz no mejora a ningun detector)
 FILTRO = "f1_15"
 # overlap en muestras (ventana de 3001 en PhaseNet y 6000 en EQTransformer); blinding por lado
 GRILLA = {

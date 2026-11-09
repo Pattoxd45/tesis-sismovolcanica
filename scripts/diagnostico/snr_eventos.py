@@ -37,6 +37,7 @@ RANGOS = [(-np.inf, 5.0, "< 5"),
           (10.0, 20.0, "10 a 20"),
           (20.0, np.inf, "> 20")]
 
+# detectores de cada nivel de la Etapa 2; el nivel 2 (recorte) no incluye a PhaseNet, que no da fin
 DETECTORES_N1 = ["stalta", "phasenet", "eqtransformer"]
 DETECTORES_N2 = ["stalta", "eqtransformer"]
 

@@ -10,6 +10,7 @@ import pandas as pd
 BASE = "/home/patto/tesis/datos/zenodo"
 a = np.load(f"{BASE}/NVCh_10h_continuous_trace.npy", mmap_mode="r")
 df = pd.read_csv(f"{BASE}/NVCh_10h_continuous_trace_reference.csv")
+# muestras donde la traza une tramos de fechas distintas
 CORTES = [2_160_000, 3_240_001]
 
 print("Comparacion exacta de patrones de hueco (bloque 0:1.000.000)")

@@ -19,6 +19,7 @@ sys.path.insert(0, AQUI)
 import fre3c_lib as lib
 
 FS = lib.FS
+# tolerancia del criterio anterior (aviso a 5 s del inicio), en muestras
 TOL = int(round(lib.TOL_S * FS))
 
 # flujo -> (modelo, etiquetas de curva, forma de extraer el instante)
@@ -33,8 +34,11 @@ FLUJOS = {
     "PN-PS-ant": ("phasenet", ["P", "S"], "cache"),
     "EQT-PS-ant": ("eqtransformer", ["P", "S"], "cache"),
 }
+# como la cache anterior: avisos a 0,02 y despues filtro por el pico de cada uno
 UMBRAL_CACHE = 0.02
+# umbrales que se muestran en el resumen
 UMBRALES_RESUMEN = [0.05, 0.10, 0.20, 0.30, 0.50]
+# metas de sensibilidad volcanica; 0,95 es la meta del trabajo
 METAS = [0.80, 0.90, 0.95]
 FLUJOS_FIGURA = ["PN-P", "PN-S", "PN-PS", "EQT-D", "EQT-P"]
 NOMBRE_FILTRO = {"f1_15": "1-15 Hz", "f1_45": "1-45 Hz"}

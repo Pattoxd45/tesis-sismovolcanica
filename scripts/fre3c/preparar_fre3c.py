@@ -23,6 +23,7 @@ import verificar_crudos as vc
 FS = lib.FS
 COMPONENTES = ("Z", "N", "E")
 LAG_BUSQUEDA = 50  # +-0,5 s
+# desfase maximo aceptado entre el crudo y la traza de Zenodo (5 muestras, 0,05 s)
 LAG_MAX_ACEPTADO = 5
 R_MIN_V1 = 0.99  # correlacion minima Z(1-15 Hz) vs fila 1
 BORDE = vc.MARGEN_HUECO  # 20 s

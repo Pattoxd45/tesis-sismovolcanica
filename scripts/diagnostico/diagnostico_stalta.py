@@ -15,13 +15,17 @@ BASE = "/home/patto/tesis/datos/zenodo"
 NPY = f"{BASE}/NVCh_10h_continuous_trace.npy"
 CSV = f"{BASE}/NVCh_10h_continuous_trace_reference.csv"
 
+# frecuencia de muestreo de la traza de Zenodo y de los crudos de FRE (100 Hz)
 FS = 100.0
+# muestras donde la traza une tramos de fechas distintas; 30 s de guarda a cada lado
 CORTES = [2_160_000, 3_240_001]
 GUARDA_S = 30.0
 CLASES = ["VT", "LP", "TR", "AV", "IC"]
 
+# primera prueba de STA/LTA, la que aqui se diagnostica: nsta y nlta en s, thres1 y thres2
 STA_S, LTA_S = 1.0, 10.0
 THR_ON, THR_OFF = 3.0, 1.5
+# freqmin y freqmax del filtro de ObsPy antes de STA/LTA (1-20 Hz, Etapa 2)
 BANDA = (1.0, 20.0)
 
 
@@ -49,6 +53,7 @@ def disparos_canal(x, ini):
     if np.allclose(x, 0):
         return [], huecos
 
+    # corners=4 y zerophase=True de ObsPy: orden 4 y fase cero, como en la Etapa 2
     xf = bandpass(x, BANDA[0], BANDA[1], df=FS, corners=4, zerophase=True)
     cft = classic_sta_lta(xf, int(STA_S * FS), int(LTA_S * FS))
     cft = np.nan_to_num(cft, nan=0.0, posinf=0.0, neginf=0.0)

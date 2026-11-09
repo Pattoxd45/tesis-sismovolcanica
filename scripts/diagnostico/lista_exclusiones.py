@@ -18,6 +18,7 @@ DIR_TESIS = os.path.expanduser("~/tesis")
 CSV_BUSQUEDA = os.path.join(DIR_TESIS, "resultados", "superposicion_pool_traza.csv")
 CSV_NULO = os.path.join(DIR_TESIS, "resultados", "superposicion_pool_traza_nulo.csv")
 CSV_SALIDA = os.path.join(DIR_TESIS, "config", "exclusiones_pool.csv")
+# ventanas del conjunto de entrenamiento; la busqueda tiene que cubrirlas todas
 N_POOL = 9102
 
 # regla de exclusion: ambos umbrales quedan sobre el maximo del grupo de control (nulo)
@@ -26,6 +27,7 @@ UMBRAL_1EST = 0.96
 # los motivos se fijaron despues de ver los datos; solo describen, no cambian que se excluye
 COPIA_MEDIA = 0.93
 COPIA_1EST_AV = 0.98
+# conteo ya revisado; si cambia, no se escribe la lista hasta ver por que
 ESPERADO = {"copia": 27, "parecida": 8, "dudosa": 7}
 
 

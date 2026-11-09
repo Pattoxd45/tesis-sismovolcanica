@@ -24,11 +24,15 @@ NPY_TRAZA = os.path.expanduser("~/tesis/datos/zenodo/NVCh_10h_continuous_trace.n
 CSV_CATALOGO = os.path.expanduser("~/tesis/datos/zenodo/NVCh_10h_continuous_trace_reference.csv")
 DIR_SALIDA = os.path.expanduser("~/tesis/resultados")
 
+# frecuencia de muestreo de la traza de Zenodo y de los crudos de FRE (100 Hz)
 FS = 100.0
+# largo de cada ventana del conjunto de entrenamiento (81,92 s)
 M = 8192
+# el filtro que reproduce la traza de Zenodo: 1-15 Hz, orden 5
 SOS = butter(5, [1.0, 15.0], btype="bandpass", fs=FS, output="sos")
 CLASES_MASCARA = ("BG", "VT", "LP", "TR", "AV", "IC")  # filas 8-13 del pool, 9-14 de la traza
 
+# tramo, muestra de inicio y de fin, y fecha UTC de cada parte de la traza
 TRAMOS = [
     (1, 0, 2_160_000, "2018-02-09"),
     (2, 2_160_000, 3_240_001, "2020-01-14"),
@@ -46,12 +50,16 @@ AV_SIN_CRUDO = {9005, 169581, 176397, 187288, 242412, 273545, 433062, 455131, 47
                 803794, 872366, 967042, 1142426, 1149460, 1425188, 1636140, 1722083}
 
 UMBRAL_VENTANA = 0.90  # lo justifica la validacion con solucion conocida
+# el mismo valor al comparar solo contra los eventos del catalogo
 UMBRAL_EVENTO = 0.90
 # mejor estacion sola: una coincidencia en una sola estacion se diluye en la media
 UMBRAL_1EST = 0.98
 GUARDA_STD = 1e-3  # std local minima, relativa a la std global de la fila
+# ventanas de fechas ajenas a la traza para el grupo de control (60 por clase)
 N_NULO = 300
+# casos con solucion conocida para validar la busqueda (8 por tramo)
 N_POSITIVOS = 24
+# semilla fija: los sorteos dan siempre lo mismo
 SEMILLA = 0
 
 

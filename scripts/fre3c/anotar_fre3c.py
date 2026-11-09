@@ -19,7 +19,9 @@ sys.path.insert(0, AQUI)
 import fre3c_lib as lib
 
 FS = lib.FS
+# pesos publicados por los autores de PhaseNet y EQTransformer, tal como los carga SeisBench
 PESOS = "original"
+# comprobacion contra classify() de SeisBench: basta un umbral y un tramo
 UMBRAL_V4 = 0.3
 TRAMO_V4 = 2
 

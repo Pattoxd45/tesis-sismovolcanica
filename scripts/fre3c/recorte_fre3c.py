@@ -23,21 +23,30 @@ import fre3c_lib as lib
 import evaluar_detectores as ed
 
 FS = lib.FS
+# tolerancia del criterio anterior (aviso a 5 s del inicio), en muestras
 TOL = int(round(lib.TOL_S * FS))
+# recorte por energia (metodo propio pedido por el profesor): energia promediada en 1 s
 VENTANA_ENV_S = 1.0
 RUIDO_S = (120.0, 5.0)  # ruido: de 120 s a 5 s antes del arribo
 PERCENTIL_RUIDO = 20  # robusto a la coda de un evento anterior
+# fin del recorte: energia bajo 2 veces el ruido durante 5 s, entre 2 y 300 s tras el aviso
 K_RUIDO = 2.0
 CALMA_S = 5.0
 DUR_MIN_S = 2.0
 DUR_MAX_S = 300.0
 MARGEN_PREVIO_S = 2.5  # cubre el error de inicio medido (1,7 a 2,4 s), como en ventanas/barrido.py
+# ventana fija de referencia: el largo de las ventanas del conjunto de entrenamiento
 VENTANA_FIJA_S = 81.92
+# P_threshold y S_threshold de PhaseNet que se prueban en el recorte
 UMBRALES = [0.05, 0.10, 0.30]
+# multiplos del ruido que se prueban para el fin del recorte; 2 es el valor en uso
 KS = [1.5, 2.0, 3.0]
+# IoU con que se separan los recortes buenos en el diagnostico de fallas
 IOU_ALTO = 0.5
 UMBRAL_EQT = 0.3  # umbral por defecto de SeisBench
+# detection_threshold de EQTransformer que se prueban en su recorte propio
 UMBRALES_EQT = [0.1, 0.3, 0.5]
+# thres1 de STA/LTA que se prueba en su recorte propio; 4,0 es el de la Etapa 2
 THR_ON_STALTA = [3.0, 4.0, 5.0]
 DESPUES_S = (5.0, 65.0)  # nivel despues del evento, solo para el diagnostico
 
@@ -138,6 +147,7 @@ def cft_stalta(z, cfg=ed.STALTA, limites=lib.LIMITES_TRAMO):
 
     out = []
     for a, b in limites:
+        # corners=4 y zerophase=True de ObsPy: orden 4 y fase cero, como en la Etapa 2
         x = bandpass(np.asarray(z[a:b], dtype=np.float64), cfg["banda"][0], cfg["banda"][1],
                      df=FS, corners=4, zerophase=True)
         c = classic_sta_lta(x, int(cfg["sta_s"] * FS), int(cfg["lta_s"] * FS))

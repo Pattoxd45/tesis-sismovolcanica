@@ -21,13 +21,17 @@ sys.path.insert(0, os.path.join(AQUI, "..", "evaluacion"))
 import fre3c_lib as lib
 
 FS = lib.FS
+# tolerancias simetricas que se prueban: hasta T s antes o despues del inicio
 SIMETRICAS_S = [1, 2, 3, 5, 7, 10, 15, 20, 30]
+# tolerancias tardias: hasta 5 s antes y hasta T s despues del inicio
 TARDIAS_S = [5, 7, 10, 15, 20, 30, 60]
 ANTES_TARDIA_S = 5.0     # en la prueba tardia solo se alarga el lado posterior al inicio
 DETECTORES = ["PhaseNet P y S", "EQTransformer deteccion", "EQTransformer P y S", "STA/LTA"]
 FLUJOS_UMBRAL = {"PhaseNet P y S": ("PN-PS", "phasenet"), "EQTransformer deteccion": ("EQT-D", "eqtransformer"),
                  "EQTransformer P y S": ("EQT-PS", "eqtransformer")}
+# tolerancias que se informan en el avance
 TOL_INFORME_S = [5, 10]
+# metas de sensibilidad volcanica; 0,95 es la meta del trabajo
 METAS = [0.80, 0.90, 0.95]
 
 

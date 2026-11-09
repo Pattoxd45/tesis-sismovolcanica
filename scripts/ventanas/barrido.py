@@ -6,8 +6,10 @@ Barrido con ventanas de 5 minutos, fusion de intervalos y recorte adaptativo.
 
 import numpy as np
 
+# frecuencia de muestreo de la traza de Zenodo y de los crudos de FRE (100 Hz)
 FS = 100.0
 
+# ventanas de 5 min con paso de 55 s: todo evento de hasta 240,8 s cabe entero en alguna
 VENTANA_S = 300.0
 PASO_S = 55.0
 DUR_MAX_CAT_S = 240.8  # evento mas largo del catalogo
@@ -115,6 +117,7 @@ def stalta_en_ventana(x, cfg):
 
     if np.allclose(x, 0) or len(x) < int(cfg["lta_s"] * FS) * 2:
         return []
+    # corners=4 y zerophase=True de ObsPy: orden 4 y fase cero, como en la Etapa 2
     xf = bandpass(x, cfg["banda"][0], cfg["banda"][1], df=FS,
                   corners=4, zerophase=True)
     cft = classic_sta_lta(xf, int(cfg["sta_s"] * FS), int(cfg["lta_s"] * FS))

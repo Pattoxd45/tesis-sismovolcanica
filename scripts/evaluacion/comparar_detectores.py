@@ -20,7 +20,9 @@ from evaluar_detectores import (FS, CANALES, CORTES, GUARDA_S, NPY, CSV,
                                 fusionar_canal, coincidencia_onsets,
                                 metricas_onset)
 
+# freqmin y freqmax del filtro de ObsPy antes de STA/LTA (1-20 Hz, Etapa 2)
 BANDA = (1.0, 20.0)
+# tolerancia de 5 s alrededor del inicio (criterio de la Etapa 2)
 TOL_REPORTE_S = 5.0
 
 # rejilla centrada en la region util que encontro el barrido previo

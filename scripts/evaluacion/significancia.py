@@ -21,8 +21,11 @@ from evaluar_detectores import (FS, CANALES, CORTES, GUARDA_S, NPY, CSV,
                                 coincidencia, coincidencia_onsets,
                                 emparejar, metricas)
 
+# freqmin y freqmax del filtro de ObsPy antes de STA/LTA (1-20 Hz, Etapa 2)
 BANDA = (1.0, 20.0)
+# tolerancia de 5 s alrededor del inicio (criterio de la Etapa 2)
 TOL_ONSET_S = 5.0
+# umbrales de IoU para ver que la conclusion del nivel 2 no depende del 0,30
 IOUS = [0.10, 0.20, 0.30, 0.40, 0.50]
 
 # mejor F1, el mismo criterio para los tres; de comparacion_nivel1.csv y barrido_eqt_nivel2.csv
@@ -52,6 +55,7 @@ def stalta_por_canal(a, canales, cfg):
             x = np.asarray(a[ch, ini:fin], dtype=np.float64)
             if np.allclose(x, 0):
                 continue
+            # corners=4 y zerophase=True de ObsPy: orden 4 y fase cero, como en la Etapa 2
             xf = bandpass(x, BANDA[0], BANDA[1], df=FS, corners=4,
                           zerophase=True)
             cft = classic_sta_lta(xf, int(cfg["sta_s"] * FS),

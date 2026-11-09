@@ -17,6 +17,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 import winston_lib as wl
 
+# 2018-02-09 00:00 UTC, el dia con que se valido la lectura
 T0 = 1518134400.0
 
 

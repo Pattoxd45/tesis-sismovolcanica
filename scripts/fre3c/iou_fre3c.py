@@ -22,7 +22,9 @@ import evaluar_detectores as ed
 import recorte_fre3c as rc
 
 FS = lib.FS
+# umbrales de IoU que se informan; 0,30 es el de la Etapa 2
 UMBRALES_IOU = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+# umbrales de IoU de la tabla por clase
 UMBRALES_CLASE = [0.3, 0.5, 0.7]
 CASOS = ["cubre todo", "le falta el final", "le faltan inicio y fin", "le falta el inicio"]
 RECORTES = ["PhaseNet + energia con corte", "PhaseNet + energia", "PhaseNet + ventana fija",

@@ -15,7 +15,9 @@ DIR_CRUDOS = os.path.expanduser("~/tesis/datos/crudos")
 NPY_ZENODO = os.path.expanduser("~/tesis/datos/zenodo/NVCh_10h_continuous_trace.npy")
 CSV_CATALOGO = os.path.expanduser("~/tesis/datos/zenodo/NVCh_10h_continuous_trace_reference.csv")
 
+# frecuencia de muestreo de la traza de Zenodo y de los crudos de FRE (100 Hz)
 FS = 100.0
+# filtro que se prueba para reproducir la traza: 1-15 Hz, orden 5, aplicado con fase cero
 SOS = butter(5, [1.0, 15.0], btype="bandpass", fs=FS, output="sos")
 
 # archivo crudo -> tramo de la traza de Zenodo
@@ -25,6 +27,7 @@ TRAMOS = [
     ("FRE_1484028418_1484032660.npy", 3, 3_240_001, 3_664_193),
 ]
 COMPONENTES = ("Z", "N", "E")
+# filas de la traza con las 8 estaciones (solo vertical)
 FILAS_ZENODO = range(1, 9)
 
 LAG_MAX = 3000  # +-30 s para buscar el desfase global

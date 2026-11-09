@@ -26,6 +26,7 @@ import iou_fre3c as iu
 FS = lib.FS
 # (desde, hasta) en segundos antes del aviso; (120, 5) es el valor en uso
 RUIDOS_S = [(30, 5), (60, 5), (120, 5), (240, 5), (120, 10), (120, 2.5)]
+# percentiles del ruido que se prueban; 20 es el valor en uso
 PERCENTILES = [10, 20, 50]
 P_MENORES = [0.02, 0.03, 0.05]  # solo se baja P_threshold; S_threshold queda como en la base
 OTRAS = [(0.30, 0.10), (0.40, 0.05)]  # 0,95 con +-10 s y con interseccion

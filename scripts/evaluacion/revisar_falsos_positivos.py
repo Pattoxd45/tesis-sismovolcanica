@@ -19,7 +19,9 @@ from evaluar_detectores import (FS, CANALES, CORTES, GUARDA_S, NPY, CSV,
                                 fusionar_canal, coincidencia, emparejar,
                                 STALTA)
 
+# IoU minimo para emparejar recorte y evento (decision de la Etapa 2)
 IOU_MIN = 0.30
+# estaciones que deben coincidir para aceptar una deteccion de red (Etapa 2)
 MIN_EST = 2
 
 

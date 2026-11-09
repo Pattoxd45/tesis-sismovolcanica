@@ -19,11 +19,15 @@ sys.path.insert(0, AQUI)
 import fre3c_lib as lib
 
 FS = lib.FS
+# tolerancia del criterio anterior (aviso a 5 s del inicio), en muestras
 TOL = int(round(lib.TOL_S * FS))
 MODELOS = ("phasenet", "eqtransformer")
 POR_DEFECTO = {"phasenet": 0.3, "eqtransformer": 0.1}  # valor de SeisBench para P y S
+# valores de P_threshold y S_threshold que se muestran en la tabla
 UMBRALES_TABLA = [0.02, 0.05, 0.10, 0.20, 0.30, 0.50]
+# umbrales con que se cuenta que eventos detecta solo la P o solo la S
 UMBRALES_DIF = [0.05, 0.10, 0.30]
+# metas de sensibilidad volcanica; 0,95 es la meta del trabajo
 METAS = [0.80, 0.90, 0.95]
 NOMBRE_FILTRO = {"f1_15": "1-15 Hz", "f1_45": "1-45 Hz"}
 FLUJO_PS = {"phasenet": "PN-PS", "eqtransformer": "EQT-PS"}

@@ -17,6 +17,7 @@ sys.path.insert(0, AQUI)
 import fre3c_lib as lib
 
 FS = lib.FS
+# muestras por segundo, para escribir los casos en segundos
 S = int(FS)
 RESULTADOS = []
 

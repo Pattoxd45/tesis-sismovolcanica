@@ -28,8 +28,11 @@ KWARGS_BAJOS = {
                           S_threshold=0.02),
 }
 
+# confianza minima de cada aviso: P_threshold, S_threshold y detection_threshold de SeisBench
 UMBRALES_CONF = [0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50, 0.60, 0.75]
+# estaciones que deben coincidir para aceptar una deteccion de red (Etapa 2)
 MIN_EST = [1, 2, 3]
+# tolerancia de 5 s alrededor del inicio (criterio de la Etapa 2)
 TOL_REPORTE_S = 5.0
 
 

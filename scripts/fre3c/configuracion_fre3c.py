@@ -32,6 +32,7 @@ import recorte_detalle_fre3c as rd
 import interseccion_fre3c as ix
 
 FS = lib.FS
+# 1-15 Hz: la banda que se mantuvo (1-45 Hz no mejora a ningun detector)
 FILTRO = "f1_15"
 FLUJOS = {"PhaseNet P y S": "phasenet", "EQTransformer deteccion": "eqtransformer",
           "EQTransformer P y S": "eqtransformer"}

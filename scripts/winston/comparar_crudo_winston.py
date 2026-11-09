@@ -20,11 +20,15 @@ import winston_lib as wl
 
 FS = wl.FS
 DIR_CRUDOS = os.path.expanduser("~/tesis/datos/crudos")
+# crudo de FRE del tramo 1, que cubre parte del 9 de febrero de 2018
 CRUDO = "FRE_1518149218_1518170818.npy"
+# tablas de ese dia copiadas del NAS a la MariaDB local, una por componente
 TABLAS = {"Z": "z_2018_02_09", "N": "n_2018_02_09", "E": "e_2018_02_09"}
+# el dia se arma desde las 00:00 UTC, a 100 muestras por segundo
 T0 = datetime(2018, 2, 9, tzinfo=timezone.utc).timestamp()
 N_DIA = int(86400 * FS)
 SALIDA = os.path.expanduser("~/tesis/datos/nas/fre_2018_02_09/fre_2018_02_09.npz")
+# desfase maximo que se busca al comparar con el crudo (+-5 s)
 LAG_MAX = 500
 
 
