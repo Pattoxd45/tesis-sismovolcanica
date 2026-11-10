@@ -16,6 +16,7 @@ import numpy as np
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
+import cobertura_jose as cj
 import extraer_winston as ew
 import winston_lib as wl
 
@@ -114,6 +115,19 @@ def main():
                  and ew.tabla_local("FRE", "Z", d9) == "fre_z_2018_02_09"
                  and ew.nombre_local("W_FREZ$HHZ$TC$99/frez$hhz$tc$99$$2018_02_09.MYD", "fre_z_2018_02_09")
                  == "fre_z_2018_02_09.MYD")
+
+    m = [cj.DIA_TABLA.search(n) for n in ("frez$hhz$tc$99$$2018_02_09.MYD", "FREZ$HHZ$TC$99$$2014_04_02.MYD",
+                                            "frez$hhz$tc$99$$h2018_02_09.MYD", "frez$hhz$tc$99$$2018_02_09.MYI")]
+    todo &= caso("dias de tabla en el listado del NAS (sin helicorder ni indices)",
+                 m[0].groups() == ("2018", "02", "09") and m[1] is not None and m[2] is None and m[3] is None)
+
+    import pandas as pd
+    j9 = datetime(2018, 2, 9, 12, tzinfo=timezone.utc).timestamp() - wl.J2K_A_UNIX
+    j10 = datetime(2018, 2, 9, 23, 58, tzinfo=timezone.utc).timestamp() - wl.J2K_A_UNIX
+    v = pd.DataFrame(dict(inicio_ventana_w=[j9, j10], fin_ventana_w=[j9 + 300, j10 + 300]))
+    c = cj.cobertura(v, {"Z": {d9, d10}, "N": {d9, d10}, "E": {d9}})
+    todo &= caso("ventana que cruza la medianoche necesita los dos dias",
+                 c.E.tolist() == [True, False] and c.Z.tolist() == [True, True])
 
     print("TODOS PASAN" if todo else "HAY FALLAS")
     sys.exit(0 if todo else 1)
