@@ -9,14 +9,17 @@ Uso: python test_winston.py
 import os
 import struct
 import sys
+import tempfile
 import zlib
 from datetime import date, datetime, timezone
 
 import numpy as np
+import pandas as pd
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 import cobertura_jose as cj
+import estado_tablas as et
 import extraer_ventanas_jose as evj
 import extraer_winston as ew
 import winston_lib as wl
@@ -146,6 +149,40 @@ def main():
     todo &= caso("Z igual a la de Jose, sin contar los huecos, y desfase de una muestra",
                  f0 == 1.0 and k0 == 0 and f1 == 1.0 and k1 == 1
                  and np.isnan(evj.comparar_z(z, None)[0]))
+
+    hechas = evj.ya_hechas(["a_zne.npz", "b_zne.npz", "c_zne.npz", "otro.csv"], ["a", "b", "d"])
+    todo &= caso("ventana con npz pero sin fila en el registro se vuelve a extraer", hechas == {"a", "b"})
+
+    def cab(abierta, changed, registros, li, ld):
+        return (abierta.to_bytes(2, "big") + bytes([changed, 0]) + registros.to_bytes(8, "big") + bytes(24)
+                + li.to_bytes(8, "big") + ld.to_bytes(8, "big"))
+
+    salida = (b"## N W_FREN$HHN$TC$99/FREN$HHN$TC$99$$2019_04_08.MYI\n" + cab(1, 3, 10, 1239040, 27595532) + b"\n"
+              b"## E w_free$hhe$tc$99/free$hhe$tc$99$$2019_04_09.myi\n" + cab(0x0a00, 1, 5, 2048, 100) + b"\n"
+              b"## Z W_FREZ$HHZ$TC$99/FREZ$HHZ$TC$99$$2019_04_07.MYI\n" + cab(0, 0, 0x232320, 1, 2) + b"\n"
+              b"## Z W_FREZ$HHZ$TC$99/FREZ$HHZ$TC$99$$2019_04_10.MYI\n\n"
+              b"## Z W_FREZ$HHZ$TC$99/FREZ$HHZ$TC$99$$H2019_04_11.MYI\n" + cab(0, 0, 1, 1, 1) + b"\n")
+    e, sin_leer = et.parsear_estado(salida)
+    todo &= caso("cabecera del indice: danada, sin cerrar, sana, una sin leer y helicorder fuera",
+                 e.danada.tolist() == [True, False, False] and e.sin_cerrar.tolist() == [False, True, False]
+                 and e.abierta.tolist() == [1, 0x0a00, 0] and e.changed.tolist() == [3, 1, 0]
+                 and e.registros.tolist() == [10, 5, 0x232320] and e.largo_datos.tolist() == [27595532, 100, 2]
+                 and e.largo_indice.tolist() == [1239040, 2048, 1] and e.dia.tolist()[0] == date(2019, 4, 8)
+                 and sin_leer == 1)
+
+    listado = ("## N\n-rwxrwxrwx    1 0        0          11120459 Apr 30  2021 fren$hhn$tc$99$$2019_04_08.MYD\n"
+               "-rwxrwxrwx    1 0        0           1239040 Sep  2  2020 fren$hhn$tc$99$$2019_04_08.MYI\n"
+               "-rwxrwxrwx    1 0        0           2487243 Sep  2  2020 fren$hhn$tc$99$$h2019_04_08.MYD\n"
+               "-rwxrwxrwx    1 0        0              8684 Sep  2  2020 fren$hhn$tc$99$$2019_04_08.frm\n")
+    tam = et.parsear_listado(listado)
+    todo &= caso("tamano de datos e indice desde ls -ln (sin helicorder ni frm)",
+                 tam == {("N", date(2019, 4, 8)): {"MYD": 11120459, "MYI": 1239040}})
+
+    ruta = os.path.join(tempfile.mkdtemp(), "estado.csv")
+    pd.DataFrame(dict(comp=["N", "Z", "E"], dia=["2019-04-08", "2017-09-15", "2018-01-01"],
+                      corta=[True, False, False], danada=[False, True, False])).to_csv(ruta, index=False)
+    todo &= caso("tablas cortas o danadas segun estado_tablas.csv",
+                 evj.tablas_cortas(ruta) == {"fre_n_2019_04_08", "fre_z_2017_09_15"})
 
     print("TODOS PASAN" if todo else "HAY FALLAS")
     sys.exit(0 if todo else 1)

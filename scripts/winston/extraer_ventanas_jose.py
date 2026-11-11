@@ -28,6 +28,7 @@ DIR_JOSE = os.path.expanduser("~/tesis/datos/jose/Pato")
 COBERTURA = os.path.expanduser("~/tesis/resultados/sistema/cobertura_jose.csv")
 DIR_SALIDA = os.path.expanduser("~/tesis/datos/jose_zne")
 REGISTRO = os.path.expanduser("~/tesis/resultados/sistema/extraccion_jose.csv")
+ESTADO = os.path.expanduser("~/tesis/resultados/sistema/estado_tablas.csv")
 # 300 s a 100 Hz: el largo de las ventanas de Jose
 N_VENTANA = 30000
 # dias por tanda: cerca de 0,8 GB por tanda; asi la clave de sudo (15 min) no alcanza a vencer
@@ -67,6 +68,22 @@ def comparar_z(z, j):
     return mejor
 
 
+def ya_hechas(archivos, eventos_registro):
+    """Ventanas con npz y con fila en el registro; las de una tanda cortada (npz sin fila) se vuelven a extraer."""
+    npz = {f[:-len("_zne.npz")] for f in archivos if f.endswith("_zne.npz")}
+    return npz & set(eventos_registro)
+
+
+def tablas_cortas(ruta=None):
+    """Tablas locales que vienen danadas o con el archivo de datos mas corto que lo que dice su indice en el respaldo."""
+    ruta = ruta or ESTADO
+    if not os.path.exists(ruta):
+        raise SystemExit("DETENIDO: falta estado_tablas.csv; correr antes estado_tablas.py")
+    e = pd.read_csv(ruta, parse_dates=["dia"])
+    m = e[e.corta.astype(bool) | e.danada.astype(bool)]
+    return {ew.tabla_local(ESTACION, r.comp, r.dia) for r in m.itertuples()}
+
+
 def z_de_jose(evento, clase):
     ruta = os.path.join(DIR_JOSE, "dataset_SOLO_Z_300s", clase, f"{evento}_300s_raw.npy")
     return np.load(ruta).astype(np.float64) if os.path.exists(ruta) else None
@@ -86,21 +103,27 @@ def main():
     if args.limite:
         v = v.head(args.limite)
     os.makedirs(DIR_SALIDA, exist_ok=True)
-    hechas = {f[:-len("_zne.npz")] for f in os.listdir(DIR_SALIDA) if f.endswith("_zne.npz")}
+    registro = pd.read_csv(REGISTRO).to_dict("records") if os.path.exists(REGISTRO) else []
+    archivos = os.listdir(DIR_SALIDA)
+    hechas = ya_hechas(archivos, [r["evento"] for r in registro])
+    registro = [r for r in registro if r["evento"] in hechas]
+    cortadas = sum(f.endswith("_zne.npz") for f in archivos) - len(hechas)
     pend = v[~v.evento_principal.isin(hechas)].set_index("evento_principal")
-    print(f"{len(v)} ventanas con Z, N y E; ya extraidas {len(v) - len(pend)}; por extraer {len(pend)}")
+    print(f"{len(v)} ventanas con Z, N y E; ya extraidas {len(v) - len(pend)}; por extraer {len(pend)}"
+          + (f" (incluye {cortadas} de una tanda cortada)" if cortadas else ""))
     if pend.empty:
         return
 
+    # se copian y quedan en la MariaDB local, pero no se leen: la decision sobre ellas queda para despues
+    cortas = tablas_cortas()
     dias_v = {e: ew.dias(utc(r.inicio_ventana_w), utc(r.fin_ventana_w)) for e, r in pend.iterrows()}
     grupos, por_tanda = tandas(dias_v, args.tanda)
-    registro = pd.read_csv(REGISTRO).to_dict("records") if os.path.exists(REGISTRO) else []
     t_ini, copiados_total = time.time(), 0
     print(f"{len(grupos)} tandas de hasta {args.tanda} dias (puede pedir la contrasena del NAS y la clave de sudo)")
     for i, (g, eventos) in enumerate(zip(grupos, por_tanda), 1):
         sin_dato, copiados = ew.traer_tablas(nas, ESTACION, g)
         copiados_total += copiados // 3
-        cargadas = ew.tablas_cargadas()
+        cargadas = ew.tablas_cargadas() - cortas
         for e in eventos:
             r = pend.loc[e]
             t0 = r.inicio_ventana_w + wl.J2K_A_UNIX
@@ -108,7 +131,8 @@ def main():
             f, k = comparar_z(senal["Z"], z_de_jose(e, r.clase_principal))
             np.savez_compressed(os.path.join(DIR_SALIDA, f"{e}_zne.npz"), t0=t0, fs=FS, evento=e,
                                 clase=r.clase_principal, split=r.split, **senal)
-            registro.append(dict(evento=e, clase=r.clase_principal, split=r.split,
+            sin_leer = sorted(t for c in senal for d in dias_v[e] if (t := ew.tabla_local(ESTACION, c, d)) in cortas)
+            registro.append(dict(evento=e, clase=r.clase_principal, split=r.split, tablas_sin_leer=";".join(sin_leer),
                                  **{f"con_dato_{c}": infos[c]["validas"] / N_VENTANA for c in senal},
                                  **{f"pisadas_{c}": infos[c]["conflictos"] for c in senal},
                                  z_igual_jose=f, desfase_jose=k))
@@ -123,6 +147,8 @@ def main():
     for c in ("Z", "N", "E"):
         print(f"  {c}: con dato en mediana {d[f'con_dato_{c}'].median():.1%}; ventanas con menos de 95 %: "
               f"{int((d[f'con_dato_{c}'] < 0.95).sum())}")
+    if "tablas_sin_leer" in d:
+        print(f"  ventanas con alguna tabla danada o corta que no se leyo: {int(d.tablas_sin_leer.fillna('').ne('').sum())}")
     z = d.z_igual_jose.dropna()
     print(f"  Z igual a la de Jose: {int((z == 1).sum())} de {len(z)} ventanas comparadas; "
           f"desfases encontrados: {d.desfase_jose.value_counts(dropna=False).to_dict()}")
