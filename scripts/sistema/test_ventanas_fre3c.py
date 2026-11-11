@@ -19,6 +19,7 @@ sys.path.insert(0, AQUI)
 import ventanas_fre3c as vf
 
 FS = vf.FS
+# P_threshold y S_threshold de la configuracion elegida de PhaseNet
 UP, US = 0.40, 0.05
 
 

@@ -17,6 +17,7 @@ import numpy as np
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 import cobertura_jose as cj
+import extraer_ventanas_jose as evj
 import extraer_winston as ew
 import winston_lib as wl
 
@@ -128,6 +129,23 @@ def main():
     c = cj.cobertura(v, {"Z": {d9, d10}, "N": {d9, d10}, "E": {d9}})
     todo &= caso("ventana que cruza la medianoche necesita los dos dias",
                  c.E.tolist() == [True, False] and c.Z.tolist() == [True, True])
+
+    d1, d2, d3 = date(2018, 2, 9), date(2018, 2, 10), date(2018, 2, 11)
+    dv = {"a": [d1], "b": [d1, d2], "c": [d3]}
+    g1, t1 = evj.tandas(dv, 1)
+    g2, t2 = evj.tandas(dv, 2)
+    todo &= caso("cada ventana queda en la tanda donde estan todos sus dias",
+                 g1 == [[d1], [d2], [d3]] and t1 == [["a"], ["b"], ["c"]]
+                 and g2 == [[d1, d2], [d3]] and t2 == [["a", "b"], ["c"]])
+
+    z = np.random.default_rng(3).integers(-5000, 5000, 1000).astype(float)
+    zh = z.copy()
+    zh[100:150] = np.nan
+    f0, k0 = evj.comparar_z(zh, z)
+    f1, k1 = evj.comparar_z(z, np.roll(z, -1))
+    todo &= caso("Z igual a la de Jose, sin contar los huecos, y desfase de una muestra",
+                 f0 == 1.0 and k0 == 0 and f1 == 1.0 and k1 == 1
+                 and np.isnan(evj.comparar_z(z, None)[0]))
 
     print("TODOS PASAN" if todo else "HAY FALLAS")
     sys.exit(0 if todo else 1)

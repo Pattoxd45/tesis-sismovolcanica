@@ -36,8 +36,8 @@ DIR_SALIDA = os.path.expanduser("~/tesis/datos/nas/extraidos")
 DIR_TMP = os.path.expanduser("~/tesis/datos/nas")
 # cada paquete queda en la tabla del dia en que empieza: un aviso pasada la medianoche puede estar en el dia anterior
 ANTES_S = 10.0
-# una sola conexion SSH para todas las llamadas: la contrasena del NAS se pide una vez
-SSH_OPCIONES = ["-o", "ControlMaster=auto", "-o", "ControlPath=~/.ssh/cm-%r@%h:%p", "-o", "ControlPersist=120"]
+# una sola conexion SSH para todas las llamadas: la contrasena del NAS se pide una vez (dura 30 min sin uso)
+SSH_OPCIONES = ["-o", "ControlMaster=auto", "-o", "ControlPath=~/.ssh/cm-%r@%h:%p", "-o", "ControlPersist=1800"]
 # busquedas por llamada, para no pasar el largo maximo de un comando
 POR_LLAMADA = 150
 
@@ -126,6 +126,52 @@ def cargar_en_mariadb(archivos):
     subprocess.run(["sudo", "mysql", "-e", "FLUSH TABLES"], check=True)
 
 
+def traer_tablas(nas, estacion, lista_dias):
+    """Copia del NAS y carga en la MariaDB local las tablas de esos dias que aun no estan; devuelve las que no existen."""
+    carpetas = CARPETAS[estacion]
+    pedidos = {(c, d): tabla_local(estacion, c, d) for c in carpetas for d in lista_dias}
+    ya = tablas_cargadas()
+    faltan = {k: t for k, t in pedidos.items() if t not in ya}
+    sin_dato, copiados = [], 0
+    if not faltan:
+        return sin_dato, copiados
+    rutas = buscar_en_nas(nas, [(carpetas[c], patron_nas(carpetas[c], d)) for c, d in faltan])
+    nombres = {}
+    for (c, d), tabla in faltan.items():
+        pat = (carpetas[c] + "/" + patron_nas(carpetas[c], d)).lower()
+        propias = [r for r in rutas if r.lower().rsplit(".", 1)[0] == pat]
+        if len(propias) < 3:
+            sin_dato.append(tabla)
+            continue
+        nombres.update({r: nombre_local(r, tabla) for r in propias})
+    if nombres:
+        os.makedirs(DIR_TMP, exist_ok=True)
+        # copia intermedia: se borra despues de cargar; las tablas quedan guardadas en la MariaDB local
+        tmp = tempfile.mkdtemp(prefix="tmp_winston_", dir=DIR_TMP)
+        try:
+            copiados = copiar_de_nas(nas, nombres, tmp)
+            cargar_en_mariadb(sorted(os.path.join(tmp, f) for f in os.listdir(tmp)))
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+    return sin_dato, copiados
+
+
+def senal_entre(estacion, lista_dias, t0, n, cargadas=None):
+    """Z, N y E a 100 Hz desde t0 (segundos desde 1970), n muestras, con NaN donde no hay registro."""
+    cargadas = tablas_cargadas() if cargadas is None else cargadas
+    # el filtro usa la hora J2K de la tabla; 2 s antes para no perder el paquete que ya venia corriendo
+    st_min, st_max = t0 - wl.J2K_A_UNIX - 2.0, t0 + n / FS - wl.J2K_A_UNIX
+    senal, infos = {}, {}
+    for c in CARPETAS[estacion]:
+        filas = []
+        for d in lista_dias:
+            t = tabla_local(estacion, c, d)
+            if t in cargadas:
+                filas += wl.leer_tabla(BASE_LOCAL, t, st_min=st_min, st_max=st_max)[0]
+        senal[c], infos[c] = wl.armar(filas, t0, n)
+    return senal, infos
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--inicio", required=True, help="UTC, por ejemplo 2018-02-09T04:00:00")
@@ -140,53 +186,21 @@ def main():
     inicio, fin = utc(args.inicio), utc(args.fin)
     if fin <= inicio:
         raise SystemExit("DETENIDO: --fin tiene que ser posterior a --inicio")
-    est, carpetas = args.estacion, CARPETAS[args.estacion]
+    est = args.estacion
     lista_dias = dias(inicio, fin)
 
-    pedidos = {(c, d): tabla_local(est, c, d) for c in carpetas for d in lista_dias}
-    ya = tablas_cargadas()
-    faltan = {k: t for k, t in pedidos.items() if t not in ya}
-    print(f"{est} de {inicio:%Y-%m-%d %H:%M:%S} a {fin:%Y-%m-%d %H:%M:%S} UTC: {len(lista_dias)} dias, "
-          f"{len(pedidos)} tablas; ya cargadas {len(pedidos) - len(faltan)}, por traer {len(faltan)}")
-
-    sin_dato = []
-    if faltan:
-        claves = list(faltan)
-        rutas = buscar_en_nas(nas, [(carpetas[c], patron_nas(carpetas[c], d)) for c, d in claves])
-        nombres = {}
-        for (c, d), tabla in faltan.items():
-            pat = (carpetas[c] + "/" + patron_nas(carpetas[c], d)).lower()
-            propias = [r for r in rutas if r.lower().rsplit(".", 1)[0] == pat]
-            if len(propias) < 3:
-                sin_dato.append(tabla)
-                continue
-            nombres.update({r: nombre_local(r, tabla) for r in propias})
-        if nombres:
-            os.makedirs(DIR_TMP, exist_ok=True)
-            tmp = tempfile.mkdtemp(prefix="tmp_winston_", dir=DIR_TMP)
-            try:
-                n = copiar_de_nas(nas, nombres, tmp)
-                print(f"Copiados {n} archivos del NAS; se cargan en la MariaDB local (puede pedir la clave de sudo)")
-                cargar_en_mariadb(sorted(os.path.join(tmp, f) for f in os.listdir(tmp)))
-            finally:
-                shutil.rmtree(tmp, ignore_errors=True)
+    print(f"{est} de {inicio:%Y-%m-%d %H:%M:%S} a {fin:%Y-%m-%d %H:%M:%S} UTC: {len(lista_dias)} dias "
+          "(puede pedir la contrasena del NAS y la clave de sudo)")
+    sin_dato, copiados = traer_tablas(nas, est, lista_dias)
+    print(f"Copiados {copiados} archivos del NAS")
     if sin_dato:
         print(f"Sin tabla en el respaldo (quedan sin datos): {', '.join(sin_dato)}")
 
-    cargadas = tablas_cargadas()
     t0 = inicio.timestamp()
     n = int(round((fin - inicio).total_seconds() * FS))
-    # el filtro usa la hora J2K de la tabla; 2 s antes para no perder el paquete que ya venia corriendo
-    st_min, st_max = t0 - wl.J2K_A_UNIX - 2.0, fin.timestamp() - wl.J2K_A_UNIX
-    senal = {}
-    for c in carpetas:
-        filas = []
-        for d in lista_dias:
-            t = tabla_local(est, c, d)
-            if t in cargadas:
-                filas += wl.leer_tabla(BASE_LOCAL, t, st_min=st_min, st_max=st_max)[0]
-        x, info = wl.armar(filas, t0, n)
-        senal[c] = x
+    senal, infos = senal_entre(est, lista_dias, t0, n)
+    for c, x in senal.items():
+        info = infos[c]
         ini, _ = wl.tramos_con_datos(np.isfinite(x))
         print(f"  {c}: {info['paquetes']} paquetes ({info['malos']} malos, {info['otra_fs']} con otra frecuencia); "
               f"{info['validas'] / n:.1%} de las muestras con dato, en {len(ini)} tramos; "
