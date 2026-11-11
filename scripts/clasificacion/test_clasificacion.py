@@ -61,8 +61,9 @@ def main():
 
     try:
         import torch  # noqa: F401
+        import torchvision  # noqa: F401
     except ImportError:
-        print("  (sin PyTorch: se omiten los casos de entrenar_cnn.py)")
+        print("  (sin PyTorch o torchvision: se omiten los casos de entrenar_cnn.py)")
         print("TODOS PASAN" if todo else "HAY FALLAS")
         sys.exit(0 if todo else 1)
     import entrenar_cnn as ec
