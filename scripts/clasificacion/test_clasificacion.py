@@ -76,6 +76,23 @@ def main():
     todo &= caso("carpeta dentro del zip: el nombre del zip",
                  pc.raiz("/x/clasificacion_colab_fijo60s.zip") == "clasificacion_colab_fijo60s")
 
+    import resumen_cnn as rs
+    import correr_todo as ct
+    d = tempfile.mkdtemp()
+    for f, ep in zip(ct.FOLDS, [10, 7, 9, 7, 8]):
+        json.dump(dict(mejor_epoca=ep), open(os.path.join(d, ct.nombre("resnet50", f, ct.ESTIRAR) + ".json"), "w"))
+    todo &= caso("corredor: 20 corridas de folds y epocas finales = mediana de las mejores (10, 7, 9, 7, 8 -> 8)",
+                 len(ct.trabajos_cv()) == 20 and ct.epocas_final(d, "resnet50") == (8, [10, 7, 9, 7, 8])
+                 and ct.nombre("efficientnet_b0", 0, ct.FIJO) == "efficientnet_b0_test_estirar_fijo60s_pesos_completo_lr0.0001_min5s")
+    m = {"f1_macro_volcanicas": 0.7, "matriz": [[8, 1, 0, 1], [0, 9, 0, 1], [0, 0, 4, 1], [2, 1, 0, 7]]}
+    json.dump(dict(configuracion=dict(modelo="vgg16", fold=0, conjunto="recorte", evaluacion="test",
+                                      cortos_fuera_de_validacion={"VT": 0, "LP": 0, "TR": 0, "rechazo": 10}),
+                   historia=[dict(m, segundos=5.0)], mejor_epoca=1), open(os.path.join(d, "x.json"), "w"))
+    r = rs.leer(os.path.join(d, "x.json"))
+    todo &= caso("resumen: los recortes cortos cuentan como rechazados (3 falsos de 20) y la sensibilidad sobre el total",
+                 abs(r["falsos"] - 3 / 20) < 1e-12 and abs(r["volcanicos"] - 21 / 25) < 1e-12 and r["sens_VT"] == 0.8
+                 and r["n_rechazo"] == 20)
+
     try:
         import torch  # noqa: F401
         import torchvision  # noqa: F401
@@ -120,7 +137,7 @@ def main():
         a = f"v{i // 3}_{i % 3:02d}.png"
         Image.fromarray(rng.integers(0, 255, (231, 10 + i, 3), dtype=np.uint8)).save(os.path.join(datos, "imagenes", a))
         filas.append(dict(archivo=a, ventana=f"v{i // 3}", etiqueta=et, split="desarrollo" if i < 48 else "test",
-                          fold=(i // 3) % 5 + 1 if i < 48 else pd.NA, dur_s=10.0 + i))
+                          fold=(i // 3) % 5 + 1 if i < 48 else pd.NA, dur_s=10.0 + i if i < 48 else 1.0 + 2 * (i - 48)))
     pd.DataFrame(filas).to_csv(os.path.join(datos, "indice.csv"), index=False)
     # sin 'fuera' quedan 40 de desarrollo: 7 del fold 2 (validacion) y 33 de los otros folds
     for modelo, extra, archivo, congelada in (
@@ -160,6 +177,28 @@ def main():
     else:
         print(r.stderr[-800:])
     todo &= caso("conjunto de duracion fija en el nombre y duracion minima que saca los recortes cortos", ok)
+
+    todo &= caso("el corredor nombra los resultados igual que entrenar_cnn.py",
+                 all(ct.nombre(m, f, c) == ec.nombre_resultado(m, f, "estirar", ec.conjunto_de(c), True, True, 1e-4, 5.0)
+                     for m, f, c in ct.trabajos_cv() + [(m, 0, ct.ESTIRAR) for m, _ in ct.REDES]))
+
+    # fold 0: entrena con todo desarrollo (40 sin 'fuera') y evalua en test (10); con minimo 5 s salen de test
+    # los de 1 y 3 s (un VT y un LP); informa la ultima epoca y guarda los pesos
+    salida = tempfile.mkdtemp()
+    r = subprocess.run([sys.executable, os.path.join(AQUI, "entrenar_cnn.py"), "--datos", datos, "--modelo", "efficientnet_b0",
+                        "--fold", "0", "--salida", salida, "--epocas", "2", "--lote", "8", "--trabajadores", "0",
+                        "--sin-preentrenar", "--duracion-minima", "5", "--guardar-pesos"], capture_output=True, text=True)
+    ruta = os.path.join(salida, "efficientnet_b0_test_estirar_min5s.json")
+    ok = r.returncode == 0 and os.path.exists(ruta) and os.path.exists(ruta[:-5] + ".pt")
+    if ok:
+        res = json.load(open(ruta))
+        cfg = res["configuracion"]
+        ok = (cfg["evaluacion"] == "test" and res["mejor_epoca"] == 2 and sum(cfg["n_validacion"].values()) == 8
+              and sum(cfg["n_entrenamiento"].values()) == 40
+              and cfg["cortos_fuera_de_validacion"] == {"VT": 1, "LP": 1, "TR": 0, "rechazo": 0})
+    else:
+        print(r.stderr[-800:])
+    todo &= caso("fold 0: entrena con desarrollo, evalua en test la ultima epoca, cuenta los cortos de test y guarda pesos", ok)
 
     print("TODOS PASAN" if todo else "HAY FALLAS")
     sys.exit(0 if todo else 1)

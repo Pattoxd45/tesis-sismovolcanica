@@ -3,7 +3,8 @@
 """
 Ajuste por transferencia de una CNN preentrenada en ImageNet (VGG16, ResNet50 o EfficientNet-B0 de
 torchvision) para clasificar los recortes en VT, LP, TR y rechazo, con un fold de la validacion
-cruzada de Jose. Guarda un JSON con la configuracion, las versiones y las metricas de cada epoca.
+cruzada de Jose; con --fold 0 entrena con todo desarrollo y evalua una vez en test, en la ultima
+epoca. Guarda un JSON con la configuracion, las versiones y las metricas de cada epoca.
 
 Uso (Colab): python entrenar_cnn.py --datos /content/clasificacion_colab --modelo vgg16 --fold 1
              --salida /content/drive/MyDrive/tesis/resultados_cnn [--tamano estirar|rellenar]
@@ -58,6 +59,20 @@ class Recortes(Dataset):
         im = im.resize((LADO, LADO), Image.BILINEAR)
         x = torch.from_numpy(np.asarray(im, dtype=np.float32).copy()).permute(2, 0, 1) / 255.0
         return (x - self.mean) / self.std, self.y[i]
+
+
+def nombre_resultado(modelo, fold, tamano="estirar", conjunto="", pesos_clase=False, ajuste_completo=False, lr=None,
+                     duracion_minima=None):
+    """Nombre del JSON (y de los pesos) de una corrida; fold 0 es el entrenamiento final evaluado en test."""
+    return (f"{modelo}_{'test' if fold == 0 else f'fold{fold}'}_{tamano}" + (f"_{conjunto}" if conjunto else "")
+            + ("_pesos" if pesos_clase else "") + ("_completo" if ajuste_completo else "")
+            + (f"_lr{lr:g}" if lr is not None else "") + (f"_min{duracion_minima:g}s" if duracion_minima is not None else ""))
+
+
+def conjunto_de(datos):
+    """El conjunto de imagenes sale del nombre de la carpeta: clasificacion_colab_fijo60s -> fijo60s."""
+    base = os.path.basename(os.path.normpath(datos))
+    return base[len("clasificacion_colab"):].strip("_") if base.startswith("clasificacion_colab") else ""
 
 
 def construir(modelo, n_clases, preentrenado=True):
@@ -124,7 +139,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--datos", required=True, help="carpeta con indice.csv e imagenes/")
     ap.add_argument("--modelo", required=True, choices=sorted(CABEZAS))
-    ap.add_argument("--fold", type=int, required=True)
+    ap.add_argument("--fold", type=int, required=True, help="1 a 5: fold de validacion; 0: todo desarrollo y test")
     ap.add_argument("--salida", required=True)
     ap.add_argument("--tamano", default="estirar", choices=["estirar", "rellenar"])
     ap.add_argument("--pesos-clase", action="store_true", help="pesa la perdida por el inverso de la frecuencia de cada clase")
@@ -146,13 +161,15 @@ def main():
     idx = pd.read_csv(os.path.join(args.datos, "indice.csv"))
     idx = idx[idx.etiqueta.isin(MAPA)].copy()
     idx["y"] = idx.etiqueta.map(MAPA).map({k: i for i, k in enumerate(CLASES)})
+    es_test = args.fold == 0
     cortos = {}
     if args.duracion_minima is not None:
-        c = idx[(idx.dur_s < args.duracion_minima) & (idx.fold == args.fold)]
+        evaluados = idx[idx.split == "test"] if es_test else idx[idx.fold == args.fold]
+        c = evaluados[evaluados.dur_s < args.duracion_minima]
         cortos = {k: int((c.y == i).sum()) for i, k in enumerate(CLASES)}
         idx = idx[idx.dur_s >= args.duracion_minima]
     ent = idx[(idx.split == "desarrollo") & (idx.fold != args.fold)]
-    val = idx[idx.fold == args.fold]
+    val = idx[idx.split == "test"] if es_test else idx[idx.fold == args.fold]
     if args.limite:
         ent, val = ent.sample(min(args.limite, len(ent)), random_state=0), val.sample(min(args.limite, len(val)), random_state=0)
     if set(ent.ventana) & set(val.ventana):
@@ -179,14 +196,10 @@ def main():
     entrenables = [p for p in red.parameters() if p.requires_grad]
     opt = torch.optim.AdamW(entrenables) if args.lr is None else torch.optim.AdamW(entrenables, lr=args.lr)
 
-    # el conjunto de imagenes va en el nombre: clasificacion_colab_fijo60s -> _fijo60s
-    base = os.path.basename(os.path.normpath(args.datos))
-    conjunto = base[len("clasificacion_colab"):].strip("_") if base.startswith("clasificacion_colab") else ""
-    nombre = f"{args.modelo}_fold{args.fold}_{args.tamano}" + (f"_{conjunto}" if conjunto else "") + \
-             ("_pesos" if args.pesos_clase else "") + \
-             ("_completo" if args.ajuste_completo else "") + (f"_lr{args.lr:g}" if args.lr is not None else "") + \
-             (f"_min{args.duracion_minima:g}s" if args.duracion_minima is not None else "")
-    cfg = dict(vars(args), conjunto=conjunto or "recorte", lr_usada=opt.defaults["lr"], clases=CLASES, mapa=MAPA,
+    conjunto = conjunto_de(args.datos)
+    nombre = nombre_resultado(args.modelo, args.fold, args.tamano, conjunto, args.pesos_clase, args.ajuste_completo,
+                              args.lr, args.duracion_minima)
+    cfg = dict(vars(args), conjunto=conjunto or "recorte", evaluacion="test" if es_test else "validacion", lr_usada=opt.defaults["lr"], clases=CLASES, mapa=MAPA,
                lado=LADO, pesos_preentrenados=nombre_pesos, mean=mean, std=std,
                congelada=congelada, cortos_fuera_de_validacion=cortos, n_entrenamiento={k: int(n) for k, n in zip(CLASES, n_por_clase)},
                n_validacion={k: int(n) for k, n in zip(CLASES, np.bincount(val.y, minlength=len(CLASES)))},
@@ -213,19 +226,20 @@ def main():
         c = evaluar(red, c_val, disp)
         m = metricas(c)
         historia.append(dict(epoca=ep, perdida=suma / n, segundos=time.time() - t0, matriz=c.tolist(), **m))
-        print(f"  epoca {ep}: perdida {suma / n:.3f}; validacion: F1 macro volcanicas {m['f1_macro_volcanicas']:.3f}; "
+        print(f"  epoca {ep}: perdida {suma / n:.3f}; {cfg['evaluacion']}: F1 macro volcanicas {m['f1_macro_volcanicas']:.3f}; "
               + ", ".join(f"{k} sens {m[k]['sensibilidad']:.3f}" for k in CLASES) + f"; {time.time() - t0:.0f} s", flush=True)
-        if mejor is None or m["f1_macro_volcanicas"] > mejor["f1_macro_volcanicas"]:
+        # en test no se elige epoca: se informa la ultima, fijada antes con los folds
+        if es_test or mejor is None or m["f1_macro_volcanicas"] > mejor["f1_macro_volcanicas"]:
             mejor = historia[-1]
-            if args.guardar_pesos:
+            if args.guardar_pesos and (not es_test or ep == args.epocas):
                 os.makedirs(args.salida, exist_ok=True)
                 torch.save(red.state_dict(), os.path.join(args.salida, f"{nombre}.pt"))
 
     os.makedirs(args.salida, exist_ok=True)
     with open(os.path.join(args.salida, f"{nombre}.json"), "w") as f:
         json.dump(dict(configuracion=cfg, historia=historia, mejor_epoca=mejor["epoca"]), f, indent=1)
-    print(f"Mejor epoca {mejor['epoca']} (F1 macro volcanicas {mejor['f1_macro_volcanicas']:.3f}); matriz de confusion "
-          f"(filas real, columnas prediccion; {', '.join(CLASES)}):")
+    print(f"{'Ultima' if es_test else 'Mejor'} epoca {mejor['epoca']} (F1 macro volcanicas {mejor['f1_macro_volcanicas']:.3f}); "
+          f"matriz de confusion (filas real, columnas prediccion; {', '.join(CLASES)}):")
     for k, fila in zip(CLASES, mejor["matriz"]):
         print(f"  {k:>8} {fila}")
     print(f"Resultados en {os.path.join(args.salida, nombre + '.json')}")
