@@ -9,7 +9,7 @@ epoca. Guarda un JSON con la configuracion, las versiones y las metricas de cada
 Uso (Colab): python entrenar_cnn.py --datos /content/clasificacion_colab --modelo vgg16 --fold 1
              --salida /content/drive/MyDrive/tesis/resultados_cnn [--tamano estirar|rellenar]
              [--pesos-clase] [--ajuste-completo] [--lr 0.0001] [--duracion-minima 5] [--epocas 10]
-             [--guardar-pesos]
+             [--acumular 2] [--guardar-pesos]
 """
 
 import argparse
@@ -102,6 +102,20 @@ def modo_entrenamiento(red, cabeza, congelada):
         cabeza.train()
 
 
+def paso(red, perdida_suma, peso, grupo, opt, disp):
+    """Un paso del optimizador con un lote dividido en partes: suma los gradientes de las partes y divide por el peso
+    total del lote, igual que la perdida media (ponderada) de CrossEntropyLoss sobre el lote completo."""
+    opt.zero_grad()
+    total = sum(float(peso[y].sum()) if peso is not None else len(y) for _, y in grupo)
+    suma = 0.0
+    for x, y in grupo:
+        l = perdida_suma(red(x.to(disp)), y.to(disp)) / total
+        l.backward()
+        suma += l.item()
+    opt.step()
+    return suma
+
+
 def metricas(c):
     """Desde la matriz de confusion (filas: clase real; columnas: prediccion)."""
     out = {}
@@ -149,6 +163,8 @@ def main():
                     help="deja fuera los recortes mas cortos que esto (s), en entrenamiento y validacion")
     ap.add_argument("--epocas", type=int, default=10)
     ap.add_argument("--lote", type=int, default=64)
+    ap.add_argument("--acumular", type=int, default=1,
+                    help="pasa cada lote en K partes y suma sus gradientes: mismo lote efectivo con menos memoria")
     ap.add_argument("--semilla", type=int, default=0)
     ap.add_argument("--trabajadores", type=int, default=2)
     ap.add_argument("--limite", type=int, default=None, help="solo N recortes por particion, para probar")
@@ -184,14 +200,16 @@ def main():
             p.requires_grad = True
     red.to(disp)
     dir_img = os.path.join(args.datos, "imagenes")
-    kw = dict(batch_size=args.lote, num_workers=args.trabajadores, pin_memory=disp.type == "cuda")
+    if args.lote % args.acumular:
+        raise SystemExit("DETENIDO: --lote tiene que ser multiplo de --acumular")
+    kw = dict(batch_size=args.lote // args.acumular, num_workers=args.trabajadores, pin_memory=disp.type == "cuda")
     gen = torch.Generator().manual_seed(args.semilla)
     c_ent = DataLoader(Recortes(dir_img, ent.archivo, ent.y, args.tamano, mean, std), shuffle=True, generator=gen, **kw)
     c_val = DataLoader(Recortes(dir_img, val.archivo, val.y, args.tamano, mean, std), shuffle=False, **kw)
 
     n_por_clase = np.bincount(ent.y, minlength=len(CLASES))
     peso = torch.tensor(n_por_clase.sum() / (len(CLASES) * n_por_clase), dtype=torch.float32) if args.pesos_clase else None
-    perdida = nn.CrossEntropyLoss(weight=peso.to(disp) if peso is not None else None)
+    perdida_suma = nn.CrossEntropyLoss(weight=peso.to(disp) if peso is not None else None, reduction="sum")
     # AdamW con sus valores por defecto de PyTorch (lr 0,001, weight_decay 0,01); --lr cambia solo la tasa
     entrenables = [p for p in red.parameters() if p.requires_grad]
     opt = torch.optim.AdamW(entrenables) if args.lr is None else torch.optim.AdamW(entrenables, lr=args.lr)
@@ -215,19 +233,23 @@ def main():
     for ep in range(1, args.epocas + 1):
         t0 = time.time()
         modo_entrenamiento(red, cabeza, congelada)
-        suma, n = 0.0, 0
+        suma, n, grupo = 0.0, 0, []
         for x, y in c_ent:
-            x, y = x.to(disp), y.to(disp)
-            opt.zero_grad()
-            l = perdida(red(x), y)
-            l.backward()
-            opt.step()
-            suma, n = suma + l.item() * len(y), n + len(y)
+            grupo.append((x, y))
+            if len(grupo) == args.acumular:
+                suma += paso(red, perdida_suma, peso, grupo, opt, disp) * sum(len(g[1]) for g in grupo)
+                n += sum(len(g[1]) for g in grupo)
+                grupo = []
+        if grupo:
+            suma += paso(red, perdida_suma, peso, grupo, opt, disp) * sum(len(g[1]) for g in grupo)
+            n += sum(len(g[1]) for g in grupo)
         c = evaluar(red, c_val, disp)
         m = metricas(c)
-        historia.append(dict(epoca=ep, perdida=suma / n, segundos=time.time() - t0, matriz=c.tolist(), **m))
+        mem = torch.cuda.max_memory_allocated() / 1e9 if disp.type == "cuda" else None
+        historia.append(dict(epoca=ep, perdida=suma / n, segundos=time.time() - t0, memoria_gb=mem, matriz=c.tolist(), **m))
         print(f"  epoca {ep}: perdida {suma / n:.3f}; {cfg['evaluacion']}: F1 macro volcanicas {m['f1_macro_volcanicas']:.3f}; "
-              + ", ".join(f"{k} sens {m[k]['sensibilidad']:.3f}" for k in CLASES) + f"; {time.time() - t0:.0f} s", flush=True)
+              + ", ".join(f"{k} sens {m[k]['sensibilidad']:.3f}" for k in CLASES) + f"; {time.time() - t0:.0f} s"
+              + (f"; memoria GPU {mem:.1f} GB" if mem is not None else ""), flush=True)
         # en test no se elige epoca: se informa la ultima, fijada antes con los folds
         if es_test or mejor is None or m["f1_macro_volcanicas"] > mejor["f1_macro_volcanicas"]:
             mejor = historia[-1]

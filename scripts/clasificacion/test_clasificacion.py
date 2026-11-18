@@ -143,7 +143,8 @@ def main():
     for modelo, extra, archivo, congelada in (
             ("efficientnet_b0", ["--pesos-clase"], "efficientnet_b0_fold2_estirar_pesos.json", True),
             ("resnet50", ["--tamano", "rellenar", "--ajuste-completo"], "resnet50_fold2_rellenar_completo.json", False),
-            ("efficientnet_b0", ["--ajuste-completo", "--lr", "0.0001"], "efficientnet_b0_fold2_estirar_completo_lr0.0001.json", False)):
+            ("efficientnet_b0", ["--ajuste-completo", "--lr", "0.0001"], "efficientnet_b0_fold2_estirar_completo_lr0.0001.json", False),
+            ("vgg16", ["--ajuste-completo", "--acumular", "4"], "vgg16_fold2_estirar_completo.json", False)):
         salida = tempfile.mkdtemp()
         r = subprocess.run([sys.executable, os.path.join(AQUI, "entrenar_cnn.py"), "--datos", datos, "--modelo", modelo,
                             "--fold", "2", "--salida", salida, "--epocas", "2", "--lote", "8", "--trabajadores", "0",
@@ -177,6 +178,28 @@ def main():
     else:
         print(r.stderr[-800:])
     todo &= caso("conjunto de duracion fija en el nombre y duracion minima que saca los recortes cortos", ok)
+
+    from torch import nn
+    x = torch.randn(8, 5, generator=torch.Generator().manual_seed(0))
+    y = torch.tensor([0, 1, 2, 3, 0, 0, 3, 3])
+    peso = torch.tensor([2.0, 1.0, 0.5, 0.25])
+
+    def un_paso(k):
+        torch.manual_seed(1)
+        red = nn.Linear(5, 4)
+        ref = nn.CrossEntropyLoss(weight=peso)(red(x), y).item()
+        opt = torch.optim.AdamW(red.parameters(), lr=0.1)
+        t = 8 // k
+        l = ec.paso(red, nn.CrossEntropyLoss(weight=peso, reduction="sum"), peso,
+                    [(x[i:i + t], y[i:i + t]) for i in range(0, 8, t)], opt, torch.device("cpu"))
+        return red.weight.detach().clone(), l, ref
+
+    w1, l1, ref = un_paso(1)
+    w2, l2, _ = un_paso(2)
+    w4, l4, _ = un_paso(4)
+    todo &= caso("lote en 1, 2 o 4 partes: misma perdida ponderada y mismos pesos despues del paso",
+                 abs(l1 - ref) < 1e-6 and abs(l2 - ref) < 1e-6 and abs(l4 - ref) < 1e-6
+                 and torch.allclose(w1, w2, atol=1e-6) and torch.allclose(w1, w4, atol=1e-6))
 
     todo &= caso("el corredor nombra los resultados igual que entrenar_cnn.py",
                  all(ct.nombre(m, f, c) == ec.nombre_resultado(m, f, "estirar", ec.conjunto_de(c), True, True, 1e-4, 5.0)

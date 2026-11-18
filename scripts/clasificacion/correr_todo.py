@@ -7,8 +7,9 @@ y VGG16 con estirar, en los 5 folds de Jose; despues cada red entrenada con todo
 una vez en test, con tantas epocas como la mediana de sus mejores epocas en los folds; al final, el
 resumen.
 
-Uso: python correr_todo.py --datos ~/cnn --salida ~/cnn/resultados [--lote 64] [--trabajadores 4]
-     (--datos: carpeta con clasificacion_colab/ y clasificacion_colab_fijo60s/ ya descomprimidas)
+Uso: python correr_todo.py --datos ~/cnn --salida ~/cnn/resultados [--acumular 2] [--acumular-vgg16 4] [--prueba]
+     (--datos: carpeta con clasificacion_colab/ y clasificacion_colab_fijo60s/ ya descomprimidas;
+      --prueba: una epoca corta de cada red para ver que cabe en la memoria de la GPU, sin guardar nada)
 """
 
 import argparse
@@ -17,6 +18,7 @@ import os
 import statistics
 import subprocess
 import sys
+import tempfile
 import time
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -64,31 +66,48 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--datos", required=True)
     ap.add_argument("--salida", required=True)
+    # lote efectivo de 64 como en Colab; --acumular lo pasa en partes para que quepa en GPU con menos memoria
     ap.add_argument("--lote", type=int, default=64)
+    ap.add_argument("--acumular", type=int, default=1)
+    ap.add_argument("--acumular-vgg16", type=int, default=None, help="por defecto, el mismo --acumular")
     ap.add_argument("--trabajadores", type=int, default=4)
+    ap.add_argument("--prueba", action="store_true")
     args = ap.parse_args()
+    acum = {m: args.acumular for m, _ in REDES}
+    acum["vgg16"] = args.acumular_vgg16 or args.acumular
     datos, salida = os.path.expanduser(args.datos), os.path.expanduser(args.salida)
     os.makedirs(salida, exist_ok=True)
     for c in (ESTIRAR, FIJO):
         if not os.path.exists(os.path.join(datos, c, "indice.csv")):
             raise SystemExit(f"DETENIDO: falta {os.path.join(datos, c)} (descomprimir {c}.zip ahi)")
-    comun = ["--salida", salida, "--lote", str(args.lote), "--trabajadores", str(args.trabajadores), *ARGS_PROTOCOLO]
+    comun = ["--lote", str(args.lote), "--trabajadores", str(args.trabajadores), *ARGS_PROTOCOLO]
+
+    if args.prueba:
+        tmp = tempfile.mkdtemp()
+        for i, (m, _) in enumerate(REDES, 1):
+            correr([sys.executable, ENTRENAR, "--datos", os.path.join(datos, ESTIRAR), "--modelo", m, "--fold", "1",
+                    "--epocas", "1", "--limite", "512", "--salida", tmp, "--acumular", str(acum[m]), *comun],
+                   f"prueba de {m} (partes de {args.lote // acum[m]})", i, len(REDES))
+        print("\nPrueba lista: las tres redes caben; mirar la memoria GPU de cada una arriba", flush=True)
+        return
+    comun = ["--salida", salida, *comun]
 
     cv = trabajos_cv()
     pend = [t for t in cv if not os.path.exists(os.path.join(salida, nombre(*t) + ".json"))]
     finales = [m for m, _ in REDES if not os.path.exists(os.path.join(salida, nombre(m, 0, ESTIRAR) + ".json"))]
     n = len(pend) + len(finales)
     print(f"{len(cv)} corridas de validacion cruzada ({len(cv) - len(pend)} ya hechas) y {len(REDES)} finales en test "
-          f"({len(REDES) - len(finales)} ya hechas); lote {args.lote}", flush=True)
+          f"({len(REDES) - len(finales)} ya hechas); lote {args.lote}, en partes de "
+          + ", ".join(f"{m} {args.lote // a}" for m, a in acum.items()), flush=True)
     t0 = time.time()
     for i, (m, f, c) in enumerate(pend, 1):
         correr([sys.executable, ENTRENAR, "--datos", os.path.join(datos, c), "--modelo", m, "--fold", str(f),
-                "--epocas", str(EPOCAS_CV), *comun], nombre(m, f, c), i, n)
+                "--epocas", str(EPOCAS_CV), "--acumular", str(acum[m]), *comun], nombre(m, f, c), i, n)
     for j, m in enumerate(finales, len(pend) + 1):
         e, ep = epocas_final(salida, m)
         print(f"\n{m}: mejores epocas en los folds {ep}; el entrenamiento final usa {e}", flush=True)
         correr([sys.executable, ENTRENAR, "--datos", os.path.join(datos, ESTIRAR), "--modelo", m, "--fold", "0",
-                "--epocas", str(e), "--guardar-pesos", *comun], nombre(m, 0, ESTIRAR), j, n)
+                "--epocas", str(e), "--acumular", str(acum[m]), "--guardar-pesos", *comun], nombre(m, 0, ESTIRAR), j, n)
     print(f"\nTodo listo en {(time.time() - t0) / 3600:.1f} h\n", flush=True)
     subprocess.run([sys.executable, RESUMEN, salida])
 
