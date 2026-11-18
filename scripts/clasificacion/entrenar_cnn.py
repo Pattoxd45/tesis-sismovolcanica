@@ -7,7 +7,8 @@ cruzada de Jose. Guarda un JSON con la configuracion, las versiones y las metric
 
 Uso (Colab): python entrenar_cnn.py --datos /content/clasificacion_colab --modelo vgg16 --fold 1
              --salida /content/drive/MyDrive/tesis/resultados_cnn [--tamano estirar|rellenar]
-             [--pesos-clase] [--ajuste-completo] [--epocas 10] [--guardar-pesos]
+             [--pesos-clase] [--ajuste-completo] [--lr 0.0001] [--duracion-minima 5] [--epocas 10]
+             [--guardar-pesos]
 """
 
 import argparse
@@ -128,6 +129,9 @@ def main():
     ap.add_argument("--tamano", default="estirar", choices=["estirar", "rellenar"])
     ap.add_argument("--pesos-clase", action="store_true", help="pesa la perdida por el inverso de la frecuencia de cada clase")
     ap.add_argument("--ajuste-completo", action="store_true", help="entrena toda la red, no solo la capa nueva")
+    ap.add_argument("--lr", type=float, default=None, help="tasa de aprendizaje de AdamW; sin el argumento, su valor por defecto")
+    ap.add_argument("--duracion-minima", type=float, default=None,
+                    help="deja fuera los recortes mas cortos que esto (s), en entrenamiento y validacion")
     ap.add_argument("--epocas", type=int, default=10)
     ap.add_argument("--lote", type=int, default=64)
     ap.add_argument("--semilla", type=int, default=0)
@@ -142,6 +146,11 @@ def main():
     idx = pd.read_csv(os.path.join(args.datos, "indice.csv"))
     idx = idx[idx.etiqueta.isin(MAPA)].copy()
     idx["y"] = idx.etiqueta.map(MAPA).map({k: i for i, k in enumerate(CLASES)})
+    cortos = {}
+    if args.duracion_minima is not None:
+        c = idx[(idx.dur_s < args.duracion_minima) & (idx.fold == args.fold)]
+        cortos = {k: int((c.y == i).sum()) for i, k in enumerate(CLASES)}
+        idx = idx[idx.dur_s >= args.duracion_minima]
     ent = idx[(idx.split == "desarrollo") & (idx.fold != args.fold)]
     val = idx[idx.fold == args.fold]
     if args.limite:
@@ -166,19 +175,28 @@ def main():
     n_por_clase = np.bincount(ent.y, minlength=len(CLASES))
     peso = torch.tensor(n_por_clase.sum() / (len(CLASES) * n_por_clase), dtype=torch.float32) if args.pesos_clase else None
     perdida = nn.CrossEntropyLoss(weight=peso.to(disp) if peso is not None else None)
-    # AdamW con sus valores por defecto de PyTorch (lr 0,001, weight_decay 0,01)
-    opt = torch.optim.AdamW([p for p in red.parameters() if p.requires_grad])
+    # AdamW con sus valores por defecto de PyTorch (lr 0,001, weight_decay 0,01); --lr cambia solo la tasa
+    entrenables = [p for p in red.parameters() if p.requires_grad]
+    opt = torch.optim.AdamW(entrenables) if args.lr is None else torch.optim.AdamW(entrenables, lr=args.lr)
 
-    nombre = f"{args.modelo}_fold{args.fold}_{args.tamano}" + ("_pesos" if args.pesos_clase else "") + \
-             ("_completo" if args.ajuste_completo else "")
-    cfg = dict(vars(args), clases=CLASES, mapa=MAPA, lado=LADO, pesos_preentrenados=nombre_pesos, mean=mean, std=std,
-               congelada=congelada, n_entrenamiento={k: int(n) for k, n in zip(CLASES, n_por_clase)},
+    # el conjunto de imagenes va en el nombre: clasificacion_colab_fijo60s -> _fijo60s
+    base = os.path.basename(os.path.normpath(args.datos))
+    conjunto = base[len("clasificacion_colab"):].strip("_") if base.startswith("clasificacion_colab") else ""
+    nombre = f"{args.modelo}_fold{args.fold}_{args.tamano}" + (f"_{conjunto}" if conjunto else "") + \
+             ("_pesos" if args.pesos_clase else "") + \
+             ("_completo" if args.ajuste_completo else "") + (f"_lr{args.lr:g}" if args.lr is not None else "") + \
+             (f"_min{args.duracion_minima:g}s" if args.duracion_minima is not None else "")
+    cfg = dict(vars(args), conjunto=conjunto or "recorte", lr_usada=opt.defaults["lr"], clases=CLASES, mapa=MAPA,
+               lado=LADO, pesos_preentrenados=nombre_pesos, mean=mean, std=std,
+               congelada=congelada, cortos_fuera_de_validacion=cortos, n_entrenamiento={k: int(n) for k, n in zip(CLASES, n_por_clase)},
                n_validacion={k: int(n) for k, n in zip(CLASES, np.bincount(val.y, minlength=len(CLASES)))},
                versiones=dict(python=platform.python_version(), torch=torch.__version__, torchvision=torchvision.__version__),
                dispositivo=torch.cuda.get_device_name(0) if disp.type == "cuda" else "cpu")
     print(f"{nombre}: entrenamiento {len(ent)}, validacion {len(val)} (ventanas {ent.ventana.nunique()} y "
           f"{val.ventana.nunique()}); {cfg['dispositivo']}; pesos {nombre_pesos}", flush=True)
     print(f"  por clase en entrenamiento: {cfg['n_entrenamiento']}", flush=True)
+    if cortos:
+        print(f"  recortes de validacion que quedan fuera por cortos: {cortos}", flush=True)
 
     historia, mejor = [], None
     for ep in range(1, args.epocas + 1):

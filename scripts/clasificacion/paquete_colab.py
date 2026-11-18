@@ -6,10 +6,11 @@ propuesta, la particion de Jose (desarrollo o test) y su fold de validacion cruz
 script de entrenamiento.
 
 Uso: python paquete_colab.py   (deja ~/Descargas/clasificacion_colab.zip)
+     python paquete_colab.py --indice <csv> --imagenes <carpeta> --salida ~/Descargas/clasificacion_colab_fijo60s.zip
 """
 
+import argparse
 import os
-import sys
 import zipfile
 
 import pandas as pd
@@ -20,7 +21,6 @@ INDICE = os.path.join(DIR_TESIS, "resultados", "sistema", "espectrogramas_recort
 DIR_IMAGENES = os.path.join(DIR_TESIS, "datos", "espectrogramas_recortes")
 DIR_SPLITS = os.path.join(DIR_TESIS, "datos", "jose", "Pato", "splits")
 SALIDA = os.path.expanduser("~/Descargas/clasificacion_colab.zip")
-RAIZ = "clasificacion_colab"
 N_FOLDS = 5
 
 
@@ -55,22 +55,34 @@ def indice_con_folds(idx, fold):
     return idx
 
 
+def raiz(salida):
+    """Carpeta dentro del zip: el nombre del zip, para que dos paquetes no se pisen al descomprimirlos en Colab."""
+    return os.path.basename(salida)[:-len(".zip")]
+
+
 def main():
-    idx = indice_con_folds(pd.read_csv(INDICE), folds_jose(DIR_SPLITS))
-    faltan = [a for a in idx.archivo if not os.path.exists(os.path.join(DIR_IMAGENES, a))]
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--indice", default=INDICE)
+    ap.add_argument("--imagenes", default=DIR_IMAGENES)
+    ap.add_argument("--salida", default=SALIDA)
+    args = ap.parse_args()
+    RAIZ, dir_img = raiz(args.salida), os.path.expanduser(args.imagenes)
+    idx = indice_con_folds(pd.read_csv(os.path.expanduser(args.indice)), folds_jose(DIR_SPLITS))
+    faltan = [a for a in idx.archivo if not os.path.exists(os.path.join(dir_img, a))]
     if faltan:
         raise SystemExit(f"DETENIDO: faltan {len(faltan)} imagenes, por ejemplo {faltan[0]}")
     print(f"{len(idx)} recortes de {idx.ventana.nunique()} ventanas")
     print(pd.crosstab(idx.etiqueta, idx.fold.astype("object").fillna("test"), margins=True, margins_name="total").to_string())
 
-    os.makedirs(os.path.dirname(SALIDA), exist_ok=True)
+    salida = os.path.expanduser(args.salida)
+    os.makedirs(os.path.dirname(salida), exist_ok=True)
     # PNG ya viene comprimido: se guarda tal cual
-    with zipfile.ZipFile(SALIDA, "w", compression=zipfile.ZIP_STORED) as z:
+    with zipfile.ZipFile(salida, "w", compression=zipfile.ZIP_STORED) as z:
         z.writestr(f"{RAIZ}/indice.csv", idx.to_csv(index=False))
         z.write(os.path.join(AQUI, "entrenar_cnn.py"), f"{RAIZ}/entrenar_cnn.py")
         for a in idx.archivo:
-            z.write(os.path.join(DIR_IMAGENES, a), f"{RAIZ}/imagenes/{a}")
-    print(f"\nPaquete en {SALIDA} ({os.path.getsize(SALIDA) / 1e6:.0f} MB)")
+            z.write(os.path.join(dir_img, a), f"{RAIZ}/imagenes/{a}")
+    print(f"\nPaquete en {salida} ({os.path.getsize(salida) / 1e6:.0f} MB); en Colab queda en /content/{RAIZ}")
 
 
 if __name__ == "__main__":
