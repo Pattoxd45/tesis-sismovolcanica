@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 Resumen de los resultados del clasificador (JSON de entrenar_cnn.py) con un protocolo: por red y forma
-de imagen, cada fold, el promedio y la desviacion de los folds, y el resultado en test. Los recortes que
-la duracion minima deja fuera cuentan como rechazados (asi trabaja el sistema completo).
+de imagen, cada fold, el promedio y la desviacion de los folds, y el resultado en test, sobre los eventos
+de Jose; aparte, la parte de los recortes sin caja que la red toma por volcanicos. Los recortes que la
+duracion minima deja fuera cuentan como rechazados (asi trabaja el sistema completo).
 
-Uso: python resumen_cnn.py <carpeta de resultados> [--protocolo _pesos_completo_lr0.0001_min5s]
+Uso: python resumen_cnn.py <carpeta de resultados> [--protocolo _pesos_completo_lr0.0001_min5s_sin_falsas]
 """
 
 import argparse
@@ -16,7 +17,7 @@ import os
 import pandas as pd
 
 CLASES = ["VT", "LP", "TR", "rechazo"]
-PROTOCOLO = "_pesos_completo_lr0.0001_min5s"
+PROTOCOLO = "_pesos_completo_lr0.0001_min5s_sin_falsas"
 
 
 def leer(ruta):
@@ -30,6 +31,9 @@ def leer(ruta):
     out.update({f"sens_{k}": c[i][i] / fila[k] for i, k in enumerate(CLASES[:3])})
     out["volcanicos"] = sum(c[i][i] for i in range(3)) / sum(fila[k] for k in CLASES[:3])
     out["falsos"] = sum(c[3][:3]) / fila["rechazo"]
+    sc = m.get("sin_caja_predichos")
+    n_sc = sum(sc.values()) + cfg.get("cortos_sin_caja", 0) if sc else 0
+    out["sin_caja_volcanico"] = sum(sc[k] for k in CLASES[:3]) / n_sc if n_sc else float("nan")
     out["n_volcanicos"] = sum(fila[k] for k in CLASES[:3])
     out["n_rechazo"] = fila["rechazo"]
     out["s_epoca"] = sum(h["segundos"] for h in r["historia"]) / len(r["historia"])
@@ -49,9 +53,10 @@ def main():
     d = tabla(os.path.expanduser(args.carpeta), args.protocolo)
     if d.empty:
         raise SystemExit(f"No hay resultados con el protocolo {args.protocolo} en {args.carpeta}")
-    cols = ["f1", "sens_VT", "sens_LP", "sens_TR", "volcanicos", "falsos"]
-    print("Columnas: F1 macro de VT, LP y TR; sensibilidad de VT, LP y TR; volcanicos bien clasificados; parte del rechazo "
-          "tomada por volcanico (los recortes cortos cuentan como rechazados)\n")
+    cols = ["f1", "sens_VT", "sens_LP", "sens_TR", "volcanicos", "falsos", "sin_caja_volcanico"]
+    print("Columnas (eventos de Jose): F1 macro de VT, LP y TR; sensibilidad de VT, LP y TR; volcanicos bien clasificados; "
+          "parte de AV e IC tomada por volcanico. Ultima columna (sistema completo): parte de los recortes sin caja tomada "
+          "por volcanico. Los recortes cortos cuentan como rechazados.\n")
     for (modelo, conjunto), g in d.groupby(["modelo", "conjunto"]):
         print(f"{modelo} ({conjunto})")
         cv = g[g.evaluacion == "validacion"].sort_values("fold")

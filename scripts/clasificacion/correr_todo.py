@@ -24,8 +24,8 @@ import time
 AQUI = os.path.dirname(os.path.abspath(__file__))
 ENTRENAR = os.path.join(AQUI, "entrenar_cnn.py")
 RESUMEN = os.path.join(AQUI, "resumen_cnn.py")
-# protocolo elegido en el fold 1 y confirmado en los folds 2 a 4 con EfficientNet-B0 en Colab
-PROTOCOLO = dict(tamano="estirar", pesos_clase=True, ajuste_completo=True, lr=1e-4, duracion_minima=5.0)
+# protocolo elegido en el fold 1 y confirmado en los folds 2 a 4 con EfficientNet-B0 en Colab; sin las falsas
+# alarmas en el entrenamiento, como prefiere el profesor (--con-falsas-alarmas las vuelve a incluir)
 ARGS_PROTOCOLO = ["--ajuste-completo", "--pesos-clase", "--lr", "0.0001", "--duracion-minima", "5"]
 EPOCAS_CV = 10
 FOLDS = [1, 2, 3, 4, 5]
@@ -33,22 +33,22 @@ ESTIRAR, FIJO = "clasificacion_colab", "clasificacion_colab_fijo60s"
 REDES = [("efficientnet_b0", [ESTIRAR, FIJO]), ("resnet50", [ESTIRAR]), ("vgg16", [ESTIRAR])]
 
 
-def nombre(modelo, fold, carpeta):
+def nombre(modelo, fold, carpeta, sin_falsas=True):
     """Igual que nombre_resultado de entrenar_cnn.py (se repite para no cargar PyTorch aqui)."""
     conjunto = carpeta[len(ESTIRAR):].strip("_")
     return (f"{modelo}_{'test' if fold == 0 else f'fold{fold}'}_estirar" + (f"_{conjunto}" if conjunto else "")
-            + "_pesos_completo_lr0.0001_min5s")
+            + "_pesos_completo_lr0.0001_min5s" + ("_sin_falsas" if sin_falsas else ""))
 
 
 def trabajos_cv():
     return [(m, f, c) for m, cs in REDES for f in FOLDS for c in cs]
 
 
-def epocas_final(salida, modelo):
+def epocas_final(salida, modelo, sin_falsas=True):
     """Mediana de las mejores epocas de la red en los 5 folds (con estirar)."""
     ep = []
     for f in FOLDS:
-        with open(os.path.join(salida, nombre(modelo, f, ESTIRAR) + ".json")) as a:
+        with open(os.path.join(salida, nombre(modelo, f, ESTIRAR, sin_falsas) + ".json")) as a:
             ep.append(json.load(a)["mejor_epoca"])
     return int(round(statistics.median(ep))), ep
 
@@ -72,7 +72,9 @@ def main():
     ap.add_argument("--acumular-vgg16", type=int, default=None, help="por defecto, el mismo --acumular")
     ap.add_argument("--trabajadores", type=int, default=4)
     ap.add_argument("--prueba", action="store_true")
+    ap.add_argument("--con-falsas-alarmas", action="store_true", help="entrena tambien con los recortes sin caja")
     args = ap.parse_args()
+    sf = not args.con_falsas_alarmas
     acum = {m: args.acumular for m, _ in REDES}
     acum["vgg16"] = args.acumular_vgg16 or args.acumular
     datos, salida = os.path.expanduser(args.datos), os.path.expanduser(args.salida)
@@ -81,6 +83,8 @@ def main():
         if not os.path.exists(os.path.join(datos, c, "indice.csv")):
             raise SystemExit(f"DETENIDO: falta {os.path.join(datos, c)} (descomprimir {c}.zip ahi)")
     comun = ["--lote", str(args.lote), "--trabajadores", str(args.trabajadores), *ARGS_PROTOCOLO]
+    if sf:
+        comun.append("--sin-falsas-alarmas")
 
     if args.prueba:
         tmp = tempfile.mkdtemp()
@@ -93,8 +97,8 @@ def main():
     comun = ["--salida", salida, *comun]
 
     cv = trabajos_cv()
-    pend = [t for t in cv if not os.path.exists(os.path.join(salida, nombre(*t) + ".json"))]
-    finales = [m for m, _ in REDES if not os.path.exists(os.path.join(salida, nombre(m, 0, ESTIRAR) + ".json"))]
+    pend = [t for t in cv if not os.path.exists(os.path.join(salida, nombre(*t, sf) + ".json"))]
+    finales = [m for m, _ in REDES if not os.path.exists(os.path.join(salida, nombre(m, 0, ESTIRAR, sf) + ".json"))]
     n = len(pend) + len(finales)
     print(f"{len(cv)} corridas de validacion cruzada ({len(cv) - len(pend)} ya hechas) y {len(REDES)} finales en test "
           f"({len(REDES) - len(finales)} ya hechas); lote {args.lote}, en partes de "
@@ -102,14 +106,14 @@ def main():
     t0 = time.time()
     for i, (m, f, c) in enumerate(pend, 1):
         correr([sys.executable, ENTRENAR, "--datos", os.path.join(datos, c), "--modelo", m, "--fold", str(f),
-                "--epocas", str(EPOCAS_CV), "--acumular", str(acum[m]), *comun], nombre(m, f, c), i, n)
+                "--epocas", str(EPOCAS_CV), "--acumular", str(acum[m]), *comun], nombre(m, f, c, sf), i, n)
     for j, m in enumerate(finales, len(pend) + 1):
-        e, ep = epocas_final(salida, m)
+        e, ep = epocas_final(salida, m, sf)
         print(f"\n{m}: mejores epocas en los folds {ep}; el entrenamiento final usa {e}", flush=True)
         correr([sys.executable, ENTRENAR, "--datos", os.path.join(datos, ESTIRAR), "--modelo", m, "--fold", "0",
-                "--epocas", str(e), "--acumular", str(acum[m]), "--guardar-pesos", *comun], nombre(m, 0, ESTIRAR), j, n)
+                "--epocas", str(e), "--acumular", str(acum[m]), "--guardar-pesos", *comun], nombre(m, 0, ESTIRAR, sf), j, n)
     print(f"\nTodo listo en {(time.time() - t0) / 3600:.1f} h\n", flush=True)
-    subprocess.run([sys.executable, RESUMEN, salida])
+    subprocess.run([sys.executable, RESUMEN, salida, "--protocolo", "_pesos_completo_lr0.0001_min5s" + ("_sin_falsas" if sf else "")])
 
 
 if __name__ == "__main__":

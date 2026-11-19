@@ -83,7 +83,7 @@ def main():
         json.dump(dict(mejor_epoca=ep), open(os.path.join(d, ct.nombre("resnet50", f, ct.ESTIRAR) + ".json"), "w"))
     todo &= caso("corredor: 20 corridas de folds y epocas finales = mediana de las mejores (10, 7, 9, 7, 8 -> 8)",
                  len(ct.trabajos_cv()) == 20 and ct.epocas_final(d, "resnet50") == (8, [10, 7, 9, 7, 8])
-                 and ct.nombre("efficientnet_b0", 0, ct.FIJO) == "efficientnet_b0_test_estirar_fijo60s_pesos_completo_lr0.0001_min5s")
+                 and ct.nombre("efficientnet_b0", 0, ct.FIJO) == "efficientnet_b0_test_estirar_fijo60s_pesos_completo_lr0.0001_min5s_sin_falsas")
     m = {"f1_macro_volcanicas": 0.7, "matriz": [[8, 1, 0, 1], [0, 9, 0, 1], [0, 0, 4, 1], [2, 1, 0, 7]]}
     json.dump(dict(configuracion=dict(modelo="vgg16", fold=0, conjunto="recorte", evaluacion="test",
                                       cortos_fuera_de_validacion={"VT": 0, "LP": 0, "TR": 0, "rechazo": 10}),
@@ -153,16 +153,18 @@ def main():
         if ok:
             res = json.load(open(os.path.join(salida, archivo)))
             cfg = res["configuracion"]
-            ok = (len(res["historia"]) == 2 and sum(cfg["n_validacion"].values()) == 7
+            # validacion del fold 2: 5 eventos (VT, LP, TR y dos IC) y 2 sin caja, que se cuentan aparte
+            ok = (len(res["historia"]) == 2 and sum(cfg["n_validacion"].values()) == 5 and cfg["n_sin_caja_validacion"] == 2
                   and sum(cfg["n_entrenamiento"].values()) == 33 and cfg["congelada"] == congelada
-                  and sum(map(sum, res["historia"][0]["matriz"])) == 7
+                  and sum(map(sum, res["historia"][0]["matriz"])) == 5
+                  and sum(res["historia"][0]["sin_caja_predichos"].values()) == 2
                   and cfg["lr_usada"] == (1e-4 if "--lr" in extra else 1e-3))
         else:
             print(r.stderr[-800:])
         todo &= caso(f"corrida corta {modelo} {' '.join(extra)}: fold 2 a validacion, 'fuera' y test fuera, JSON con 2 epocas", ok)
 
     # el mismo conjunto con nombre de paquete de duracion fija y una duracion minima de 30 s:
-    # de la validacion del fold 2 salen 4 recortes de 13, 14, 28 y 29 s (VT, LP y dos de rechazo)
+    # de la validacion del fold 2 salen 4 recortes de 13, 14, 28 y 29 s (IC, sin caja, VT y LP)
     fijo = os.path.join(tempfile.mkdtemp(), "clasificacion_colab_fijo60s")
     os.symlink(datos, fijo)
     salida = tempfile.mkdtemp()
@@ -173,8 +175,8 @@ def main():
     ok = r.returncode == 0 and os.path.exists(ruta)
     if ok:
         cfg = json.load(open(ruta))["configuracion"]
-        ok = (cfg["conjunto"] == "fijo60s" and sum(cfg["n_validacion"].values()) == 3
-              and cfg["cortos_fuera_de_validacion"] == {"VT": 1, "LP": 1, "TR": 0, "rechazo": 2})
+        ok = (cfg["conjunto"] == "fijo60s" and sum(cfg["n_validacion"].values()) == 2 and cfg["n_sin_caja_validacion"] == 1
+              and cfg["cortos_fuera_de_validacion"] == {"VT": 1, "LP": 1, "TR": 0, "rechazo": 1} and cfg["cortos_sin_caja"] == 1)
     else:
         print(r.stderr[-800:])
     todo &= caso("conjunto de duracion fija en el nombre y duracion minima que saca los recortes cortos", ok)
@@ -201,8 +203,26 @@ def main():
                  abs(l1 - ref) < 1e-6 and abs(l2 - ref) < 1e-6 and abs(l4 - ref) < 1e-6
                  and torch.allclose(w1, w2, atol=1e-6) and torch.allclose(w1, w4, atol=1e-6))
 
+    # sin falsas alarmas: el entrenamiento pierde los 6 sin caja de los otros folds (33 -> 27); la validacion no cambia
+    salida = tempfile.mkdtemp()
+    r = subprocess.run([sys.executable, os.path.join(AQUI, "entrenar_cnn.py"), "--datos", datos, "--modelo", "efficientnet_b0",
+                        "--fold", "2", "--salida", salida, "--epocas", "1", "--lote", "8", "--trabajadores", "0",
+                        "--sin-preentrenar", "--sin-falsas-alarmas"], capture_output=True, text=True)
+    ruta = os.path.join(salida, "efficientnet_b0_fold2_estirar_sin_falsas.json")
+    ok = r.returncode == 0 and os.path.exists(ruta)
+    if ok:
+        cfg = json.load(open(ruta))["configuracion"]
+        pr = pd.read_csv(ruta[:-5] + "_predicciones.csv")
+        ok = (sum(cfg["n_entrenamiento"].values()) == 27 and sum(cfg["n_validacion"].values()) == 5
+              and len(pr) == 7 and (pr.etiqueta == "sin caja").sum() == 2
+              and list(pr.columns) == ["archivo", "ventana", "etiqueta", "clase", "prediccion", "p_VT", "p_LP", "p_TR", "p_rechazo"]
+              and abs(pr[["p_VT", "p_LP", "p_TR", "p_rechazo"]].sum(axis=1) - 1).max() < 1e-5)
+    else:
+        print(r.stderr[-800:])
+    todo &= caso("sin falsas alarmas: entrena sin los sin caja y guarda la prediccion y las probabilidades de cada recorte", ok)
+
     todo &= caso("el corredor nombra los resultados igual que entrenar_cnn.py",
-                 all(ct.nombre(m, f, c) == ec.nombre_resultado(m, f, "estirar", ec.conjunto_de(c), True, True, 1e-4, 5.0)
+                 all(ct.nombre(m, f, c) == ec.nombre_resultado(m, f, "estirar", ec.conjunto_de(c), True, True, 1e-4, 5.0, True)
                      for m, f, c in ct.trabajos_cv() + [(m, 0, ct.ESTIRAR) for m, _ in ct.REDES]))
 
     # fold 0: entrena con todo desarrollo (40 sin 'fuera') y evalua en test (10); con minimo 5 s salen de test
@@ -216,7 +236,8 @@ def main():
     if ok:
         res = json.load(open(ruta))
         cfg = res["configuracion"]
-        ok = (cfg["evaluacion"] == "test" and res["mejor_epoca"] == 2 and sum(cfg["n_validacion"].values()) == 8
+        ok = (cfg["evaluacion"] == "test" and res["mejor_epoca"] == 2 and sum(cfg["n_validacion"].values()) == 6
+              and cfg["n_sin_caja_validacion"] == 2
               and sum(cfg["n_entrenamiento"].values()) == 40
               and cfg["cortos_fuera_de_validacion"] == {"VT": 1, "LP": 1, "TR": 0, "rechazo": 0})
     else:

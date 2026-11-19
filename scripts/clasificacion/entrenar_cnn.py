@@ -4,12 +4,14 @@
 Ajuste por transferencia de una CNN preentrenada en ImageNet (VGG16, ResNet50 o EfficientNet-B0 de
 torchvision) para clasificar los recortes en VT, LP, TR y rechazo, con un fold de la validacion
 cruzada de Jose; con --fold 0 entrena con todo desarrollo y evalua una vez en test, en la ultima
-epoca. Guarda un JSON con la configuracion, las versiones y las metricas de cada epoca.
+epoca. Las metricas son sobre los eventos de Jose (VT, LP, TR, AV, IC); los recortes sin caja se
+informan aparte. Guarda un JSON con la configuracion, las versiones y las metricas de cada epoca, y
+un CSV con la prediccion de cada recorte en la epoca informada.
 
 Uso (Colab): python entrenar_cnn.py --datos /content/clasificacion_colab --modelo vgg16 --fold 1
              --salida /content/drive/MyDrive/tesis/resultados_cnn [--tamano estirar|rellenar]
              [--pesos-clase] [--ajuste-completo] [--lr 0.0001] [--duracion-minima 5] [--epocas 10]
-             [--acumular 2] [--guardar-pesos]
+             [--acumular 2] [--sin-falsas-alarmas] [--guardar-pesos]
 """
 
 import argparse
@@ -29,8 +31,8 @@ from torch.utils.data import DataLoader, Dataset
 
 CLASES = ["VT", "LP", "TR", "rechazo"]
 VOLCANICAS = ["VT", "LP", "TR"]
-# propuesta enviada al profesor: AV, IC y los recortes que no tocan ninguna caja van al rechazo;
-# los que tocan una caja con IoU menor que 0,3 ("fuera") no se usan
+# AV, IC y los recortes que no tocan ninguna caja van al rechazo (los "sin caja" se pueden dejar fuera del
+# entrenamiento con --sin-falsas-alarmas); los que tocan una caja con IoU menor que 0,3 ("fuera") no se usan
 MAPA = {"VT": "VT", "LP": "LP", "TR": "TR", "AV": "rechazo", "IC": "rechazo", "sin caja": "rechazo"}
 # lado de entrada con que se preentrenaron las tres redes (crop_size 224 de sus transforms); no se usa el
 # recorte central de esas transforms porque cortaria el inicio y el fin del evento
@@ -62,11 +64,12 @@ class Recortes(Dataset):
 
 
 def nombre_resultado(modelo, fold, tamano="estirar", conjunto="", pesos_clase=False, ajuste_completo=False, lr=None,
-                     duracion_minima=None):
+                     duracion_minima=None, sin_falsas=False):
     """Nombre del JSON (y de los pesos) de una corrida; fold 0 es el entrenamiento final evaluado en test."""
     return (f"{modelo}_{'test' if fold == 0 else f'fold{fold}'}_{tamano}" + (f"_{conjunto}" if conjunto else "")
             + ("_pesos" if pesos_clase else "") + ("_completo" if ajuste_completo else "")
-            + (f"_lr{lr:g}" if lr is not None else "") + (f"_min{duracion_minima:g}s" if duracion_minima is not None else ""))
+            + (f"_lr{lr:g}" if lr is not None else "") + (f"_min{duracion_minima:g}s" if duracion_minima is not None else "")
+            + ("_sin_falsas" if sin_falsas else ""))
 
 
 def conjunto_de(datos):
@@ -130,13 +133,16 @@ def metricas(c):
     return out
 
 
-def evaluar(red, carga, disp):
+def predecir(red, carga, disp):
+    """Probabilidad de cada clase (softmax de la salida de la red) para cada recorte, en el orden de la carga."""
     red.eval()
-    c = np.zeros((len(CLASES), len(CLASES)), dtype=np.int64)
     with torch.no_grad():
-        for x, y in carga:
-            p = red(x.to(disp)).argmax(1).cpu().numpy()
-            np.add.at(c, (y.numpy(), p), 1)
+        return np.concatenate([torch.softmax(red(x.to(disp)), 1).cpu().numpy() for x, _ in carga])
+
+
+def matriz(y, pred):
+    c = np.zeros((len(CLASES), len(CLASES)), dtype=np.int64)
+    np.add.at(c, (np.asarray(y), np.asarray(pred)), 1)
     return c
 
 
@@ -169,6 +175,8 @@ def main():
     ap.add_argument("--trabajadores", type=int, default=2)
     ap.add_argument("--limite", type=int, default=None, help="solo N recortes por particion, para probar")
     ap.add_argument("--sin-preentrenar", action="store_true", help="pesos al azar, solo para probar sin descargar")
+    ap.add_argument("--sin-falsas-alarmas", action="store_true",
+                    help="entrena sin los recortes sin caja (no tocan ningun evento del catalogo)")
     ap.add_argument("--guardar-pesos", action="store_true")
     args = ap.parse_args()
     semilla(args.semilla)
@@ -178,13 +186,16 @@ def main():
     idx = idx[idx.etiqueta.isin(MAPA)].copy()
     idx["y"] = idx.etiqueta.map(MAPA).map({k: i for i, k in enumerate(CLASES)})
     es_test = args.fold == 0
-    cortos = {}
+    cortos, cortos_sin_caja = {}, 0
     if args.duracion_minima is not None:
         evaluados = idx[idx.split == "test"] if es_test else idx[idx.fold == args.fold]
         c = evaluados[evaluados.dur_s < args.duracion_minima]
-        cortos = {k: int((c.y == i).sum()) for i, k in enumerate(CLASES)}
+        cortos = {k: int(((c.y == i) & (c.etiqueta != "sin caja")).sum()) for i, k in enumerate(CLASES)}
+        cortos_sin_caja = int((c.etiqueta == "sin caja").sum())
         idx = idx[idx.dur_s >= args.duracion_minima]
     ent = idx[(idx.split == "desarrollo") & (idx.fold != args.fold)]
+    if args.sin_falsas_alarmas:
+        ent = ent[ent.etiqueta != "sin caja"]
     val = idx[idx.split == "test"] if es_test else idx[idx.fold == args.fold]
     if args.limite:
         ent, val = ent.sample(min(args.limite, len(ent)), random_state=0), val.sample(min(args.limite, len(val)), random_state=0)
@@ -216,18 +227,25 @@ def main():
 
     conjunto = conjunto_de(args.datos)
     nombre = nombre_resultado(args.modelo, args.fold, args.tamano, conjunto, args.pesos_clase, args.ajuste_completo,
-                              args.lr, args.duracion_minima)
+                              args.lr, args.duracion_minima, args.sin_falsas_alarmas)
+    # las metricas se calculan sobre los eventos de Jose; los sin caja se cuentan aparte
+    evento = (val.etiqueta != "sin caja").to_numpy()
+    yv = val.y.to_numpy()
     cfg = dict(vars(args), conjunto=conjunto or "recorte", evaluacion="test" if es_test else "validacion", lr_usada=opt.defaults["lr"], clases=CLASES, mapa=MAPA,
                lado=LADO, pesos_preentrenados=nombre_pesos, mean=mean, std=std,
-               congelada=congelada, cortos_fuera_de_validacion=cortos, n_entrenamiento={k: int(n) for k, n in zip(CLASES, n_por_clase)},
-               n_validacion={k: int(n) for k, n in zip(CLASES, np.bincount(val.y, minlength=len(CLASES)))},
+               congelada=congelada, cortos_fuera_de_validacion=cortos, cortos_sin_caja=cortos_sin_caja,
+               n_entrenamiento={k: int(n) for k, n in zip(CLASES, n_por_clase)},
+               n_validacion={k: int(n) for k, n in zip(CLASES, np.bincount(yv[evento], minlength=len(CLASES)))},
+               n_sin_caja_validacion=int((~evento).sum()),
                versiones=dict(python=platform.python_version(), torch=torch.__version__, torchvision=torchvision.__version__),
                dispositivo=torch.cuda.get_device_name(0) if disp.type == "cuda" else "cpu")
     print(f"{nombre}: entrenamiento {len(ent)}, validacion {len(val)} (ventanas {ent.ventana.nunique()} y "
           f"{val.ventana.nunique()}); {cfg['dispositivo']}; pesos {nombre_pesos}", flush=True)
     print(f"  por clase en entrenamiento: {cfg['n_entrenamiento']}", flush=True)
+    print(f"  eventos de Jose en {cfg['evaluacion']}: {cfg['n_validacion']}; sin caja aparte: {cfg['n_sin_caja_validacion']}",
+          flush=True)
     if cortos:
-        print(f"  recortes de validacion que quedan fuera por cortos: {cortos}", flush=True)
+        print(f"  recortes de {cfg['evaluacion']} que quedan fuera por cortos: {cortos}; sin caja: {cortos_sin_caja}", flush=True)
 
     historia, mejor = [], None
     for ep in range(1, args.epocas + 1):
@@ -243,16 +261,22 @@ def main():
         if grupo:
             suma += paso(red, perdida_suma, peso, grupo, opt, disp) * sum(len(g[1]) for g in grupo)
             n += sum(len(g[1]) for g in grupo)
-        c = evaluar(red, c_val, disp)
+        prob = predecir(red, c_val, disp)
+        pred = prob.argmax(1)
+        c = matriz(yv[evento], pred[evento])
         m = metricas(c)
+        sin_caja = {k: int(n) for k, n in zip(CLASES, np.bincount(pred[~evento], minlength=len(CLASES)))}
         mem = torch.cuda.max_memory_allocated() / 1e9 if disp.type == "cuda" else None
-        historia.append(dict(epoca=ep, perdida=suma / n, segundos=time.time() - t0, memoria_gb=mem, matriz=c.tolist(), **m))
+        historia.append(dict(epoca=ep, perdida=suma / n, segundos=time.time() - t0, memoria_gb=mem, matriz=c.tolist(),
+                             sin_caja_predichos=sin_caja, **m))
         print(f"  epoca {ep}: perdida {suma / n:.3f}; {cfg['evaluacion']}: F1 macro volcanicas {m['f1_macro_volcanicas']:.3f}; "
               + ", ".join(f"{k} sens {m[k]['sensibilidad']:.3f}" for k in CLASES) + f"; {time.time() - t0:.0f} s"
-              + (f"; memoria GPU {mem:.1f} GB" if mem is not None else ""), flush=True)
+              + (f"; memoria GPU {mem:.1f} GB" if mem is not None else "")
+              + (f"; sin caja como volcanico {sum(sin_caja[k] for k in VOLCANICAS)} de {int((~evento).sum())}"
+                 if (~evento).any() else ""), flush=True)
         # en test no se elige epoca: se informa la ultima, fijada antes con los folds
         if es_test or mejor is None or m["f1_macro_volcanicas"] > mejor["f1_macro_volcanicas"]:
-            mejor = historia[-1]
+            mejor, prob_mejor = historia[-1], prob
             if args.guardar_pesos and (not es_test or ep == args.epocas):
                 os.makedirs(args.salida, exist_ok=True)
                 torch.save(red.state_dict(), os.path.join(args.salida, f"{nombre}.pt"))
@@ -260,6 +284,12 @@ def main():
     os.makedirs(args.salida, exist_ok=True)
     with open(os.path.join(args.salida, f"{nombre}.json"), "w") as f:
         json.dump(dict(configuracion=cfg, historia=historia, mejor_epoca=mejor["epoca"]), f, indent=1)
+    p = pd.DataFrame(prob_mejor, columns=[f"p_{k}" for k in CLASES])
+    p.insert(0, "prediccion", [CLASES[i] for i in prob_mejor.argmax(1)])
+    p.insert(0, "clase", [CLASES[i] for i in yv])
+    for col in ("etiqueta", "ventana", "archivo"):
+        p.insert(0, col, val[col].to_numpy())
+    p.to_csv(os.path.join(args.salida, f"{nombre}_predicciones.csv"), index=False)
     print(f"{'Ultima' if es_test else 'Mejor'} epoca {mejor['epoca']} (F1 macro volcanicas {mejor['f1_macro_volcanicas']:.3f}); "
           f"matriz de confusion (filas real, columnas prediccion; {', '.join(CLASES)}):")
     for k, fila in zip(CLASES, mejor["matriz"]):
