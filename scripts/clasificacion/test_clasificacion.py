@@ -93,6 +93,19 @@ def main():
                  abs(r["falsos"] - 3 / 20) < 1e-12 and abs(r["volcanicos"] - 21 / 25) < 1e-12 and r["sens_VT"] == 0.8
                  and r["n_rechazo"] == 20)
 
+    import hoja_ejemplos as he
+    d = tempfile.mkdtemp()
+    preds = dict(efficientnet_b0=["LP", "TR", "VT", "rechazo"], resnet50=["LP", "rechazo", "VT", "rechazo"],
+                 vgg16=["TR", "rechazo", "VT", "rechazo"])
+    for m, pr in preds.items():
+        pd.DataFrame(dict(archivo=["a_00.png", "a_01.png", "b_00.png", "b_01.png"], ventana=["a", "a", "b", "b"],
+                          etiqueta=["sin caja", "sin caja", "LP", "sin caja"], clase=["rechazo", "rechazo", "LP", "rechazo"],
+                          prediccion=pr, p_VT=0.1, p_LP=0.6, p_TR=0.2, p_rechazo=0.1)).to_csv(
+            os.path.join(d, f"{m}_fold1_estirar_pesos_completo_lr0.0001_min5s_sin_falsas_predicciones.csv"), index=False)
+    g = he.grupos(he.unir(d))
+    todo &= caso("hoja de ejemplos: sin caja que las tres redes llaman volcanico (1), que las tres rechazan (1) y LP que EfficientNet-B0 llama VT (1)",
+                 [int(v.sum()) for v in g.values()] == [1, 1, 0, 0, 1] and g["Sin caja: las tres redes dicen volcanico"].tolist() == [True, False, False, False])
+
     try:
         import torch  # noqa: F401
         import torchvision  # noqa: F401
