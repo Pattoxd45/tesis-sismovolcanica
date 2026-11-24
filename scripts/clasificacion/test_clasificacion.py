@@ -350,6 +350,40 @@ def main():
                             "--trabajadores", "0", "--sin-preentrenar", *extra], capture_output=True, text=True)
         todo &= caso(f"{que}: se detiene sin entrenar", r.returncode != 0 and "DETENIDO" in r.stderr)
 
+    import figuras_aumento as fa
+    sel = pd.DataFrame(dict(archivo=[f"w_{i}.png" for i in range(7)], ventana="w",
+                            split=["desarrollo"] * 6 + ["test"], etiqueta=["VT", "VT", "VT", "LP", "TR", "TR", "LP"],
+                            dur_s=[5.0, 10.0, 12.0, 30.0, 150.0, 220.0, 30.0], columnas=[8, 16, 19, 47, 233, 344, 47]))
+    e = fa.elegir(sel)
+    todo &= caso("figuras: corto = VT de menos de 224 columnas con duracion mediana; largo = el mas cercano a 336 "
+                 "columnas; evento = LP de desarrollo",
+                 e["corto"].archivo == "w_1.png" and e["largo"].archivo == "w_5.png" and e["evento"].archivo == "w_3.png")
+    todo &= caso("rango de dB: maximo corrido y ancho nuevo en cada componente",
+                 fa.con_rango({"Z": (-60.0, 0.0), "N": (-50.0, 10.0)}, -10, 45) == {"Z": (-55.0, -10.0), "N": (-45.0, 0.0)})
+    rayas = np.zeros((224, 224, 3), dtype=np.uint8)
+    rayas[::8] = 255
+    todo &= caso("ElasticTransform con alpha (50, 0) solo mueve en el tiempo: rayas horizontales iguales lejos del borde",
+                 (fa.elastica(rayas, (50.0, 0.0), 5.0, 0)[:, 20:-20] == rayas[:, 20:-20]).all()
+                 and not (fa.elastica(rayas, (50.0, 50.0), 5.0, 0)[:, 20:-20] == rayas[:, 20:-20]).all())
+
+    # una ventana sintetica de 300 s con tres eventos: las tres figuras se generan
+    dv = tempfile.mkdtemp()
+    t = np.arange(30000) / 100.0
+    sig = {c: rng.normal(0, 1, t.size) + 50 * np.sin(2 * np.pi * 5 * t) * ((t > 50) & (t < 62)) for c in "ZNE"}
+    np.savez(os.path.join(dv, "w_zne.npz"), **sig)
+    sel = pd.DataFrame(dict(archivo=["w_0.png", "w_1.png", "w_2.png"], ventana="w", split="desarrollo",
+                            etiqueta=["VT", "TR", "LP"], ini_s=[50.0, 20.0, 120.0], fin_s=[62.0, 240.0, 150.0]))
+    sel["dur_s"] = sel.fin_s - sel.ini_s
+    sel["columnas"] = [fa.er.columnas(a * 100, b * 100, 465).size for a, b in zip(sel.ini_s, sel.fin_s)]
+    sel.to_csv(os.path.join(dv, "indice.csv"), index=False)
+    r = subprocess.run([sys.executable, os.path.join(AQUI, "figuras_aumento.py"), "--indice", os.path.join(dv, "indice.csv"),
+                        "--ventanas", dv, "--salida", os.path.join(dv, "fig")], capture_output=True, text=True)
+    todo &= caso("figuras de estiramiento, rangos de dB y ElasticTransform con una ventana sintetica",
+                 r.returncode == 0 and all(os.path.exists(os.path.join(dv, "fig", f)) for f in
+                                           ("figura_estiramiento.png", "figura_rangos_db.png", "figura_elastica.png")))
+    if r.returncode:
+        print(r.stderr[-800:])
+
     print("TODOS PASAN" if todo else "HAY FALLAS")
     sys.exit(0 if todo else 1)
 
