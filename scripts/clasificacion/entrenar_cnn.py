@@ -75,13 +75,11 @@ def colorear(dbs, lims, cols):
 class Aumento:
     """Aumento de datos del entrenamiento. Jitter del rango de dB: el maximo de cada componente se corre lo mismo en las
     tres, al azar entre -maximo y +maximo dB, y el ancho del rango se sortea entre ancho[0] y ancho[1] dB. Elastica:
-    ElasticTransform de torchvision con alpha (tiempo, frecuencia) y su sigma."""
+    ElasticTransform de torchvision con alpha (tiempo, frecuencia) y su sigma, hecha en la GPU sobre cada lote."""
     def __init__(self, jitter_maximo=None, jitter_ancho=None, elastica=None, sigma=SIGMA_ELASTICA):
         self.jitter_maximo, self.jitter_ancho = jitter_maximo, jitter_ancho
-        self.elastica = None
-        if elastica is not None:
-            from torchvision.transforms import v2
-            self.elastica = v2.ElasticTransform(alpha=list(elastica), sigma=sigma)
+        self.alfa = None if elastica is None else (float(elastica[0]), float(elastica[1]))
+        self.sigma = float(sigma)
 
     @property
     def jitter(self):
@@ -94,25 +92,45 @@ class Aumento:
         a = RANGO_DB if self.jitter_ancho is None else float(torch.empty(1).uniform_(*self.jitter_ancho))
         return d, a
 
+    def deformar(self, x, fill):
+        """ElasticTransform de torchvision imagen por imagen, en el dispositivo del lote: el mismo calculo de su make_params
+        (ruido uniforme suavizado con gaussian_blur) y su kernel elastic. En la CPU, ese suavizado tomaba casi todo el
+        tiempo de preparar cada imagen."""
+        from torchvision.transforms.v2 import InterpolationMode
+        from torchvision.transforms.v2 import functional as F
 
-def a_entrada(im, tamano, mean, std, aumento=None):
-    """Imagen RGB del recorte llevada a LADO x LADO (estirada, o a la izquierda de una ventana de 300 s en negro),
-    con la deformacion elastica si corresponde, y normalizada como al preentrenar la red."""
+        _, _, alto, ancho = x.shape
+        k = int(8 * self.sigma + 1)
+        k += k % 2 == 0
+        salida = []
+        for xi in x:
+            d = []
+            for alfa, lado in ((self.alfa[0], ancho), (self.alfa[1], alto)):
+                r = torch.rand(1, 1, alto, ancho, device=x.device) * 2 - 1
+                if self.sigma > 0:
+                    r = F.gaussian_blur(r, [k, k], [self.sigma, self.sigma])
+                d.append(r * alfa / lado)
+            salida.append(F.elastic(xi, torch.cat(d, 1).permute(0, 2, 3, 1), interpolation=InterpolationMode.BILINEAR,
+                                    fill=fill))
+        return torch.stack(salida)
+
+
+def a_entrada(im, tamano, mean, std):
+    """Imagen RGB del recorte llevada a LADO x LADO (estirada, o a la izquierda de una ventana de 300 s en negro) y
+    normalizada como al preentrenar la red."""
     if tamano == "rellenar" and im.width < ANCHO_VENTANA:
         fondo = Image.new("RGB", (ANCHO_VENTANA, im.height))
         fondo.paste(im, (0, 0))
         im = fondo
     im = im.resize((LADO, LADO), Image.BILINEAR)
     x = torch.from_numpy(np.asarray(im).copy()).permute(2, 0, 1)
-    if aumento is not None and aumento.elastica is not None:
-        x = aumento.elastica(x)
     return (x.float() / 255.0 - mean) / std
 
 
 class Recortes(Dataset):
     """Recortes guardados como PNG (paquete de imagenes)."""
-    def __init__(self, dir_img, archivos, y, tamano, mean, std, aumento=None):
-        self.dir_img, self.archivos, self.y, self.tamano, self.aumento = dir_img, list(archivos), list(y), tamano, aumento
+    def __init__(self, dir_img, archivos, y, tamano, mean, std):
+        self.dir_img, self.archivos, self.y, self.tamano = dir_img, list(archivos), list(y), tamano
         self.mean = torch.tensor(mean).view(3, 1, 1)
         self.std = torch.tensor(std).view(3, 1, 1)
 
@@ -121,7 +139,7 @@ class Recortes(Dataset):
 
     def __getitem__(self, i):
         im = Image.open(os.path.join(self.dir_img, self.archivos[i])).convert("RGB")
-        return a_entrada(im, self.tamano, self.mean, self.std, self.aumento), self.y[i]
+        return a_entrada(im, self.tamano, self.mean, self.std), self.y[i]
 
 
 class RecortesDB(Dataset):
@@ -146,7 +164,7 @@ class RecortesDB(Dataset):
     def __getitem__(self, i):
         d, a = self.aumento.rango() if self.aumento is not None else (0.0, RANGO_DB)
         im = Image.fromarray(self.imagen(i, d, a))
-        return a_entrada(im, self.tamano, self.mean, self.std, self.aumento), self.y[i]
+        return a_entrada(im, self.tamano, self.mean, self.std), self.y[i]
 
 
 def nombre_resultado(modelo, fold, tamano="estirar", conjunto="", pesos_clase=False, ajuste_completo=False, lr=None,
@@ -235,14 +253,16 @@ def perdida_y_cuenta(perdida, peso, n_clases):
     return ce, (lambda y: float(peso.cpu()[y].sum())) if peso is not None else (lambda y: len(y))
 
 
-def paso(red, perdida_suma, cuenta, grupo, opt, disp):
+def paso(red, perdida_suma, cuenta, grupo, opt, disp, preparar=None):
     """Un paso del optimizador con un lote dividido en partes: suma los gradientes de las partes y divide por la cuenta
-    del lote completo, igual que la perdida media del lote entero."""
+    del lote completo, igual que la perdida media del lote entero. preparar se aplica a cada parte ya en el dispositivo
+    (la deformacion elastica)."""
     opt.zero_grad()
     total = sum(cuenta(y) for _, y in grupo)
     suma = 0.0
     for x, y in grupo:
-        l = perdida_suma(red(x.to(disp)), y.to(disp)) / total
+        x = x.to(disp)
+        l = perdida_suma(red(preparar(x) if preparar is not None else x), y.to(disp)) / total
         l.backward()
         suma += l.item()
     opt.step()
@@ -421,12 +441,16 @@ def entrenar(args):
         raise SystemExit(f"DETENIDO: el indice del paquete no tiene las columnas {cols}")
     # el aumento solo se aplica al entrenamiento; validacion y test se ven con el rango de Jose y sin deformar
     aumento = Aumento(args.jitter_maximo, args.jitter_ancho, args.elastica, args.sigma_elastica)
-    aumento = aumento if aumento.jitter or aumento.elastica is not None else None
+    aumento = aumento if aumento.jitter or aumento.alfa is not None else None
+    # la elastica va sobre la imagen sin normalizar, como en torchvision (lo que sale del borde queda en negro)
+    m_d, s_d = torch.tensor(mean, device=disp).view(1, 3, 1, 1), torch.tensor(std, device=disp).view(1, 3, 1, 1)
+    preparar = ((lambda x: (aumento.deformar(x * s_d + m_d, 0.0) - m_d) / s_d)
+                if aumento is not None and aumento.alfa is not None else None)
 
     def conjunto_carga(sub, aum):
         if en_db:
             return RecortesDB(os.path.join(args.datos, "ventanas"), sub, cols, args.tamano, mean, std, aum)
-        return Recortes(os.path.join(args.datos, "imagenes"), sub.archivo, sub.y, args.tamano, mean, std, aum)
+        return Recortes(os.path.join(args.datos, "imagenes"), sub.archivo, sub.y, args.tamano, mean, std)
 
     kw = dict(batch_size=args.lote // args.acumular, num_workers=args.trabajadores, pin_memory=disp.type == "cuda")
     gen = torch.Generator().manual_seed(args.semilla)
@@ -480,11 +504,11 @@ def entrenar(args):
         for x, y in c_ent:
             grupo.append((x, y))
             if len(grupo) == args.acumular:
-                suma += paso(red, perdida_suma, cuenta, grupo, opt, disp) * sum(len(g[1]) for g in grupo)
+                suma += paso(red, perdida_suma, cuenta, grupo, opt, disp, preparar) * sum(len(g[1]) for g in grupo)
                 n += sum(len(g[1]) for g in grupo)
                 grupo = []
         if grupo:
-            suma += paso(red, perdida_suma, cuenta, grupo, opt, disp) * sum(len(g[1]) for g in grupo)
+            suma += paso(red, perdida_suma, cuenta, grupo, opt, disp, preparar) * sum(len(g[1]) for g in grupo)
             n += sum(len(g[1]) for g in grupo)
         p = predecir(red, c_val, disp, prob)
         m = evaluar(p, val)

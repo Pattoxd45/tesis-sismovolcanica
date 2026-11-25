@@ -117,6 +117,17 @@ def paquete_en_db(ec, er, rng):
                  s[:, 0].min() >= -5 and s[:, 0].max() <= 5 and s[:, 0].min() < -4.5 and s[:, 0].max() > 4.5
                  and s[:, 1].min() >= 50 and s[:, 1].max() <= 70 and ec.Aumento().rango() == (0.0, 60.0))
 
+    from torchvision.transforms import v2
+    x8 = torch.randint(0, 256, (3, 224, 224), dtype=torch.uint8, generator=torch.Generator().manual_seed(1))
+    igual = True
+    for alfa in ((50.0, 0.0), (50.0, 50.0)):
+        for sem in range(3):
+            torch.manual_seed(sem)
+            a = v2.ElasticTransform(alpha=list(alfa), sigma=5.0)(x8)
+            torch.manual_seed(sem)
+            igual &= bool((ec.Aumento(elastica=alfa).deformar(x8[None], 0)[0] == a).all())
+    todo &= caso("elastica en el lote: igual a ElasticTransform de torchvision con la misma semilla", igual)
+
     base = ["--modelo", "efficientnet_b0", "--fold", "2", "--epocas", "1", "--lote", "4", "--trabajadores", "0",
             "--sin-preentrenar"]
     for extra, archivo in ((["--jitter-maximo", "5", "--jitter-ancho", "50", "70", "--elastica", "50", "0"],
