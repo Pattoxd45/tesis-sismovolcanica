@@ -5,15 +5,18 @@ Ajuste por transferencia de una CNN preentrenada en ImageNet (VGG16, ResNet50 o 
 torchvision) para clasificar los recortes en VT, LP, TR y rechazo, con un fold de la validacion
 cruzada de Jose. Con --paciencia se detiene cuando el F1 macro de VT, LP y TR en validacion no mejora
 en esa cantidad de epocas; con --evaluar-test, el mejor modelo del fold se evalua en las ventanas de
-test. Con --fold 0 entrena con todo desarrollo y evalua en test la ultima epoca. Las metricas son sobre
-los eventos de Jose (VT, LP, TR, AV, IC); los recortes sin caja se informan aparte. Guarda un JSON con
-la configuracion, las versiones y las metricas de cada epoca, y un CSV con la prediccion de cada recorte.
+test. Con --fold 0 entrena con todo desarrollo y evalua en test la ultima epoca. Con el paquete en dB
+(paquete_db.py) las imagenes se colorean al momento, y el entrenamiento puede variar el rango de dB
+(--jitter-maximo, --jitter-ancho); --elastica aplica ElasticTransform de torchvision. Las metricas son
+sobre los eventos de Jose (VT, LP, TR, AV, IC); los recortes sin caja se informan aparte. Guarda un JSON
+con la configuracion, las versiones y las metricas de cada epoca, y un CSV con la prediccion de cada recorte.
 
 Uso: python entrenar_cnn.py --datos <carpeta> --modelo vgg16 --fold 1 --salida <carpeta>
      [--tamano estirar|rellenar] [--pesos-clase] [--ajuste-completo] [--duracion-minima 5]
      [--sin-falsas-alarmas] [--optimizador adamw|sgd] [--lr 0.0001] [--momentum 0.9]
      [--weight-decay 0.0001] [--dropout 0.3] [--perdida entropia|focal] [--lote 32]
      [--epocas 50] [--paciencia 5] [--evaluar-test] [--acumular 2] [--guardar-pesos]
+     [--ventana-fija 60] [--jitter-maximo 5] [--jitter-ancho 50 70] [--elastica 50 0] [--sigma-elastica 5]
 """
 
 import argparse
@@ -47,10 +50,69 @@ CABEZAS = {"vgg16": ("classifier", 6), "resnet50": ("fc", None), "efficientnet_b
 LOTE_BASE = 64
 
 
+# parametros de la imagen de Jose: mapa de color y ancho del rango de dB bajo el maximo de cada componente
+CMAP = "jet"
+RANGO_DB = 60.0
+COMPONENTES = ("Z", "N", "E")
+# sigma por defecto de ElasticTransform de torchvision
+SIGMA_ELASTICA = 5.0
+
+
+def colorear(dbs, lims, cols):
+    """Z, N y E apiladas, cada una con su rango (vmin, vmax), como imagen de espectrogramas_recortes.py (se repite aqui
+    para no cargar ese modulo y sus dependencias en el servidor)."""
+    from matplotlib import colormaps
+    from matplotlib.cm import ScalarMappable
+    from matplotlib.colors import Normalize
+
+    partes = []
+    for c in COMPONENTES:
+        sm = ScalarMappable(norm=Normalize(*lims[c]), cmap=colormaps[CMAP])
+        partes.append(sm.to_rgba(dbs[c][:, cols], bytes=True)[::-1, :, :3])
+    return np.vstack(partes)
+
+
+class Aumento:
+    """Aumento de datos del entrenamiento. Jitter del rango de dB: el maximo de cada componente se corre lo mismo en las
+    tres, al azar entre -maximo y +maximo dB, y el ancho del rango se sortea entre ancho[0] y ancho[1] dB. Elastica:
+    ElasticTransform de torchvision con alpha (tiempo, frecuencia) y su sigma."""
+    def __init__(self, jitter_maximo=None, jitter_ancho=None, elastica=None, sigma=SIGMA_ELASTICA):
+        self.jitter_maximo, self.jitter_ancho = jitter_maximo, jitter_ancho
+        self.elastica = None
+        if elastica is not None:
+            from torchvision.transforms import v2
+            self.elastica = v2.ElasticTransform(alpha=list(elastica), sigma=sigma)
+
+    @property
+    def jitter(self):
+        return self.jitter_maximo is not None or self.jitter_ancho is not None
+
+    def rango(self):
+        """Corrimiento del maximo y ancho del rango; sin jitter, los de Jose (0 y 60 dB). Usa el generador de torch, que
+        el DataLoader siembra en cada proceso a partir de la semilla."""
+        d = 0.0 if self.jitter_maximo is None else float(torch.empty(1).uniform_(-self.jitter_maximo, self.jitter_maximo))
+        a = RANGO_DB if self.jitter_ancho is None else float(torch.empty(1).uniform_(*self.jitter_ancho))
+        return d, a
+
+
+def a_entrada(im, tamano, mean, std, aumento=None):
+    """Imagen RGB del recorte llevada a LADO x LADO (estirada, o a la izquierda de una ventana de 300 s en negro),
+    con la deformacion elastica si corresponde, y normalizada como al preentrenar la red."""
+    if tamano == "rellenar" and im.width < ANCHO_VENTANA:
+        fondo = Image.new("RGB", (ANCHO_VENTANA, im.height))
+        fondo.paste(im, (0, 0))
+        im = fondo
+    im = im.resize((LADO, LADO), Image.BILINEAR)
+    x = torch.from_numpy(np.asarray(im).copy()).permute(2, 0, 1)
+    if aumento is not None and aumento.elastica is not None:
+        x = aumento.elastica(x)
+    return (x.float() / 255.0 - mean) / std
+
+
 class Recortes(Dataset):
-    """Imagen de cada recorte llevada a LADO x LADO: estirada, o puesta a la izquierda de una ventana de 300 s en negro."""
-    def __init__(self, dir_img, archivos, y, tamano, mean, std):
-        self.dir_img, self.archivos, self.y, self.tamano = dir_img, list(archivos), list(y), tamano
+    """Recortes guardados como PNG (paquete de imagenes)."""
+    def __init__(self, dir_img, archivos, y, tamano, mean, std, aumento=None):
+        self.dir_img, self.archivos, self.y, self.tamano, self.aumento = dir_img, list(archivos), list(y), tamano, aumento
         self.mean = torch.tensor(mean).view(3, 1, 1)
         self.std = torch.tensor(std).view(3, 1, 1)
 
@@ -59,18 +121,38 @@ class Recortes(Dataset):
 
     def __getitem__(self, i):
         im = Image.open(os.path.join(self.dir_img, self.archivos[i])).convert("RGB")
-        if self.tamano == "rellenar" and im.width < ANCHO_VENTANA:
-            fondo = Image.new("RGB", (ANCHO_VENTANA, im.height))
-            fondo.paste(im, (0, 0))
-            im = fondo
-        im = im.resize((LADO, LADO), Image.BILINEAR)
-        x = torch.from_numpy(np.asarray(im, dtype=np.float32).copy()).permute(2, 0, 1) / 255.0
-        return (x - self.mean) / self.std, self.y[i]
+        return a_entrada(im, self.tamano, self.mean, self.std, self.aumento), self.y[i]
+
+
+class RecortesDB(Dataset):
+    """Recortes coloreados al momento desde el espectrograma en dB de su ventana (paquete en dB): asi el rango de dB
+    puede cambiar en cada epoca. Sin jitter, la imagen es la misma de los PNG de entrenamiento."""
+    def __init__(self, dir_ventanas, filas, cols, tamano, mean, std, aumento=None):
+        self.dir, self.tamano, self.aumento = dir_ventanas, tamano, aumento
+        self.ventanas, self.y = list(filas.ventana), list(filas.y)
+        self.c0, self.c1 = list(filas[cols[0]]), list(filas[cols[1]])
+        self.mean = torch.tensor(mean).view(3, 1, 1)
+        self.std = torch.tensor(std).view(3, 1, 1)
+
+    def __len__(self):
+        return len(self.y)
+
+    def imagen(self, i, desplazamiento=0.0, ancho=RANGO_DB):
+        w = np.load(os.path.join(self.dir, f"{self.ventanas[i]}.npz"))
+        lims = {c: (float(w[f"vmax_{c}"]) + desplazamiento - ancho, float(w[f"vmax_{c}"]) + desplazamiento)
+                for c in COMPONENTES}
+        return colorear({c: w[c] for c in COMPONENTES}, lims, slice(int(self.c0[i]), int(self.c1[i])))
+
+    def __getitem__(self, i):
+        d, a = self.aumento.rango() if self.aumento is not None else (0.0, RANGO_DB)
+        im = Image.fromarray(self.imagen(i, d, a))
+        return a_entrada(im, self.tamano, self.mean, self.std, self.aumento), self.y[i]
 
 
 def nombre_resultado(modelo, fold, tamano="estirar", conjunto="", pesos_clase=False, ajuste_completo=False, lr=None,
                      duracion_minima=None, sin_falsas=False, optimizador="adamw", momentum=None, weight_decay=None,
-                     dropout=None, lote=LOTE_BASE, perdida="entropia", paciencia=None):
+                     dropout=None, lote=LOTE_BASE, perdida="entropia", paciencia=None, jitter_maximo=None,
+                     jitter_ancho=None, elastica=None, sigma=SIGMA_ELASTICA):
     """Nombre del JSON (y de los pesos) de una corrida; fold 0 es el entrenamiento final evaluado en test. Las opciones
     nuevas solo se agregan cuando no tienen su valor base, para que los nombres de las corridas anteriores no cambien."""
     return (f"{modelo}_{'test' if fold == 0 else f'fold{fold}'}_{tamano}" + (f"_{conjunto}" if conjunto else "")
@@ -79,11 +161,18 @@ def nombre_resultado(modelo, fold, tamano="estirar", conjunto="", pesos_clase=Fa
             + ("_sin_falsas" if sin_falsas else "") + (f"_{optimizador}" if optimizador != "adamw" else "")
             + (f"_mom{momentum:g}" if momentum is not None else "") + (f"_wd{weight_decay:g}" if weight_decay is not None else "")
             + (f"_do{dropout:g}" if dropout is not None else "") + (f"_lote{lote}" if lote != LOTE_BASE else "")
-            + (f"_{perdida}" if perdida != "entropia" else "") + (f"_pac{paciencia}" if paciencia is not None else ""))
+            + (f"_{perdida}" if perdida != "entropia" else "") + (f"_pac{paciencia}" if paciencia is not None else "")
+            + (f"_jit{jitter_maximo:g}" if jitter_maximo is not None else "")
+            + (f"_ancho{jitter_ancho[0]:g}-{jitter_ancho[1]:g}" if jitter_ancho is not None else "")
+            + (f"_ela{elastica[0]:g}-{elastica[1]:g}" if elastica is not None else "")
+            + (f"_sigma{sigma:g}" if elastica is not None and sigma != SIGMA_ELASTICA else ""))
 
 
-def conjunto_de(datos):
-    """El conjunto de imagenes sale del nombre de la carpeta: clasificacion_colab_fijo60s -> fijo60s."""
+def conjunto_de(datos, ventana_fija=None):
+    """El conjunto de imagenes sale del nombre de la carpeta (clasificacion_colab_fijo60s -> fijo60s) o, en el paquete en
+    dB, de la duracion fija pedida (60 -> fijo60s)."""
+    if ventana_fija is not None:
+        return f"fijo{ventana_fija:g}s"
     base = os.path.basename(os.path.normpath(datos))
     return base[len("clasificacion_colab"):].strip("_") if base.startswith("clasificacion_colab") else ""
 
@@ -229,9 +318,18 @@ def semilla(s):
     torch.backends.cudnn.benchmark = False
 
 
+def nombre_de(args):
+    """Nombre de la corrida a partir de sus argumentos."""
+    return nombre_resultado(args.modelo, args.fold, args.tamano, conjunto_de(args.datos, args.ventana_fija), args.pesos_clase,
+                            args.ajuste_completo, args.lr, args.duracion_minima, args.sin_falsas_alarmas, args.optimizador,
+                            args.momentum, args.weight_decay, args.dropout, args.lote, args.perdida, args.paciencia,
+                            args.jitter_maximo, args.jitter_ancho, args.elastica, args.sigma_elastica)
+
+
 def argumentos(lista=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--datos", required=True, help="carpeta con indice.csv e imagenes/")
+    ap.add_argument("--datos", required=True,
+                    help="carpeta con indice.csv e imagenes/ (paquete de imagenes) o ventanas/ (paquete en dB)")
     ap.add_argument("--modelo", required=True, choices=sorted(CABEZAS))
     ap.add_argument("--fold", type=int, required=True, help="1 a 5: fold de validacion; 0: todo desarrollo y test")
     ap.add_argument("--salida", required=True)
@@ -259,6 +357,15 @@ def argumentos(lista=None):
     ap.add_argument("--sin-preentrenar", action="store_true", help="pesos al azar, solo para probar sin descargar")
     ap.add_argument("--sin-falsas-alarmas", action="store_true",
                     help="entrena sin los recortes sin caja (no tocan ningun evento del catalogo)")
+    ap.add_argument("--ventana-fija", type=float, default=None,
+                    help="paquete en dB: usa el tramo de duracion fija (s) guardado en el indice en vez del recorte")
+    ap.add_argument("--jitter-maximo", type=float, default=None,
+                    help="paquete en dB: corre el maximo del rango al azar entre -X y +X dB en entrenamiento")
+    ap.add_argument("--jitter-ancho", type=float, nargs=2, default=None, metavar=("MIN", "MAX"),
+                    help="paquete en dB: ancho del rango al azar entre MIN y MAX dB en entrenamiento (sin el argumento, 60)")
+    ap.add_argument("--elastica", type=float, nargs=2, default=None, metavar=("ALFA_TIEMPO", "ALFA_FRECUENCIA"),
+                    help="ElasticTransform de torchvision en entrenamiento, con alpha por eje")
+    ap.add_argument("--sigma-elastica", type=float, default=SIGMA_ELASTICA, help="sigma de ElasticTransform")
     ap.add_argument("--guardar-pesos", action="store_true")
     return ap.parse_args(lista)
 
@@ -272,6 +379,9 @@ def entrenar(args):
         raise SystemExit("DETENIDO: --pesos-clase es de la entropia cruzada; la focal de torchvision no recibe pesos por clase")
     if args.lote % args.acumular:
         raise SystemExit("DETENIDO: --lote tiene que ser multiplo de --acumular")
+    en_db = os.path.isdir(os.path.join(args.datos, "ventanas"))
+    if not en_db and (args.jitter_maximo is not None or args.jitter_ancho is not None or args.ventana_fija is not None):
+        raise SystemExit("DETENIDO: el jitter del rango de dB y --ventana-fija necesitan el paquete en dB (carpeta ventanas/)")
     semilla(args.semilla)
     disp = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -305,11 +415,23 @@ def entrenar(args):
         for p in cabeza.parameters():
             p.requires_grad = True
     red.to(disp)
-    dir_img = os.path.join(args.datos, "imagenes")
+    cols = ((f"col_ini_fijo{args.ventana_fija:g}s", f"col_fin_fijo{args.ventana_fija:g}s") if args.ventana_fija is not None
+            else ("col_ini", "col_fin"))
+    if en_db and not set(cols) <= set(idx.columns):
+        raise SystemExit(f"DETENIDO: el indice del paquete no tiene las columnas {cols}")
+    # el aumento solo se aplica al entrenamiento; validacion y test se ven con el rango de Jose y sin deformar
+    aumento = Aumento(args.jitter_maximo, args.jitter_ancho, args.elastica, args.sigma_elastica)
+    aumento = aumento if aumento.jitter or aumento.elastica is not None else None
+
+    def conjunto_carga(sub, aum):
+        if en_db:
+            return RecortesDB(os.path.join(args.datos, "ventanas"), sub, cols, args.tamano, mean, std, aum)
+        return Recortes(os.path.join(args.datos, "imagenes"), sub.archivo, sub.y, args.tamano, mean, std, aum)
+
     kw = dict(batch_size=args.lote // args.acumular, num_workers=args.trabajadores, pin_memory=disp.type == "cuda")
     gen = torch.Generator().manual_seed(args.semilla)
-    c_ent = DataLoader(Recortes(dir_img, ent.archivo, ent.y, args.tamano, mean, std), shuffle=True, generator=gen, **kw)
-    c_val = DataLoader(Recortes(dir_img, val.archivo, val.y, args.tamano, mean, std), shuffle=False, **kw)
+    c_ent = DataLoader(conjunto_carga(ent, aumento), shuffle=True, generator=gen, **kw)
+    c_val = DataLoader(conjunto_carga(val, None), shuffle=False, **kw)
 
     n_por_clase = np.bincount(ent.y, minlength=len(CLASES))
     peso = torch.tensor(n_por_clase.sum() / (len(CLASES) * n_por_clase), dtype=torch.float32) if args.pesos_clase else None
@@ -319,13 +441,12 @@ def entrenar(args):
     opt = optimizador(args.optimizador, [p for p in red.parameters() if p.requires_grad], args.lr, args.momentum,
                       args.weight_decay)
 
-    conjunto = conjunto_de(args.datos)
-    nombre = nombre_resultado(args.modelo, args.fold, args.tamano, conjunto, args.pesos_clase, args.ajuste_completo,
-                              args.lr, args.duracion_minima, args.sin_falsas_alarmas, args.optimizador, args.momentum,
-                              args.weight_decay, args.dropout, args.lote, args.perdida, args.paciencia)
+    conjunto = conjunto_de(args.datos, args.ventana_fija)
+    nombre = nombre_de(args)
     evento = (val.etiqueta != "sin caja").to_numpy()
     yv = val.y.to_numpy()
-    cfg = dict(vars(args), conjunto=conjunto or "recorte", evaluacion="test" if es_test else "validacion",
+    cfg = dict(vars(args), conjunto=conjunto or "recorte", paquete="dB" if en_db else "imagenes",
+               evaluacion="test" if es_test else "validacion",
                lr_usada=opt.defaults["lr"], weight_decay_usado=opt.defaults["weight_decay"],
                momentum_usado=opt.defaults.get("momentum"), dropout_red=dropouts(red),
                probabilidad="sigmoide" if args.perdida == "focal" else "softmax", clases=CLASES, mapa=MAPA,
@@ -341,6 +462,10 @@ def entrenar(args):
     print(f"  {args.optimizador} lr {cfg['lr_usada']:g}, weight_decay {cfg['weight_decay_usado']:g}"
           + (f", momentum {cfg['momentum_usado']:g}" if args.optimizador == "sgd" else "")
           + f"; dropout {cfg['dropout_red']}; perdida {args.perdida}; lote {args.lote}", flush=True)
+    if aumento is not None:
+        print(f"  aumento en entrenamiento: maximo del rango +-{args.jitter_maximo or 0:g} dB, ancho "
+              + (f"{args.jitter_ancho[0]:g}-{args.jitter_ancho[1]:g}" if args.jitter_ancho else f"{RANGO_DB:g}") + " dB"
+              + (f"; elastica alpha {args.elastica}, sigma {args.sigma_elastica:g}" if args.elastica else ""), flush=True)
     print(f"  por clase en entrenamiento: {cfg['n_entrenamiento']}", flush=True)
     print(f"  eventos de Jose en {cfg['evaluacion']}: {cfg['n_validacion']}; sin caja aparte: {cfg['n_sin_caja_validacion']}",
           flush=True)
@@ -385,7 +510,7 @@ def entrenar(args):
     res = dict(configuracion=cfg, historia=historia, mejor_epoca=mejor["epoca"], epocas_corridas=len(historia))
     if args.evaluar_test:
         red.load_state_dict(mejor_estado)
-        c_prueba = DataLoader(Recortes(dir_img, prueba.archivo, prueba.y, args.tamano, mean, std), shuffle=False, **kw)
+        c_prueba = DataLoader(conjunto_carga(prueba, None), shuffle=False, **kw)
         pt = predecir(red, c_prueba, disp, prob)
         mt = evaluar(pt, prueba)
         ev_t = (prueba.etiqueta != "sin caja").to_numpy()

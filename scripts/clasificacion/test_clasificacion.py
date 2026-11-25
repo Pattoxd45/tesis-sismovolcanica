@@ -44,6 +44,129 @@ def detenido(f, *a):
         return True
 
 
+def paquete_en_db(ec, er, rng):
+    """Paquete en dB con seis ventanas sinteticas (una por fold de validacion y una de test), comparado con los PNG
+    hechos como en espectrogramas_recortes.py; entrenamiento corto con jitter del rango de dB y ElasticTransform."""
+    import re
+    import zipfile
+
+    import torch
+    from scipy.signal import butter
+
+    todo = True
+    d = tempfile.mkdtemp()
+    dv, dimg, dfijo, dsp = (os.path.join(d, x) for x in ("zne", "img", "img_fijo", "splits"))
+    for x in (dv, dimg, dfijo, dsp):
+        os.makedirs(x)
+    sos = butter(er.ORDEN_FILTRO, list(er.BANDA_FILTRO), btype="bandpass", fs=er.FS, output="sos")
+    t = np.arange(30000) / 100.0
+    nombres = [f"v{k}" for k in range(1, 7)]
+    filas, fijas, colores = [], [], True
+    for j, v in enumerate(nombres):
+        sig = {c: rng.normal(0, 1, t.size) + 40 * np.sin(2 * np.pi * (3 + j) * t) * ((t > 40) & (t < 70)) for c in "ZNE"}
+        np.savez(os.path.join(dv, f"{v}_zne.npz"), **sig)
+        esp = {c: er.espectrograma(sig[c], sos) for c in "ZNE"}
+        dbs, lims = {c: x[0] for c, x in esp.items()}, {c: (x[1], x[2]) for c, x in esp.items()}
+        for k, (et, a, b) in enumerate((("VT", 40.0, 52.0), ("LP", 45.0, 75.0), ("TR", 100.0, 250.0), ("sin caja", 260.0, 270.0))):
+            archivo = f"{v}_{k:02d}.png"
+            col = er.columnas(a * 100, b * 100, dbs["Z"].shape[1])
+            im = er.imagen(dbs, lims, col)
+            colores &= bool((ec.colorear(dbs, lims, col) == im).all())
+            Image.fromarray(im).save(os.path.join(dimg, archivo))
+            af = min(a, 240.0)
+            Image.fromarray(er.imagen(dbs, lims, er.columnas(af * 100, (af + 60) * 100, dbs["Z"].shape[1]))).save(
+                os.path.join(dfijo, archivo))
+            filas.append(dict(recorte=archivo[:-4], ventana=v, split="test" if v == "v6" else "desarrollo", k=k, ini_s=a,
+                              fin_s=b, dur_s=b - a, columnas=col.size, archivo=archivo, iou=0.5, etiqueta=et))
+            fijas.append(dict(archivo=archivo, ini_fijo_s=af, fin_fijo_s=af + 60))
+    todo &= caso("colorear de entrenar_cnn.py da la misma imagen que espectrogramas_recortes.py", colores)
+
+    splits(dsp, [[v] for v in nombres[:5]], nombres[:5])
+    pd.DataFrame(filas).to_csv(os.path.join(d, "indice.csv"), index=False)
+    pd.DataFrame(fijas).to_csv(os.path.join(d, "fijo.csv"), index=False)
+    ruta_zip = os.path.join(d, "clasificacion_db.zip")
+    r = subprocess.run([sys.executable, os.path.join(AQUI, "paquete_db.py"), "--indice", os.path.join(d, "indice.csv"),
+                        "--indice-fijo", os.path.join(d, "fijo.csv"), "--ventanas", dv, "--imagenes", dimg,
+                        "--imagenes-fijo", dfijo, "--splits", dsp, "--salida", ruta_zip, "--verificar", "6"],
+                        capture_output=True, text=True)
+    m = re.search(r"Comparacion con los PNG: (\d+) imagenes; (\d+) con algun pixel distinto \((\d+) pixeles", r.stdout)
+    ok = r.returncode == 0 and m is not None
+    if ok:
+        with zipfile.ZipFile(ruta_zip) as z:
+            z.extractall(d)
+        paq = os.path.join(d, "clasificacion_db")
+        idx = pd.read_csv(os.path.join(paq, "indice.csv"))
+        # 48 imagenes de 231 filas; se acepta como mucho un pixel distinto cada mil
+        ok = (int(m.group(1)) == 48 and int(m.group(3)) <= 0.001 * 231 * idx.columnas.sum() * 2
+              and len(os.listdir(os.path.join(paq, "ventanas"))) == 6
+              and (idx.col_fin - idx.col_ini == idx.columnas).all()
+              and (idx.col_fin_fijo60s - idx.col_ini_fijo60s).between(92, 95).all()
+              and idx.fold.astype("object").fillna(0).tolist() == [1] * 4 + [2] * 4 + [3] * 4 + [4] * 4 + [5] * 4 + [0] * 4)
+        print(f"    (paquete en dB: {m.group(2)} de 48 imagenes con algun pixel distinto de los PNG; {m.group(3)} pixeles)")
+    else:
+        print(r.stdout[-400:], r.stderr[-800:])
+    todo &= caso("paquete en dB: una ventana por archivo, columnas de cada recorte y del tramo fijo, folds de Jose e "
+                 "imagenes iguales a los PNG", ok)
+    if not ok:
+        return False
+
+    aum = ec.Aumento(5.0, (50.0, 70.0))
+    torch.manual_seed(0)
+    s = np.array([aum.rango() for _ in range(500)])
+    todo &= caso("jitter: corrimiento entre -5 y 5 dB y ancho entre 50 y 70 dB; sin jitter, 0 y 60 dB",
+                 s[:, 0].min() >= -5 and s[:, 0].max() <= 5 and s[:, 0].min() < -4.5 and s[:, 0].max() > 4.5
+                 and s[:, 1].min() >= 50 and s[:, 1].max() <= 70 and ec.Aumento().rango() == (0.0, 60.0))
+
+    base = ["--modelo", "efficientnet_b0", "--fold", "2", "--epocas", "1", "--lote", "4", "--trabajadores", "0",
+            "--sin-preentrenar"]
+    for extra, archivo in ((["--jitter-maximo", "5", "--jitter-ancho", "50", "70", "--elastica", "50", "0"],
+                            "efficientnet_b0_fold2_estirar_lote4_jit5_ancho50-70_ela50-0.json"),
+                           (["--ventana-fija", "60", "--evaluar-test"], "efficientnet_b0_fold2_estirar_fijo60s_lote4.json")):
+        salida = tempfile.mkdtemp()
+        r = subprocess.run([sys.executable, os.path.join(AQUI, "entrenar_cnn.py"), "--datos", paq, "--salida", salida,
+                            *base, *extra], capture_output=True, text=True)
+        ruta = os.path.join(salida, archivo)
+        ok = r.returncode == 0 and os.path.exists(ruta)
+        if ok:
+            res = json.load(open(ruta))
+            cfg = res["configuracion"]
+            ok = (cfg["paquete"] == "dB" and sum(cfg["n_entrenamiento"].values()) == 16
+                  and sum(cfg["n_validacion"].values()) == 3 and cfg["n_sin_caja_validacion"] == 1
+                  and ("test" not in res or sum(res["test"]["n"].values()) == 3))
+        else:
+            print(r.stderr[-800:])
+        todo &= caso(f"entrenamiento con el paquete en dB {' '.join(extra)}", ok)
+
+    r = subprocess.run([sys.executable, os.path.join(AQUI, "entrenar_cnn.py"), "--datos", dimg, "--salida", tempfile.mkdtemp(),
+                        *base, "--jitter-maximo", "5"], capture_output=True, text=True)
+    todo &= caso("jitter del rango de dB con el paquete de imagenes: se detiene", r.returncode != 0 and "DETENIDO" in r.stderr)
+
+    try:
+        import optuna  # noqa: F401
+    except ImportError:
+        print("  (sin Optuna: se omite el caso de buscar_cnn.py)")
+        return todo
+    salida = tempfile.mkdtemp()
+    busq = [sys.executable, os.path.join(AQUI, "buscar_cnn.py"), "--datos", paq, "--modelo", "efficientnet_b0", "--fold", "2",
+            "--salida", salida, "--epocas", "1", "--trabajadores", "0", "--sin-preentrenar", "--jitter-maximo", "5"]
+    r1 = subprocess.run(busq + ["--pruebas", "2"], capture_output=True, text=True)
+    r2 = subprocess.run(busq + ["--pruebas", "3"], capture_output=True, text=True)
+    ruta = os.path.join(salida, "busqueda_efficientnet_b0_fold2.csv")
+    ok = r1.returncode == 0 and r2.returncode == 0 and os.path.exists(ruta) and "2 pruebas terminadas de 3" in r2.stdout
+    if ok:
+        t = pd.read_csv(ruta)
+        js = [json.load(open(os.path.join(salida, j))) for j in t.json]
+        ok = (len(t) == 3 and (t.state == "COMPLETE").all()
+              and all(j["configuracion"]["epocas"] == 1 and j["configuracion"]["paciencia"] == 5
+                      and j["configuracion"]["jitter_maximo"] == 5 and j["configuracion"]["sin_falsas_alarmas"]
+                      and j["configuracion"]["pesos_clase"] == (j["configuracion"]["perdida"] == "entropia")
+                      and (j["configuracion"]["momentum"] == 0.9) == (j["configuracion"]["optimizador"] == "sgd") for j in js))
+    else:
+        print(r1.stderr[-800:], r2.stderr[-800:])
+    todo &= caso("busqueda con Optuna: 2 pruebas, se relanza y sigue hasta 3; protocolo fijo y argumentos extra pasan", ok)
+    return todo
+
+
 def main():
     todo = True
     d = tempfile.mkdtemp()
@@ -383,6 +506,8 @@ def main():
                                            ("figura_estiramiento.png", "figura_rangos_db.png", "figura_elastica.png")))
     if r.returncode:
         print(r.stderr[-800:])
+
+    todo &= paquete_en_db(ec, fa.er, rng)
 
     print("TODOS PASAN" if todo else "HAY FALLAS")
     sys.exit(0 if todo else 1)
