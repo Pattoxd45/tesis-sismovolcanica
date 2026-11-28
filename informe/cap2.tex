@@ -467,17 +467,99 @@ clases tienen tamaños muy distintos: LP reúne cerca de la mitad de los
 eventos, y una red podría acertar mucho LP y fallar TR con una exactitud alta.
 
 \subsection{Detección y recorte}
+\label{subsec:protocolo-deteccion}
 
-En la comparación de detectores sobre la traza continua, un evento cuenta como
-detectado si hay un aviso a 5\,s o menos de su inicio, antes o después, y cada
-aviso cuenta para un solo evento; la misma regla se aplica a los tres
-detectores. En las ventanas de test, un evento cuenta como detectado si alguno
-de los intervalos en que la probabilidad de P o de S de PhaseNet supera su
-umbral se cruza con su caja. La calidad del recorte se mide con el IoU contra
-la caja, informando qué fracción de los eventos tiene un recorte con IoU de
-0,3 o más y de 0,5 o más. Las falsas alarmas se informan como recortes sin
-caja por hora de registro, y su proporción entre todos los recortes como FDR
-(\emph{false discovery rate}).
+El catálogo marca el inicio y el fin de cada evento, y cada detector entrega
+\emph{intervalos}: tramos de tiempo en que dice que hay algo. En PhaseNet,
+cada aviso es un intervalo que va desde que la probabilidad de la onda supera
+su umbral hasta que baja de la mitad de ese umbral, que es la regla de
+SeisBench. En EQTransformer se usa el intervalo de su curva de detección, con
+la misma regla, y también los avisos de sus curvas de P y S. En STA/LTA, el
+intervalo va desde que la razón entre las dos ventanas supera
+\texttt{thres1} hasta que baja de \texttt{thres2}, tal como lo entrega la
+función \texttt{trigger\_onset} de ObsPy.
+
+Un evento cuenta como detectado si alguno de esos intervalos se cruza con él,
+es decir, si comparten al menos un instante (Figura~\ref{fig:interseccion}).
+Cuánto se cruzan no importa para contar la detección; eso lo mide después el
+IoU del recorte. Cada intervalo cuenta para un solo evento y cada evento para
+un solo intervalo, de modo que un intervalo largo no cuente como varios
+eventos detectados. Una \emph{falsa alarma} es un intervalo que no se cruza
+con ningún evento del catálogo, sea volcánico o no: un intervalo sobre un AV
+o un IC no es falsa alarma, porque esos eventos existen y deben ir a la clase
+de rechazo. Las falsas alarmas se cuentan por hora de registro (FP/h). La FDR
+(\emph{false discovery rate}) es la parte de las detecciones que son falsas
+alarmas: las falsas alarmas divididas por la suma de volcánicos detectados y
+falsas alarmas. La misma forma de contar se aplica a los tres detectores.
+
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[x=0.12cm, y=1cm, font=\footnotesize]
+\fill[black!10] (0,0.45) rectangle (30,4.35);
+\foreach \y/\a/\b/\n/\d in {3.9/-4/1/A/{empieza antes y entra\\al evento: lo detecta},
+                            2.9/12/13/B/{queda dentro del\\evento: lo detecta},
+                            1.9/-8/-2/C/{termina antes del\\inicio: no lo detecta},
+                            0.9/36/40/D/{empieza después del\\fin: no lo detecta}} {
+  \fill[naranjo] (\a,\y-0.12) rectangle (\b,\y+0.12);
+  \node[anchor=east] at (-11,\y) {Intervalo \n};
+  \node[anchor=west, align=left] at (44,\y) {\d};
+}
+\draw[dashed, black!70] (0,0.3) -- (0,4.5);
+\draw[dashed, black!70] (30,0.3) -- (30,4.5);
+\node[above] at (15,4.4) {evento del catálogo};
+\draw[->, black!60] (-12,0.3) -- (42,0.3) node[right] {s};
+\foreach \x in {-10,0,10,20,30,40} {
+  \draw[black!60] (\x,0.3) -- (\x,0.22) node[below] {\x};
+}
+\end{tikzpicture}
+\caption{Un evento de ejemplo que va de 0 a 30\,s (franja gris) y cuatro
+intervalos de un detector (naranjo). Basta compartir un instante con el evento
+para detectarlo. Los intervalos C y D, si no tocan ningún otro evento, son
+falsas alarmas.}
+\label{fig:interseccion}
+\end{figure}
+
+Al comienzo del trabajo se usó otro criterio: un evento contaba como detectado
+si había un aviso a 5\,s o menos de su inicio, antes o después. Ese valor de
+5\,s no viene de ninguna librería, y el resultado dependía de él: con
+PhaseNet y umbral 0,10, la sensibilidad volcánica era 0,904 con 5\,s y 0,968
+con 10\,s. La intersección no necesita elegir ese valor. El
+Capítulo~\ref{cap:resultados} muestra las dos formas de contar.
+
+Los umbrales y las ventanas de las redes se eligen con la misma traza con que
+se evalúan, lo que puede favorecer valores que solo funcionan con estos
+eventos. Para medir cuánto pesa eso se hace una \emph{rotación de tramos}: los
+parámetros se eligen con dos de los tres tramos de la traza y se miden en el
+tercero, y se repite con las tres combinaciones. Al sumar las tres mediciones,
+cada evento queda medido con parámetros que no se eligieron con él. La
+configuración de cada red se elige con la misma regla:
+
+\begin{enumerate}
+\item se comparan dos opciones: cambiar solo los umbrales, con las ventanas por
+  defecto, o cambiar umbrales y ventanas;
+\item se queda la opción con más sensibilidad en la rotación de tramos, porque
+  esa medición se hace con eventos que no se usaron para elegir; si empatan, la
+  de menos falsas alarmas;
+\item dentro de esa opción, con la traza completa, se toma la combinación con
+  menos falsas alarmas que llega a 0,95 de sensibilidad volcánica; si ninguna
+  llega, la de mayor sensibilidad.
+\end{enumerate}
+
+La meta es de sensibilidad y no de precisión porque un evento que el detector
+pierde ya no llega al clasificador, mientras que una falsa alarma todavía puede
+ir a la clase de rechazo. Entre las combinaciones que llegan a la meta se
+prefiere la de menos falsas alarmas, porque cada una es un recorte más que el
+clasificador tiene que descartar.
+
+La calidad del recorte se mide con el IoU entre el recorte y el evento del
+catálogo. Recortes y eventos se emparejan de a uno, y un evento queda bien
+recortado si su recorte tiene un IoU de 0,3 o más; como ese valor es una
+decisión propia, también se informan otros umbrales, de 0,1 a 0,9.
+
+En las ventanas de test se aplican la misma detección, el mismo recorte y la
+misma intersección con la configuración elegida. Ahí las falsas alarmas son los
+recortes que no quedan emparejados con ninguna caja, y se informan por hora de
+registro y como parte del total de recortes.
 
 \subsection{Sistema completo sobre la traza continua}
 
@@ -503,8 +585,9 @@ Se informan tres medidas. La primera es la clasificación de los recortes que
 calzan con un evento del catálogo (IoU de 0,3 o más). La segunda es la
 \emph{sensibilidad completa} de cada clase: la fracción de sus eventos que el
 sistema detecta, recorta con IoU de 0,3 o más y clasifica en la clase
-correcta, todo a la vez. La tercera son las falsas alarmas por hora que el
-clasificador llama volcánicas. Además se mide el tiempo de cada etapa.
+correcta, todo a la vez. La tercera son los recortes sin caja que el
+clasificador llama volcánicos, por hora de registro. Además se mide el tiempo
+de cada etapa.
 
 Como la traza tiene pocos eventos por clase (entre 24 y 50 recortes que calzan
 con un evento), cada sensibilidad se acompaña de su intervalo de confianza de

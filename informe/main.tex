@@ -35,6 +35,15 @@
 \usepackage{graphicx}
 \usepackage{tikz}
 \usetikzlibrary{positioning,fit,arrows.meta,calc}
+\definecolor{naranjo}{HTML}{EB6834}
+
+% Encabezado de longtable que se repite en cada pagina: \cabecera{columnas}{numero de columnas}
+\newcommand{\cabecera}[2]{%
+  \toprule #1 \\ \midrule \endfirsthead
+  \multicolumn{#2}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+  \toprule #1 \\ \midrule \endhead
+  \midrule \multicolumn{#2}{r}{\itshape Continúa en la página siguiente}\\ \endfoot
+  \bottomrule \endlastfoot}
 
 % --- Algoritmos ---
 \usepackage{algorithm}
@@ -75,9 +84,8 @@
 \tableofcontents{}
 \pagebreak{}
 
-% El indice de figuras se reactiva cuando el documento tenga figuras.
-%\listoffigures
-%\pagebreak{}
+\listoffigures
+\pagebreak{}
 
 \listoftables
 \pagebreak{}
