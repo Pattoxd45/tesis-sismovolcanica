@@ -8,6 +8,7 @@ corridas cortas con pesos al azar (sin GPU ni descargas), incluida la evaluacion
 Uso: python test_clasificacion.py
 """
 
+import glob
 import json
 import os
 import subprocess
@@ -175,6 +176,34 @@ def paquete_en_db(ec, er, rng):
     else:
         print(r1.stderr[-800:], r2.stderr[-800:])
     todo &= caso("busqueda con Optuna: 2 pruebas, se relanza y sigue hasta 3; protocolo fijo y argumentos extra pasan", ok)
+    if not ok:
+        return False
+
+    dfolds = tempfile.mkdtemp()
+    folds = [sys.executable, os.path.join(AQUI, "folds_cnn.py"), "--datos", paq, "--modelo", "efficientnet_b0",
+             "--busqueda", salida, "--fold-busqueda", "2", "--salida", dfolds, "--epocas", "1", "--trabajadores", "0",
+             "--sin-preentrenar", "--jitter-maximo", "5"]
+    r1 = subprocess.run(folds, capture_output=True, text=True)
+    r2 = subprocess.run(folds, capture_output=True, text=True)
+    r3 = subprocess.run([sys.executable, os.path.join(AQUI, "resumen_folds.py"), dfolds], capture_output=True, text=True)
+    ok = r1.returncode == 0 and r2.returncode == 0 and r3.returncode == 0 and r2.stdout.count("ya esta") == 10
+    if ok:
+        mejor = pd.read_csv(os.path.join(salida, "busqueda_efficientnet_b0_fold2.csv")).iloc[0]
+        js = [json.load(open(j)) for j in glob.glob(os.path.join(dfolds, "efficientnet_b0_fold*.json"))]
+        res = pd.read_csv(os.path.join(dfolds, "resumen_folds.csv"))
+        mt = pd.read_csv(os.path.join(dfolds, "matrices_test.csv"))
+        ok = (len(js) == 10 and all("test" in j and j["configuracion"]["optimizador"] == mejor.optimizador
+                                    and j["configuracion"]["lr"] == mejor.lr and j["configuracion"]["jitter_maximo"] == 5
+                                    for j in js)
+              and len(glob.glob(os.path.join(dfolds, "*.pt"))) == 10
+              and sorted(res.conjunto.unique()) == ["fijo60s", "recorte"] and (res.folds == 5).all()
+              and len(res) == 2 * 2 * 4
+              and np.allclose(mt[mt.clase_real != "rechazo"][[f"pred_{k}" for k in ec.CLASES]].sum(axis=1), 1)
+              and (mt.folds == 5).all())
+    else:
+        print(r1.stderr[-800:], r3.stderr[-800:])
+    todo &= caso("folds con la mejor combinacion: 5 folds con recorte y ventana fija, test y pesos; no repite; resumen "
+                 "con promedio, minimo, maximo y desviacion y matriz de test por fila", ok)
     return todo
 
 
