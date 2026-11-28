@@ -562,6 +562,7 @@ recortes que no quedan emparejados con ninguna caja, y se informan por hora de
 registro y como parte del total de recortes.
 
 \subsection{Sistema completo sobre la traza continua}
+\label{subsec:protocolo-sistema}
 
 El objetivo específico OE4 pide evaluar el sistema integrado sobre registros
 continuos. Para eso la cadena completa se aplica a la traza de FRE:
@@ -588,6 +589,27 @@ sistema detecta, recorta con IoU de 0,3 o más y clasifica en la clase
 correcta, todo a la vez. La tercera son los recortes sin caja que el
 clasificador llama volcánicos, por hora de registro. Además se mide el tiempo
 de cada etapa.
+
+Para medir cuánto se pierde por usar el recorte automático, cada evento del
+catálogo se clasifica también con su \emph{recorte de referencia}: el inicio y
+el fin que marca el catálogo, con la misma ventana de 300\,s centrada, el mismo
+espectrograma y los mismos modelos. La comparación es \emph{pareada}: para
+cada evento se ve si acierta con el recorte de referencia y si el sistema
+acierta con el automático, y la diferencia se resume como la sensibilidad con
+el recorte automático menos la sensibilidad con el de referencia. Se calcula de
+dos formas. Con todos los eventos, el recorte automático cuenta como acierto
+solo si el sistema detecta el evento, lo recorta con IoU de 0,3 o más y lo
+clasifica bien, es decir, su sensibilidad completa. Con solo los eventos cuyo
+recorte automático calza, la diferencia muestra el efecto del recorte sobre la
+clasificación, sin el de la detección. Para cada evento se usa el promedio de
+los cinco modelos de la red.
+
+El intervalo de confianza de esa diferencia se obtiene por \emph{bootstrap}
+\parencite{efron1993bootstrap}: se sortean con reemplazo 10.000 grupos de
+eventos del mismo tamaño que el original, se calcula la diferencia en cada uno
+y se toman los valores que dejan fuera el 2,5\,\% más bajo y el 2,5\,\% más
+alto. Si el intervalo no incluye el cero, la diferencia no se explica por el
+azar de qué eventos tocaron en la traza.
 
 Como la traza tiene pocos eventos por clase (entre 24 y 50 recortes que calzan
 con un evento), cada sensibilidad se acompaña de su intervalo de confianza de

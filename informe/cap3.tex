@@ -574,6 +574,9 @@ LP & 288 & 278 & 0,965 [0,937; 0,981] & 281 & 0,976 [0,951; 0,988] \\
 TR & 281 & 267 & 0,950 [0,918; 0,970] & 183 & 0,651 [0,594; 0,705] \\
 \midrule
 \textbf{Volcánicos} & \textbf{869} & \textbf{845} & \textbf{0,972 [0,959; 0,981]} & \textbf{757} & \textbf{0,871 [0,847; 0,892]} \\
+\midrule
+AV & 120 & 118 & 0,983 [0,941; 0,995] & 118 & 0,983 [0,941; 0,995] \\
+IC & 172 & 171 & 0,994 [0,968; 0,999] & 167 & 0,971 [0,934; 0,988] \\
 \end{longtable}
 }
 
@@ -582,7 +585,9 @@ la traza continua (0,972 contra 0,952 y 0,871 contra 0,864), y en las dos TR es
 la clase peor recortada: 0,651 en test y 24 de 37 (0,649) en la traza. En LP
 hay más eventos bien recortados (281) que detectados (278), porque la
 detección se cuenta con los intervalos de los avisos, que son cortos, y el
-recorte, que es más largo, puede tocar un evento cuyo aviso no lo tocó.
+recorte, que es más largo, puede tocar un evento cuyo aviso no lo tocó. Los
+AV y los IC, que van a la clase de rechazo, se detectan y se recortan bien
+casi todos.
 
 En las 1.161 ventanas, que suman 96,75 horas, la detección y el recorte
 producen 7.621 recortes, 6,6 por ventana. Los que no quedan emparejados con
@@ -862,6 +867,112 @@ entre 60,0 y 67,9 por hora con el recorte, según la red. Entre los cinco
 modelos de una misma red esta cifra varía mucho; en ResNet50 va de 31,3 a 74,6
 por hora.
 
+\subsection{Recorte de referencia contra recorte automático}
+\label{subsec:res-referencia}
+
+Para medir cuánto se pierde por recortar de forma automática, cada uno de los
+179 eventos del catálogo se clasificó también con su recorte de referencia, el
+inicio y el fin que marca el catálogo, con la comparación pareada descrita en
+la Sección~\ref{subsec:protocolo-sistema}. Con el recorte de referencia, el F1
+macro de VT, LP y TR es 0,727 con EfficientNet-B0, 0,721 con ResNet50 y 0,724
+con VGG16, y la sensibilidad va de 0,567 a 0,589 en VT, de 0,808 a 0,888 en LP,
+de 0,784 a 0,859 en TR y de 0,470 a 0,537 en el rechazo. Hay que tener en
+cuenta que el clasificador se entrenó con recortes automáticos que calzan con
+su caja, no con las cajas mismas.
+
+El Cuadro~\ref{tab:res-referencia} compara, con todos los eventos, la
+sensibilidad con el recorte de referencia y la sensibilidad completa del
+sistema. El Cuadro~\ref{tab:res-referencia-calza} repite la comparación solo
+con los eventos cuyo recorte automático calza, de modo que muestra el efecto
+del recorte sobre la clasificación sin el de la detección. Las dos usan la
+imagen del recorte; la ventana fija de 60\,s se comenta después.
+
+\needspace{12\baselineskip}
+{\small
+\setlength{\tabcolsep}{3.5pt}
+\begin{longtable}{lrrrrl}
+\caption{Todos los eventos: sensibilidad con el recorte de referencia, con el
+sistema completo (recorte automático) y diferencia (automático menos
+referencia), con su intervalo del 95\,\% por \emph{bootstrap}. Promedio de los
+cinco modelos de cada red.}\label{tab:res-referencia}\\
+\cabecera{\textbf{Clase} & \textbf{Eventos} & \textbf{Referencia} & \textbf{Automático} & \textbf{Diferencia} & \textbf{Intervalo}}{6}
+\multicolumn{6}{l}{\textit{EfficientNet-B0}}\\*
+VT & 36 & 0,567 & 0,578 & +0,011 & [$-$0,094; +0,111] \\
+LP & 52 & 0,888 & 0,896 & +0,008 & [$-$0,058; +0,065] \\
+TR & 37 & 0,784 & 0,432 & $-$0,351 & [$-$0,497; $-$0,211] \\
+Volcánicos & 125 & 0,765 & 0,667 & $-$0,098 & [$-$0,163; $-$0,035] \\
+AV & 6 & 0,533 & 0,533 & 0,000 & [$-$0,133; +0,133] \\
+IC & 48 & 0,479 & 0,321 & $-$0,158 & [$-$0,242; $-$0,079] \\
+\midrule
+\multicolumn{6}{l}{\textit{ResNet50}}\\*
+VT & 36 & 0,589 & 0,672 & +0,083 & [$-$0,033; +0,200] \\
+LP & 52 & 0,808 & 0,858 & +0,050 & [$-$0,035; +0,131] \\
+TR & 37 & 0,859 & 0,519 & $-$0,341 & [$-$0,481; $-$0,205] \\
+Volcánicos & 125 & 0,760 & 0,704 & $-$0,056 & [$-$0,128; +0,014] \\
+AV & 6 & 0,567 & 0,467 & $-$0,100 & [$-$0,467; +0,267] \\
+IC & 48 & 0,458 & 0,392 & $-$0,067 & [$-$0,158; +0,025] \\
+\midrule
+\multicolumn{6}{l}{\textit{VGG16}}\\*
+VT & 36 & 0,567 & 0,567 & 0,000 & [$-$0,150; +0,144] \\
+LP & 52 & 0,819 & 0,838 & +0,019 & [$-$0,054; +0,088] \\
+TR & 37 & 0,805 & 0,454 & $-$0,351 & [$-$0,497; $-$0,205] \\
+Volcánicos & 125 & 0,742 & 0,646 & $-$0,096 & [$-$0,170; $-$0,024] \\
+AV & 6 & 0,433 & 0,400 & $-$0,033 & [$-$0,300; +0,167] \\
+IC & 48 & 0,550 & 0,446 & $-$0,104 & [$-$0,204; $-$0,008] \\
+\end{longtable}
+}
+
+Con todos los eventos, el sistema pierde entre 0,056 y 0,098 de sensibilidad
+volcánica frente al recorte de referencia. En EfficientNet-B0 y VGG16 el
+intervalo no incluye el cero; en ResNet50 sí. Casi toda la pérdida está en TR:
+entre 0,341 y 0,351, con intervalos que no incluyen el cero en las tres redes.
+En promedio, entre 13,4 y 14,0 TR se aciertan solo con el recorte de
+referencia, y entre 0,8 y 1,0 solo con el automático. En VT y LP la
+diferencia es pequeña y sus intervalos incluyen el cero. En IC el sistema
+pierde entre 0,067 y 0,158, porque 14 de los 48 IC no tienen un recorte que
+calce.
+
+\needspace{12\baselineskip}
+{\small
+\setlength{\tabcolsep}{3.5pt}
+\begin{longtable}{lrrrrl}
+\caption{Solo los eventos cuyo recorte automático calza (IoU de 0,3 o más):
+sensibilidad de clasificación con cada recorte y diferencia (automático menos
+referencia), con su intervalo del 95\,\%.}\label{tab:res-referencia-calza}\\
+\cabecera{\textbf{Clase} & \textbf{Eventos} & \textbf{Referencia} & \textbf{Automático} & \textbf{Diferencia} & \textbf{Intervalo}}{6}
+\multicolumn{6}{l}{\textit{EfficientNet-B0}}\\*
+VT & 35 & 0,583 & 0,594 & +0,011 & [$-$0,097; +0,114] \\
+LP & 50 & 0,888 & 0,932 & +0,044 & [+0,008; +0,084] \\
+TR & 24 & 0,800 & 0,667 & $-$0,133 & [$-$0,267; $-$0,025] \\
+Volcánicos & 109 & 0,771 & 0,765 & $-$0,006 & [$-$0,057; +0,040] \\
+\midrule
+\multicolumn{6}{l}{\textit{ResNet50}}\\*
+VT & 35 & 0,606 & 0,691 & +0,086 & [$-$0,034; +0,211] \\
+LP & 50 & 0,804 & 0,892 & +0,088 & [+0,024; +0,160] \\
+TR & 24 & 0,908 & 0,800 & $-$0,108 & [$-$0,208; $-$0,017] \\
+Volcánicos & 109 & 0,763 & 0,807 & +0,044 & [$-$0,013; +0,101] \\
+\midrule
+\multicolumn{6}{l}{\textit{VGG16}}\\*
+VT & 35 & 0,583 & 0,583 & 0,000 & [$-$0,154; +0,149] \\
+LP & 50 & 0,828 & 0,872 & +0,044 & [$-$0,012; +0,108] \\
+TR & 24 & 0,825 & 0,700 & $-$0,125 & [$-$0,258; $-$0,008] \\
+Volcánicos & 109 & 0,749 & 0,741 & $-$0,007 & [$-$0,070; +0,055] \\
+\end{longtable}
+}
+
+Cuando el recorte automático calza, la sensibilidad volcánica es la misma que
+con el recorte de referencia: las diferencias van de $-$0,007 a +0,044 y los
+tres intervalos incluyen el cero. Por clase, TR sigue perdiendo entre 0,108 y
+0,133, con intervalos que no incluyen el cero, aunque quedan cerca de él; LP
+gana entre 0,044 y 0,088, con intervalos que no incluyen el cero en
+EfficientNet-B0 y ResNet50. En VT las diferencias no se distinguen de cero.
+
+Con la ventana fija de 60\,s, la diferencia volcánica con todos los eventos va
+de $-$0,019 a $-$0,035 y no se distingue de cero en ninguna red. En VT el
+recorte automático acierta más que el de referencia (entre +0,094 y +0,128,
+con intervalos que no incluyen el cero) y en TR, menos (entre $-$0,130 y
+$-$0,227).
+
 \subsection{Tiempo de procesamiento}
 \label{subsec:res-tiempo}
 
@@ -896,7 +1007,7 @@ de tres veces más rápido que VGG16.
 \label{sec:res-comprobaciones}
 
 El clasificador acierta menos en la traza continua que en test. Para acotar
-por qué, se hicieron cuatro comprobaciones.
+por qué, se hicieron cinco comprobaciones.
 
 La primera es que la traza no se haya usado para entrenar. Ninguna de las
 6.285 ventanas etiquetadas de origen, de las que salen las 5.669 con las tres
@@ -1002,6 +1113,12 @@ principales. Por IoU, TR depende mucho del recorte: con IoU entre 0,3 y 0,5 se
 acierta entre 0,59 y 0,71, y con 0,7 o más, entre 0,92 y 0,93. En LP la
 sensibilidad casi no cambia con el IoU, y en VT baja algo con IoU de 0,7 o
 más.
+
+La quinta usa el recorte de referencia
+(Sección~\ref{subsec:res-referencia}). Con el inicio y el fin del catálogo, VT
+se acierta entre 0,567 y 0,589 y el rechazo entre 0,470 y 0,537, valores
+parecidos a los del recorte automático y muy por debajo de test (0,889 a 0,910 y 0,853 a
+0,904). La caída de VT y del rechazo en la traza no viene del recorte.
 
 Quedan sin medir dos posibles causas de la caída en VT y en el rechazo: que el
 catálogo de la traza y el de las ventanas etiquetadas asignen las clases con
