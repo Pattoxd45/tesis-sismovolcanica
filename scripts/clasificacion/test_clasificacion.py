@@ -549,6 +549,19 @@ def main():
 
     todo &= paquete_en_db(ec, fa.er, rng)
 
+    import comprobaciones as cp
+    w0, w5 = cp.wilson(0, 10), cp.wilson(5, 10)
+    v = pd.DataFrame(dict(ini_unix=[0.0, 100.0, 250.0], fin_unix=[50.0, 200.0, 300.0]))
+    todo &= caso("comprobaciones: intervalo de Wilson (0/10 y 5/10) y ventanas que se cruzan con la traza",
+                 abs(w0[0]) < 1e-9 and abs(w0[1] - 0.2775) < 1e-3 and abs(w5[0] - 0.2366) < 1e-3
+                 and abs(w5[1] - 0.7634) < 1e-3 and cp.traslapes(v, [(40.0, 120.0)]).tolist() == [True, True, False])
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    ruta = os.path.join(tempfile.mkdtemp(), "m.png")
+    cp.matrices(plt, {("vgg16", "recorte"): np.eye(4) * 5 + 1, ("resnet50", "fijo60s"): np.eye(4)}, "x", ruta)
+    todo &= caso("comprobaciones: figura de matrices de confusion por red y conjunto", os.path.exists(ruta))
+
     print("TODOS PASAN" if todo else "HAY FALLAS")
     sys.exit(0 if todo else 1)
 
