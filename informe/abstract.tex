@@ -1,23 +1,31 @@
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-Automatic volcano-seismic monitoring requires detecting events in
-continuous records and classifying them by type. Operational systems solve
-both stages separately: a detector sets the event boundaries and a
-classifier, trained on analyst-made segmentations, assigns the class. This
-thesis develops an algorithm for volcano-seismic event identification that
-adapts the classification stage to the variability of the window produced
-by the detector, using records from the Nevados de Chillán Volcanic
-Complex.
+Volcano monitoring requires a continuous review of seismic records to find
+events and decide what type each one is. This work develops a system that
+performs this task automatically for the Nevados de Chillán Volcanic Complex.
+The system detects events in the continuous record of a single station, cuts
+each one according to its energy, converts the cut into a spectrogram, and
+classifies it with a convolutional neural network fine-tuned through transfer
+learning into four classes: volcano-tectonic (VT), long-period (LP), tremor
+(TR), and a rejection class for avalanches and ice-quakes.
 
-The work empirically evaluates three detectors (STA/LTA, PhaseNet and
-EQTransformer) at two levels, event onset identification and quality of the
-temporal delimitation; builds an adaptive windowing procedure fitted to the
-actual duration of the events, whose range exceeds by two orders of
-magnitude the fixed window commonly used; and validates the integrated
-algorithm by contrasting alternative convolutional architectures and
-quantifying the degradation between reference and automatic windows.
+Three detectors were compared on 10.18 hours of labeled continuous record:
+STA/LTA, EQTransformer, and PhaseNet. Only PhaseNet reached the target of
+detecting 95\,\% of the volcanic events (0.952), at a cost of 69 false alarms
+per hour; its energy-based cut delimited 86\,\% of them correctly. For
+classification, VGG16, ResNet50, and EfficientNet-B0 were fine-tuned with
+five-fold cross-validation; on the test set, all three reached a macro F1 score
+of 0.83 to 0.84, with differences smaller than the variation across folds. On
+the continuous record, the complete system detected, cut, and classified
+correctly between 65\,\% and 70\,\% of the volcanic events, and processed the
+entire record in less than two minutes on a personal computer. Compared with the
+onset and end times marked in the catalog, the automatic cut did not degrade
+classification when it delimited the event correctly; the loss was
+concentrated in tremors, which the detector and the cutting step delimit less
+accurately.
 
 \vspace{1cm}
 \noindent\textbf{Keywords:} volcano seismology, event detection, automatic
-classification, convolutional neural networks, Nevados de Chillán.
+classification, convolutional neural networks, transfer learning, Nevados de
+Chillán.

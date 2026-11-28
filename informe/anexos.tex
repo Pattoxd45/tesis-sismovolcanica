@@ -1,74 +1,294 @@
 \chapter{Anexos}
 
+\section{Glosario de términos y siglas}
+\label{sec:anexo-glosario}
+
+Este glosario explica, en palabras simples, los términos y las siglas que
+aparecen en el documento, para que pueda leerlo alguien sin formación en
+volcanes, en sismología ni en programación. Cada término se explica también la
+primera vez que aparece en el texto.
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{9.4cm}}
+\caption{Glosario de términos y siglas.}\label{tab:glosario}\\
+\cabecera{\textbf{Término} & \textbf{Significado}}{2}
+AdamW & Optimizador que ajusta los pesos de la red según el promedio de sus
+cambios recientes y que, además, los achica un poco en cada paso. Ver
+\emph{optimizador}. \\
+Aprendizaje profundo & Forma de aprendizaje automático que usa redes
+neuronales con muchas capas. \\
+Aumento de datos & Cambios al azar que se hacen a las imágenes de
+entrenamiento en cada época, para que la red no memorice los ejemplos. Aquí se
+cambia el rango de colores del espectrograma y se deforma levemente la imagen
+en el eje del tiempo. \\
+AV (avalancha) & Señal producida por el deslizamiento de rocas, nieve o hielo
+por las laderas del volcán. No informa sobre el interior del volcán, así que va
+a la clase de rechazo. \\
+Aviso & Instante en que un detector indica que podría haber un evento. En
+PhaseNet, cada aviso es también un intervalo: desde que la probabilidad de la
+onda supera su umbral hasta que baja de la mitad de ese umbral. \\
+\emph{Blinding} & Parámetro de SeisBench: cuántas muestras se descartan en cada
+borde de la ventana que lee la red, porque cerca del borde la red ve la señal
+hacia un solo lado. \\
+\emph{Bootstrap} & Forma de estimar la incertidumbre de un resultado: se
+sortean con reemplazo, muchas veces, grupos de datos del mismo tamaño que el
+original, se repite el cálculo en cada uno y se mira cuánto cambia. \\
+Caja & Inicio y fin de un evento marcados en el catálogo dentro de una ventana
+etiquetada. La caja principal es la del evento que está al centro de la
+ventana; las cajas extra son las de otros eventos que caen en ella. \\
+Catálogo & Lista de eventos con su inicio, su fin y su clase, marcados por
+analistas. Se usa como la verdad para evaluar. \\
+Clase & Tipo de evento. Aquí, VT, LP y TR (volcánicos), y AV e IC (no
+volcánicos). \\
+Clase de rechazo & Salida del clasificador para lo que no es volcánico. Se
+entrena con AV e IC. \\
+Clasificador & Programa que, dada la imagen de un evento, decide a qué clase
+pertenece. \\
+CNN (red neuronal convolucional) & Red neuronal hecha para imágenes: aprende a
+reconocer patrones simples, como bordes y texturas, y los combina en patrones
+más complejos. \\
+Componente & Dirección del movimiento del suelo que registra un sensor: Z
+(vertical), N (norte-sur) y E (este-oeste). \\
+CPU y GPU & La CPU es el procesador principal de un computador. La GPU es la
+tarjeta gráfica, que hace muchas operaciones a la vez y acelera el
+entrenamiento de redes neuronales. CUDA es el sistema de NVIDIA para usarla. \\
+Decibel (dB) & Escala para expresar energía en la que cada 10\,dB equivalen a
+multiplicar la energía por diez. Aquí, la energía de cada frecuencia en el
+espectrograma. \\
+Desviación estándar & Medida de cuánto se alejan los valores de su promedio. \\
+Detector & Programa que recorre la señal continua y marca dónde parece haber
+un evento. \\
+\emph{Dropout} & Técnica que, durante el entrenamiento, apaga al azar una parte
+de las neuronas, para que la red no dependa de unas pocas. \\
+EfficientNet-B0 & Red convolucional liviana, diseñada para rendir bien con
+pocos parámetros. \\
+Entropía cruzada & Función de pérdida habitual en clasificación: mide qué tan
+lejos está la probabilidad que da la red de la clase correcta. \emph{Con
+pesos}, los errores en las clases con menos ejemplos cuentan más. \\
+Envolvente & Curva que sigue la amplitud de la señal sin sus oscilaciones. El
+recorte por energía la usa para decidir dónde termina un evento. \\
+Época & Una pasada completa por todas las imágenes de entrenamiento. \\
+EQTransformer & Red neuronal publicada para detectar sismos y marcar sus ondas
+P y S. Además de las ondas, entrega una curva de detección con el inicio y el
+fin del evento. \\
+Espectrograma & Imagen que muestra cómo se reparte la energía de una señal
+entre las frecuencias a lo largo del tiempo: el eje horizontal es el tiempo,
+el vertical la frecuencia y el color la energía. \\
+Estación sismológica & Lugar donde un sensor registra el movimiento del suelo.
+FRE es la estación usada en este trabajo. \\
+Evento & Señal sísmica que se distingue del ruido de fondo, con un inicio y un
+fin. \\
+F1 y F1 macro & El F1 combina en un número entre 0 y 1 la sensibilidad y la
+precisión de una clase. El F1 macro es el promedio simple del F1 de varias
+clases; aquí, de VT, LP y TR. \\
+Falsa alarma & Detección que no corresponde a ningún evento del catálogo.
+FP/h son las falsas alarmas por hora de registro. \\
+FDR & Del inglés \emph{false discovery rate}: la parte de las detecciones que
+son falsas alarmas. \\
+Filtro pasa banda & Operación que deja pasar solo las frecuencias de un rango,
+por ejemplo de 1 a 15\,Hz, y atenúa el resto. \\
+Focal (pérdida) & Función de pérdida que da más peso a los ejemplos que la red
+todavía clasifica mal. \\
+Fold y validación cruzada & El conjunto de desarrollo se divide en cinco partes
+o \emph{folds}. Se entrena cinco veces, cada vez validando con una parte
+distinta y entrenando con las otras cuatro. \\
+Frecuencia y Hz & Cuántas veces por segundo oscila una señal; se mide en
+hercios (Hz). La frecuencia de muestreo es cuántos valores por segundo se
+registran: aquí, 100\,Hz. \\
+Fuera (etiqueta) & Recorte que toca un evento del catálogo pero con un IoU
+menor que 0,3. No se usa para entrenar ni para medir la clasificación. \\
+Función de pérdida & Número que mide cuánto se equivoca la red durante el
+entrenamiento; entrenar consiste en reducirlo. \\
+IC (\emph{ice-quake}) & Sismo producido por la fractura del hielo de los
+glaciares del volcán. No es volcánico, así que va a la clase de rechazo. \\
+ImageNet & Colección de más de un millón de fotografías etiquetadas, usada para
+preentrenar redes de imágenes. \\
+Intersección (detección por) & Criterio con que se cuenta una detección: un
+evento está detectado si algún intervalo del detector comparte al menos un
+instante con él. \\
+Intervalo de confianza & Rango en que probablemente estaría un resultado si se
+midiera con otro grupo de datos parecido. Aquí se usa el del 95\,\%. \\
+IoU & Del inglés \emph{intersection over union}: el tiempo en común entre un
+recorte y su evento, dividido por el tiempo total que cubren los dos. Vale 1
+si coinciden y 0 si no se tocan. \\
+Lote & Grupo de imágenes que la red procesa juntas antes de ajustar sus
+pesos. \\
+LP (largo período) & Evento volcánico de baja frecuencia, asociado al
+movimiento de fluidos dentro del volcán; suele durar menos de un minuto. \\
+Matriz de confusión & Tabla que cruza la clase real, en las filas, con la
+clase que asignó el clasificador, en las columnas. Normalizada por fila, cada
+fila muestra a dónde va cada clase. \\
+Mediana & Valor que queda al medio cuando se ordenan los datos: la mitad queda
+bajo él y la otra mitad sobre él. \\
+Muestra & Cada valor registrado de la señal. A 100\,Hz hay 100 muestras por
+segundo. \\
+NVChVC & Complejo Volcánico Nevados de Chillán, en la Región de Ñuble,
+Chile. \\
+ObsPy & Librería de Python para procesar señales sísmicas. Aquí se usa para
+STA/LTA y para los filtros. \\
+OOD & Del inglés \emph{out of distribution}: una señal distinta de todo lo que
+el clasificador vio al entrenar. \\
+Onda P y onda S & Las dos primeras ondas que llegan de un sismo. La P llega
+primero y empuja el suelo en la dirección en que viaja; la S llega después y
+lo sacude de lado. \\
+Optimizador & Método que ajusta los pesos de la red para reducir la función de
+pérdida. AdamW y SGD son dos optimizadores. \\
+Optuna y TPE & Optuna es una librería para buscar configuraciones; TPE es su
+método por defecto, que propone nuevas pruebas cerca de las combinaciones que
+mejor han rendido. \\
+OVDAS & Observatorio Volcanológico de los Andes del Sur, del SERNAGEOMIN,
+encargado de vigilar los volcanes de Chile. \\
+\emph{Overlap} & Parámetro de SeisBench: cuántas muestras comparten dos
+ventanas seguidas de la red. \\
+Parada temprana & Detener el entrenamiento cuando la validación deja de mejorar
+y quedarse con la mejor época. Aquí se detiene tras cinco épocas sin
+mejora. \\
+Parámetro & Valor que ajusta el comportamiento de un método, como un
+umbral. \\
+Percentil & El percentil 20 es el valor bajo el cual queda el 20\,\% de los
+datos. \\
+Pesos & Números internos de una red neuronal que se ajustan durante el
+entrenamiento. \\
+PhaseNet & Red neuronal publicada para marcar las ondas P y S de un sismo:
+entrega, para cada instante, la probabilidad de que llegue cada onda. \\
+Precisión & De lo que el sistema asigna a una clase, la parte que de verdad es
+de esa clase. \\
+Preentrenada (red) & Red que ya fue entrenada con otros datos y se usa como
+punto de partida. \\
+PyTorch y torchvision & PyTorch es una librería para construir y entrenar
+redes neuronales; torchvision es su colección de redes de imágenes con pesos
+preentrenados. \\
+Recorte & Tramo de señal que el sistema asigna a un evento, con su inicio y su
+fin. El recorte automático es el que fija el sistema; el recorte de referencia,
+el que marca el catálogo. \\
+Red neuronal & Modelo formado por capas de unidades simples conectadas, cuyos
+pesos se ajustan a partir de ejemplos. \\
+ResNet50 & Red convolucional de 50 capas con conexiones que saltan capas, lo
+que facilita entrenar redes profundas. \\
+Rotación de tramos & Elegir los parámetros de un detector con dos de los tres
+tramos de la traza y medirlos en el tercero, repitiendo con las tres
+combinaciones. \\
+Ruido & Señal de fondo que no corresponde a un evento: viento, oleaje,
+actividad humana o el propio sensor. \\
+SeisBench & Librería de Python que reúne redes sísmicas preentrenadas, como
+PhaseNet y EQTransformer, con una forma común de usarlas. \\
+Semilla & Número que fija la secuencia de valores al azar de un programa, para
+que una corrida se pueda repetir. \\
+Sensibilidad & De los eventos de una clase, la parte que el sistema encuentra o
+clasifica bien. La sensibilidad completa es la parte que el sistema detecta,
+recorta y clasifica bien a la vez. \\
+SERNAGEOMIN & Servicio Nacional de Geología y Minería de Chile. \\
+SGD & Optimizador de descenso de gradiente estocástico: ajusta los pesos con
+pasos en la dirección que más reduce la pérdida. Con \emph{momentum}, cada paso
+conserva parte de la dirección del anterior. \\
+Sin caja (etiqueta) & Recorte que no toca ningún evento del catálogo. No se usa
+para entrenar, pero en operación el sistema lo recibe igual. \\
+Sismo tectónico & Sismo producido por el movimiento de las placas de la corteza
+terrestre, no por un volcán. PhaseNet y EQTransformer se entrenaron con
+sismos de este tipo. \\
+Slurm & Sistema que ordena en una cola los trabajos que se envían a un servidor
+compartido. \\
+\emph{Stacking} & Parámetro de SeisBench: cómo se juntan las predicciones de
+ventanas que se solapan, por promedio o por máximo. \\
+STA/LTA & Detector clásico que compara la energía media de una ventana corta
+(STA) con la de una ventana larga (LTA) y avisa cuando la razón entre ambas
+supera un umbral. \\
+Tasa de aprendizaje & Tamaño de cada ajuste de los pesos durante el
+entrenamiento. \\
+Test & Conjunto de datos que se aparta al inicio y solo se usa para la
+evaluación final. \\
+TR (tremor) & Señal volcánica continua, de minutos a horas, asociada al
+movimiento sostenido de fluidos dentro del volcán. \\
+Transferencia de aprendizaje & Partir de una red ya entrenada para otra tarea
+y ajustarla a la nueva. \\
+Traza continua & Registro sísmico sin cortes de un periodo. Aquí, 10,18\,h en
+tres tramos de fechas distintas. \\
+Umbral & Valor que una medida debe superar para tomar una decisión, por
+ejemplo para dar un aviso. \\
+Validación & Datos que no se usan para entrenar y sirven para decidir cuándo
+parar y qué configuración elegir. \\
+Ventana & Tramo de señal de largo fijo. Una ventana etiquetada es un tramo de
+300\,s con un evento al centro y las cajas de los eventos que contiene. \\
+VGG16 & Red convolucional de 16 capas, de diseño simple y con muchos
+parámetros. \\
+VT (volcano-tectónico) & Evento volcánico producido por la ruptura de roca
+debido a procesos volcánicos. Se parece a un sismo pequeño: es corto y tiene
+frecuencias más altas que el LP. \\
+\emph{Weight decay} & Penalización que achica los pesos de la red, para que no
+se ajuste de más a los ejemplos de entrenamiento. \\
+Wilson (intervalo de) & Método para calcular el intervalo de confianza de una
+proporción que funciona bien con pocos datos. \\
+Zenodo & Repositorio público de datos científicos donde está publicado el
+conjunto de datos usado en este trabajo. \\
+\end{longtable}
+}
 
 \section{Criterios SMART de los objetivos específicos}
 \label{sec:anexo-smart}
 
-Se desarrollan aquí los cinco criterios SMART de cada objetivo específico. El
-criterio medible y el hito de cierre están resumidos en el
-Cuadro~\ref{tab:smart} de la Sección~\ref{subsec:smart}.
+Se desarrollan aquí los cinco criterios SMART de cada objetivo específico, en
+su versión final. El criterio medible y la etapa de cierre están resumidos en
+el Cuadro~\ref{tab:smart} de la Sección~\ref{subsec:smart}.
 
-\textbf{OE1.} \emph{Específico}: compara tres detectores concretos, STA/LTA,
+OE1. \emph{Específico}: compara tres detectores concretos, STA/LTA,
 EQTransformer y PhaseNet, sobre un conjunto de datos delimitado.
-\emph{Medible}: sensibilidad (\emph{recall}) y tasa de falsos positivos,
-globales y por clase, con intervalos de confianza del 95\,\% obtenidos por
-\emph{bootstrap}; distribución de IoU; error de onset; frontera de Pareto de
-los barridos de parámetros.
-\emph{Alcanzable}: ejecutado en su totalidad con inferencia en CPU sobre
-modelos preentrenados, sin requerir entrenamiento.
+\emph{Medible}: sensibilidad y falsas alarmas por hora, globales y por clase,
+con intervalos de confianza del 95\,\% de Wilson; calidad del recorte por IoU
+con varios umbrales; barrido de los parámetros de cada detector y costo de cada
+nivel de sensibilidad en falsas alarmas. \emph{Alcanzable}: se ejecuta con
+inferencia en CPU sobre modelos preentrenados, sin entrenar.
 \emph{Relevante}: aborda los aspectos P1 y P2 del problema
-(Cuadro~\ref{tab:trazabilidad}). \emph{Temporizado}: cerrado y documentado
-para la Etapa 2, el 2 de octubre de 2026.
+(Cuadro~\ref{tab:trazabilidad}). \emph{Con plazo}: cerrado en la Etapa 2 y
+repetido con las tres componentes de FRE en la Etapa 3.
 
-\textbf{OE2.} \emph{Específico}: define un procedimiento de generación de
-espectrogramas cuya extensión de recorte depende de la duración detectada, y
-que tolera los errores de delimitación temporal y el solapamiento entre
-eventos. \emph{Medible}: IoU del recorte adaptativo contra el recorte de
-referencia, comparado con la línea base de ventana fija y desglosado por
-clase; fracción de eventos truncados; cobertura del rango de duraciones de
-3,4\,s a 240,8\,s; número de solapamientos resueltos correctamente; tolerancia
-al error de onset medida con desplazamientos controlados del inicio.
-\emph{Alcanzable}: opera sobre las salidas ya
-generadas por OE1, sin dependencia de hardware especializado.
-\emph{Relevante}: aborda P3 y P1. \emph{Temporizado}: diseñado para la
-Etapa 2 e implementado y medido para la Etapa 3, el 30 de octubre de 2026.
+OE2. \emph{Específico}: define un procedimiento de generación de
+espectrogramas cuyo recorte sigue la duración de cada evento, y que tolera los
+errores de delimitación y el solapamiento entre eventos. \emph{Medible}: IoU
+del recorte por energía contra la ventana fija y contra los recortes propios de
+los otros detectores, por clase; forma en que falla el recorte, al inicio o al
+fin; sensibilidad del clasificador según el IoU del recorte.
+\emph{Alcanzable}: opera sobre las salidas de OE1, sin hardware
+especializado. \emph{Relevante}: aborda P3 y P1. \emph{Con plazo}: diseñado en
+la Etapa 2 e implementado y medido en la Etapa 3.
 
-\textbf{OE3.} \emph{Específico}: ajusta por transferencia de aprendizaje una
-única arquitectura convolucional, VGG16 preentrenada en ImageNet con capa de
-salida de cuatro clases, sobre los espectrogramas producidos por OE2.
-\emph{Medible}: F1 macro y \emph{recall} por clase con intervalos de confianza
-del 95\,\%; matriz de confusión de cuatro clases; protocolo de entrenamiento y
-evaluación reproducible, verificado por re-ejecución con la misma semilla.
-\emph{Alcanzable}: el entrenamiento se realiza en Google Colab y la inferencia
-en CPU local; el conjunto de entrenamiento de 9\,102 eventos etiquetados ya
-está disponible, y ajustar una sola red reduce el presupuesto respecto de la
-comparación de arquitecturas prevista originalmente. \emph{Relevante}: aborda
-P5. \emph{Temporizado}: resultados preliminares en la Etapa 3 y ajuste
-completo en la Etapa 4, el 4 de diciembre de 2026.
+OE3. \emph{Específico}: ajusta por transferencia de aprendizaje redes
+convolucionales preentrenadas en ImageNet, con una salida de cuatro clases,
+sobre los espectrogramas producidos por OE2. Se comparan VGG16, ResNet50 y
+EfficientNet-B0. \emph{Medible}: F1 macro y sensibilidad por clase, con
+promedio, mínimo, máximo y desviación de cinco folds; matrices de confusión de
+cuatro clases; protocolo con particiones, semillas y configuración registradas.
+\emph{Alcanzable}: el entrenamiento se hace en un servidor con GPU y la
+inferencia en CPU; las 5.669 ventanas etiquetadas con las tres componentes de
+FRE están disponibles. \emph{Relevante}: aborda P5. \emph{Con plazo}:
+resultados preliminares en la Etapa 3 y completos en la Etapa 4.
 
-\textbf{OE4.} \emph{Específico}: evalúa la cadena completa sobre el registro
-continuo, comparando el desempeño del clasificador en dos condiciones,
-recorte de referencia y recorte automático, para los mismos eventos.
-\emph{Medible}: diferencia de desempeño pareada entre ambas condiciones con su
-intervalo de confianza; resultados desglosados por clase; tiempo de
-procesamiento de la cadena completa en CPU. \emph{Alcanzable}: reutiliza los
-artefactos de OE1 a OE3 y solo requiere inferencia, ejecutable en el equipo
-local. \emph{Relevante}: aborda P4. \emph{Temporizado}: cerrado en la
-Etapa 4, el 4 de diciembre de 2026.
+OE4. \emph{Específico}: evalúa la cadena completa sobre el registro continuo,
+comparando el desempeño del clasificador con recorte de referencia y con
+recorte automático para los mismos eventos. \emph{Medible}: diferencia pareada
+entre ambas condiciones con su intervalo de confianza por \emph{bootstrap};
+resultados por clase; tiempo de procesamiento de la cadena completa en CPU.
+\emph{Alcanzable}: reutiliza lo producido en OE1 a OE3 y solo requiere
+inferencia en el equipo local. \emph{Relevante}: aborda P4. \emph{Con plazo}:
+cerrado en la Etapa 4.
 
 
-\section{Evidencia empírica de la evaluación de detectores}
+\section{Evidencia empírica de la evaluación inicial de detectores}
 \label{sec:anexo-evidencia}
 
-La evaluación de detectores, cerrada antes de esta etapa, entregó nueve
-hallazgos que condicionan el diseño de los bloques posteriores. Todos
-corresponden a mediciones sobre la traza continua de 10,18~horas con su catálogo
-de 203 eventos, y son los que la Sección~\ref{sec:evidencia} invoca como origen
-de los requerimientos funcionales.
+La evaluación inicial de detectores entregó nueve hallazgos que condicionaron
+el diseño de los bloques posteriores. Todos corresponden a mediciones sobre la
+traza continua de 10,18~horas con cinco estaciones y solo su componente
+vertical, con un catálogo de 203 eventos utilizables, y son los que la
+Sección~\ref{sec:evidencia} invoca como origen de los requerimientos
+funcionales. Se conservan como registro de lo que motivó el diseño. La
+evaluación final, con la estación FRE y sus tres componentes, está en el
+Capítulo~\ref{cap:resultados}; con ella cambian E1 y E2, porque PhaseNet supera
+a los otros dos detectores.
 
 {\small
 \begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{5.3cm}>{\raggedright\arraybackslash}p{5.3cm}}
-\caption{Hallazgos medidos en la evaluación de detectores y su implicación de diseño.}\label{tab:evidencia}\\
+\caption{Hallazgos de la evaluación inicial de detectores y su implicación de diseño.}\label{tab:evidencia}\\
 \toprule
 \textbf{ID} & \textbf{Hallazgo medido} & \textbf{Implicación de diseño} \\
 \midrule
@@ -152,18 +372,18 @@ cada caso.
 \endlastfoot
 D1 & Elección del detector &
 Detector único elegido por desempeño; conservar varios &
-Conservar varios: el recorte variable es el objeto de estudio, no un defecto a
-eliminar \\
+Evaluar los tres y usar PhaseNet en el sistema: es el único que llega a la meta
+de sensibilidad \\
 \addlinespace
 D2 & Manejo de clases no volcánicas &
 Umbral en detección; detección OOD posterior; clase de rechazo supervisada &
-Rechazo supervisado: hay 1.782 ejemplos etiquetados y los detectores sí
+Rechazo supervisado con AV e IC: hay ejemplos etiquetados y los detectores sí
 encuentran esas clases \\
 \addlinespace
 D3 & Estrategia de recorte &
 Ventana fija de 81,92~s; ventana fija mayor; recorte adaptativo &
-Recorte adaptativo: la ventana fija trunca TR y una mayor degrada la relación
-entre evento y contexto \\
+Recorte por energía que sigue la duración de cada evento; la ventana fija de
+60\,s se evalúa como alternativa \\
 \addlinespace
 D4 & Representación de entrada &
 Forma de onda cruda; espectrograma; escalograma &
@@ -172,90 +392,83 @@ Representación espectral: mantiene comparabilidad con la línea base publicada 
 D5 & Estrategia de entrenamiento del clasificador &
 Entrenar desde cero; transferencia desde ImageNet; transferencia desde los
 pesos de la línea base &
-Transferencia desde ImageNet: mantiene comparable la arquitectura con la línea
-base y cabe en el presupuesto \\
+Transferencia desde ImageNet, comparando VGG16, ResNet50 y EfficientNet-B0 \\
 \addlinespace
 D6 & Uso de detectores profundos &
 Preentrenados; ajuste fino con datos locales &
 Preentrenados: el ajuste fino consumiría el único conjunto con delimitación de
 referencia \\
 \addlinespace
-D7 & Nivel de operación &
-Canal individual; coincidencia multiestación &
-Canal individual: la asociación robusta excede el presupuesto de esta etapa \\
+D7 & Número de estaciones &
+Una estación; coincidencia entre estaciones &
+Una estación con sus tres componentes: la asociación entre estaciones excede
+el alcance \\
 \bottomrule
 \end{longtable}
 }
 
-\textbf{D1. Elección del detector.} La alternativa natural era seleccionar el
-mejor detector y descartar los demás. La medición lo impide: E1 muestra que sus
-recalls globales son indistinguibles, y E2 muestra que las diferencias por clase
-tienen signo opuesto, de modo que no existe un ganador único. Además, E3
-establece que los recortes que producen difieren de forma medible. Conservar más
-de un detector convierte esa variabilidad en la variable independiente del
-estudio, que es exactamente lo que exige el objetivo general. Para la cadena
-integrada se emplea como fuente principal el detector que mejor delimita, y se
-mide también con el segundo, para cuantificar la sensibilidad del clasificador a
-la fuente del recorte.
+D1. Elección del detector. La alternativa natural era seleccionar el mejor
+detector y descartar los demás. En la evaluación inicial no se pudo, porque
+sus sensibilidades globales eran indistinguibles (E1) y las diferencias por
+clase tenían signo opuesto (E2). Por eso se conservaron los tres y se
+repitió la evaluación con la estación FRE y sus tres componentes. Con ella,
+PhaseNet es el único que llega a la meta de 0,95 de sensibilidad volcánica, y
+es el que usa el sistema; los otros dos quedan medidos como alternativas
+(Sección~\ref{sec:res-detectores}).
 
-\textbf{D2. Manejo de las clases no volcánicas.} Se consideraron tres caminos.
-Elevar el umbral de detección para que las avalanchas y los sismos de hielo no se
-detecten sacrificaría recall, porque E6 muestra que los detectores las encuentran
-bien y que constituyen el 36\,\% del catálogo continuo. Emplear un detector de
-datos fuera de distribución posterior al clasificador, como hace el trabajo de
-referencia \parencite{espinosacurilem2025ood}, exige calibración adicional y desaprovecha los 1.782 ejemplos etiquetados de
-esas clases que están disponibles. Entrenar una clase de rechazo supervisada los
-aprovecha y permite incorporar negativos duros extraídos de las falsas alarmas,
-según E7. Se opta por la tercera y se conserva la segunda como línea base de
-comparación. La limitación de esta elección debe declararse: un rechazo
-supervisado no generaliza a clases nunca observadas, cosa que un detector de
-datos fuera de distribución sí aspira a hacer.
+D2. Manejo de las clases no volcánicas. Se consideraron tres caminos.
+Elevar el umbral de detección para que las avalanchas y los sismos de hielo no
+se detecten sacrificaría sensibilidad, porque E6 muestra que los detectores
+las encuentran bien y que son cerca de un tercio del catálogo continuo. Emplear
+un detector de datos fuera de distribución posterior al clasificador, como hace
+el trabajo de referencia \parencite{espinosacurilem2025ood}, exige calibración
+adicional y desaprovecha los ejemplos etiquetados de esas clases. Entrenar una
+clase de rechazo supervisada los aprovecha. Se opta por la tercera, entrenada
+con AV e IC. Los recortes que no corresponden a ningún evento del catálogo no
+se usan para entrenar, por decisión de método: no se sabe qué son. La
+limitación de esta elección debe declararse: un rechazo supervisado no
+generaliza a clases nunca observadas, cosa que un detector de datos fuera de
+distribución sí aspira a hacer.
 
-\textbf{D3. Estrategia de recorte.} La ventana fija de 8.192 muestras trunca la
+D3. Estrategia de recorte. La ventana fija de 8.192 muestras trunca la
 clase TR, cuya mediana de duración excede la ventana según E5. Ampliar la ventana
 fija hasta cubrir el evento más largo del catálogo exigiría unas 24.080 muestras,
 con lo que un evento de 3,4~s ocuparía cerca del 1,4\,\% de la ventana y el resto
 sería contexto sin información de clase, además de multiplicar el costo de
-cómputo. El recorte adaptativo preserva la proporción entre evento y contexto,
-pero pierde la escala absoluta de duración al normalizar, por lo que esa
-información debe reinyectarse de forma explícita en la representación.
+cómputo. El recorte por energía preserva la proporción entre evento y contexto,
+pero pierde la escala absoluta de duración al estirar la imagen a la entrada de
+la red. En lugar de agregar la duración como dato aparte, se evaluó también una
+ventana fija de 60\,s desde el inicio del recorte, que la conserva; las dos
+rinden lo mismo en promedio (Sección~\ref{sec:res-clasificador}).
 
-\textbf{D4. Representación de entrada.} Las alternativas eran alimentar la red
+D4. Representación de entrada. Las alternativas eran alimentar la red
 con la forma de onda cruda o con una representación tiempo-frecuencia. Se opta
 por la representación espectral porque el trabajo de referencia sobre este mismo
 complejo volcánico la emplea \parencite{espinosacurilem2026segmentacion} y mantener esa elección permite atribuir las diferencias de desempeño al recorte
-y no a la representación. Declaro que la comparación empírica entre
-representaciones queda fuera del alcance por presupuesto de tiempo: es una
-decisión de comparabilidad, no un resultado medido.
+y no a la representación. La comparación empírica entre representaciones queda
+fuera del alcance por presupuesto de tiempo: es una decisión de
+comparabilidad, no un resultado medido.
 
-\textbf{D5. Estrategia de entrenamiento del clasificador.} La formulación
-original de esta decisión comparaba tres arquitecturas convolucionales; la
-reformulación de los objetivos en la retroalimentación de la Etapa 1 la
-convierte en una decisión sobre cómo entrenar una sola. Se consideraron tres
-caminos: entrenar la red desde cero, ajustarla por transferencia de
-aprendizaje desde pesos preentrenados en ImageNet, o ajustarla desde los pesos
-de la línea base publicada sobre este mismo complejo volcánico
-\parencite{espinosacurilem2025ood}. Se adopta la transferencia desde ImageNet
-sobre VGG16 con capa de salida de cuatro clases. La arquitectura coincide con
-la de la línea base, lo que mantiene comparables los resultados y permite
-atribuir las diferencias de desempeño al recorte y no al modelo; entrenar
-desde cero exigiría un volumen de datos y un presupuesto de cómputo mayores
-que los disponibles; y la disponibilidad de los pesos de la línea base no está
-confirmada, por lo que esa alternativa se consultará al profesor guía y, de
-obtenerse, se documentará como variante del mismo protocolo. Una sola VGG16
-infiere en CPU sin dificultad, lo que atiende la restricción del entorno de
-ejecución.
+D5. Estrategia de entrenamiento del clasificador. Se consideraron tres
+caminos: entrenar la red desde cero, ajustarla por transferencia de aprendizaje
+desde pesos preentrenados en ImageNet, o ajustarla desde los pesos de la línea
+base publicada sobre este mismo complejo volcánico
+\parencite{espinosacurilem2025ood}. Entrenar desde cero exigiría más datos y
+más cómputo que los disponibles. Se adopta la transferencia desde ImageNet, que
+da a todas las redes el mismo punto de partida, y, a pedido del profesor guía,
+se comparan tres redes: VGG16, la de la línea base; ResNet50; y
+EfficientNet-B0, una red liviana. Las tres infieren en CPU sin dificultad, lo
+que atiende la restricción del entorno de ejecución.
 
-\textbf{D6. Uso de los detectores profundos.} Ajustar finamente PhaseNet \parencite{zhu2019phasenet} o EQTransformer \parencite{mousavi2020eqtransformer} con datos locales podría mejorar su desempeño, pero exigiría particionar el
+D6. Uso de los detectores profundos. Ajustar finamente PhaseNet \parencite{zhu2019phasenet} o EQTransformer \parencite{mousavi2020eqtransformer} con datos locales podría mejorar su desempeño, pero exigiría particionar el
 catálogo continuo, que es el único conjunto con delimitación de referencia y está
 reservado para evaluación. Se emplean preentrenados y se declara el ajuste fino
 como trabajo futuro.
 
-\textbf{D7. Nivel de operación.} La coincidencia entre estaciones reduce falsos
-positivos, pero requiere una regla de asociación robusta cuya validación excede
-el presupuesto de esta etapa. Se exploró de forma preliminar y se descartó para
-el alcance actual. La detección opera sobre canales individuales y la asociación
-multiestación queda como trabajo futuro.
+D7. Número de estaciones. La coincidencia entre estaciones reduce falsas
+alarmas, pero requiere una regla de asociación robusta cuya validación excede
+el alcance de este trabajo. El sistema usa una sola estación, FRE, con sus tres
+componentes, y la asociación entre estaciones queda como trabajo futuro.
 
 \section{Detalle de los requerimientos}
 \label{sec:anexo-rf}
@@ -267,7 +480,7 @@ problema o a una restricción del entorno. La columna \emph{Verificación} indic
 el procedimiento con el que se comprobará el cumplimiento.
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.7cm}}
 \caption{Requerimientos funcionales del bloque A, ingesta y preprocesamiento.}\label{tab:rf-a}\\
 \toprule
 \textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
@@ -308,7 +521,7 @@ Prueba de correlación de forma de onda entre ambos conjuntos, documentada \\
 }
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.7cm}}
 \caption{Requerimientos funcionales del bloque B, detección.}\label{tab:rf-b}\\
 \toprule
 \textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
@@ -341,7 +554,7 @@ Cada tabla de resultados incluye las cinco clases del catálogo \\
 }
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.7cm}}
 \caption{Requerimientos funcionales del bloque C, recorte y representación.}\label{tab:rf-c}\\
 \toprule
 \textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
@@ -381,7 +594,7 @@ Comparación del desempeño con y sin preservación explícita de la duración \
 }
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.7cm}}
 \caption{Requerimientos funcionales del bloque D, clasificación.}\label{tab:rf-d}\\
 \toprule
 \textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
@@ -418,7 +631,7 @@ tolerancia declarada \\
 }
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.7cm}}
 \caption{Requerimientos funcionales del bloque de evaluación integrada.}\label{tab:rf-e}\\
 \toprule
 \textbf{ID} & \textbf{Requerimiento} & \textbf{Origen} & \textbf{Verificación} \\
@@ -503,212 +716,127 @@ de inspección visual, para permitir la revisión manual de casos \\
 \end{longtable}
 }
 
-\section{Contrato de datos entre bloques}
-\label{sec:anexo-contrato}
+\section{Cumplimiento de los requerimientos}
+\label{sec:anexo-cumplimiento}
 
-Se especifican aquí los tres conectores de la cadena descritos en la
-Sección~\ref{sec:contrato-datos}, con el nombre, el tipo, la unidad y la
-restricción de cada campo. El detalle es suficiente para reimplementar
-cualquier bloque sin inspeccionar la implementación del anterior.
-
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{5.9cm}}
-\caption{Contrato del conector A\,$\rightarrow$\,B, traza acondicionada.}\label{tab:contrato-ab}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
-\midrule
-\endfirsthead
-\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-\texttt{datos} & arreglo real, cuentas & Matriz de $c \times n$ muestras, con
-$c$ componentes y $n$ muestras. Sin normalizar \\
-\addlinespace
-\texttt{frecuencia} & real, Hz & Frecuencia de muestreo, 100 en todos los
-casos \\
-\addlinespace
-\texttt{canal} & entero & Fila de origen en el archivo, restringida a los
-canales utilizables 1, 2, 3, 5 y 6 \\
-\addlinespace
-\texttt{bloque} & entero & Segmento temporal de procedencia, 1 a 3 \\
-\addlinespace
-\texttt{muestra\_inicial} & entero & Índice de la primera muestra respecto del
-archivo completo \\
-\addlinespace
-\texttt{tiempo\_inicial} & real, s & Marca de tiempo Unix de la primera
-muestra, derivada de la fila 0 \\
-\addlinespace
-\texttt{relleno} & cadena & Estrategia de relleno de componentes aplicada
-(RF-03); \texttt{ninguno} cuando el detector opera sobre un solo canal \\
-\bottomrule
-\end{longtable}
-}
+El Cuadro~\ref{tab:cumplimiento} revisa cada requerimiento al cierre del
+trabajo. \emph{Cumple} indica que se hizo y verificó como estaba planteado;
+\emph{cumple con cambios}, que se cumplió de otra forma, explicada en la
+columna de evidencia; \emph{parcial}, que se hizo solo una parte; y \emph{no
+cumple}, que no se hizo.
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{5.9cm}}
-\caption{Contrato del conector B\,$\rightarrow$\,C, intervalos definitivos.}\label{tab:contrato-bc}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.4cm}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{8.8cm}}
+\caption{Cumplimiento de los requerimientos funcionales y no funcionales.}\label{tab:cumplimiento}\\
+\cabecera{\textbf{ID} & \textbf{Estado} & \textbf{Evidencia}}{3}
+RF-01 & Cumple & La traza se lee con sus tres tramos y sus marcas de tiempo
+(Sección~\ref{subsec:traza}). \\
+RF-02 & Cumple con cambios & En vez de elegir canales de la traza, se usa la
+estación FRE con sus tres componentes registradas (Sección~\ref{sec:datos}). \\
+RF-03 & Cumple con cambios & Se usan las tres componentes reales; rellenar con
+ceros o con copias de la vertical se midió como comparación
+(Sección~\ref{sec:res-detectores}). \\
+RF-04 & Cumple con cambios & Se excluyen las guardas de unión. Con FRE quedan
+36 VT, 52 LP, 37 TR, 6 AV y 48 IC, porque el registro de FRE tiene huecos. \\
+RF-05 & Cumple con cambios & La superposición se descartó por tiempo, no por
+correlación de forma de onda: ninguna de las 6.285 ventanas etiquetadas
+comparte tiempo con la traza (Sección~\ref{sec:res-comprobaciones}). \\
+RF-06 & Cumple & Los tres detectores entregan intervalos que se evalúan con el
+mismo código y la misma intersección (Sección~\ref{subsec:protocolo-deteccion}). \\
+RF-07 & Cumple & El aviso de PhaseNet se convierte en recorte con la regla de
+energía, y su IoU se mide (Sección~\ref{sec:res-recorte}). \\
+RF-08 & Cumple & Todas las tablas de detección se desglosan por clase. \\
+RF-09 & Cumple & El recorte sigue la energía de cada evento; su duración y su
+IoU se comparan con el catálogo (Sección~\ref{sec:res-recorte}). \\
+RF-10 & Cumple & Los eventos de más de 300\,s quedan fuera del entrenamiento;
+si un recorte excede la ventana, la ventana parte en su inicio. En la traza
+ningún recorte la excedió. \\
+RF-11 & Cumple con cambios & El recorte empieza 2,5\,s antes del aviso. En vez
+de desplazamientos controlados, se midió cuándo empieza el recorte según la
+onda que avisa (Sección~\ref{sec:res-recorte}). \\
+RF-12 & Cumple & El recorte se corta en el aviso siguiente; la regla se probó
+con casos sintéticos. \\
+RF-13 & Parcial & La imagen tiene tamaño fijo, pero la duración absoluta no se
+agrega como dato aparte; se comparó con una ventana fija de 60\,s
+(Sección~\ref{sec:res-clasificador}). \\
+RF-14 & Cumple & Cuatro salidas: VT, LP, TR y rechazo, con matrices de
+confusión de cuatro clases. \\
+RF-15 & Parcial & El rechazo se entrena con AV e IC. Por decisión de método no
+se usan ventanas de fondo ni falsas alarmas, porque no se sabe qué son. \\
+RF-16 & Cumple con cambios & El desbalance se trata con pesos por clase o con
+la pérdida focal, elegidos en la búsqueda; no se midió un antes y un después
+aislado. \\
+RF-17 & Cumple & Transferencia desde ImageNet con tres redes, cinco folds,
+particiones y semillas fijas. No se repitió una corrida para comprobar que da
+exactamente lo mismo. \\
+RF-18 & Cumple & Los 179 eventos de la traza se clasifican con ambos recortes
+(Sección~\ref{subsec:res-referencia}). \\
+RF-19 & Cumple & Las diferencias pareadas llevan intervalo por
+\emph{bootstrap}, y las proporciones, intervalo de Wilson. \\
+RF-20 & Cumple & Cada corrida guarda su configuración, sus métricas y sus
+predicciones; los resúmenes se regeneran desde esos archivos. \\
 \midrule
-\endfirsthead
-\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-\texttt{id} & cadena & Identificador único de la detección dentro de la
-ejecución \\
-\addlinespace
-\texttt{muestra\_inicio} & entero & Índice de inicio del intervalo \\
-\addlinespace
-\texttt{muestra\_fin} & entero & Índice de término; debe cumplir
-\texttt{muestra\_fin} $>$ \texttt{muestra\_inicio} y pertenecer al mismo
-bloque \\
-\addlinespace
-\texttt{tiempo\_inicio} & real, s & Marca Unix derivada del índice de inicio \\
-\addlinespace
-\texttt{duracion} & real, s & Diferencia de índices dividida por la frecuencia;
-campo derivado, incluido por conveniencia de lectura \\
-\addlinespace
-\texttt{canal}, \texttt{bloque} & entero & Heredados de la traza de origen \\
-\addlinespace
-\texttt{puntaje\_crudo} & real & Valor tal como lo entrega el detector, sin
-acotar \\
-\addlinespace
-\texttt{puntaje} & real, $[0,1]$ & Puntaje normalizado; comparable solo dentro
-de un mismo detector \\
-\addlinespace
-\texttt{detector} & cadena & Identificador del detector que produjo la
-detección \\
-\addlinespace
-\texttt{config} & cadena & Identificador de la configuración empleada, para
-RF-20 \\
-\addlinespace
-\texttt{origen\_intervalo} & cadena & \texttt{directo} cuando el detector
-delimita, \texttt{expandido} cuando se aplicó la regla de expansión de arribo
-(RF-07) \\
-\addlinespace
-\texttt{fusionado} & booleano & Verdadero si el intervalo resulta de fusionar
-detecciones de ventanas de barrido contiguas \\
-\bottomrule
-\end{longtable}
-}
-
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{5.9cm}}
-\caption{Contrato del conector C\,$\rightarrow$\,D, espectrogramas y metadatos.}\label{tab:contrato-cd}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
-\midrule
-\endfirsthead
-\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Campo} & \textbf{Tipo y unidad} & \textbf{Significado y restricción} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-\texttt{id} & cadena & Heredado del intervalo que originó el recorte \\
-\addlinespace
-\texttt{espectrograma} & arreglo real & Matriz de dimensiones fijas,
-frecuencia por tiempo, idénticas para todo evento \\
-\addlinespace
-\texttt{duracion\_real} & real, s & Duración del recorte antes de llevarlo a
-dimensiones fijas; es la información que RF-13 exige preservar de forma
-explícita \\
-\addlinespace
-\texttt{margen\_previo} & real, s & Contexto antepuesto al inicio estimado
-para tolerar el error de onset (RF-11) \\
-\addlinespace
-\texttt{truncado} & booleano & Verdadero si se aplicó la política para
-eventos que exceden la ventana nominal (RF-10) \\
-\addlinespace
-\texttt{solapa\_con} & lista de cadenas & Identificadores de detecciones
-cuyo intervalo se solapa con este, tras aplicar la regla de resolución
-(RF-12); lista vacía en el caso habitual \\
-\addlinespace
-\texttt{normalizacion} & cadena & Procedimiento de normalización aplicado al
-recorte individual \\
-\addlinespace
-\texttt{detector}, \texttt{config}, \texttt{canal}, \texttt{bloque} & cadena y
-entero & Heredados del intervalo, para conservar la procedencia hasta la
-salida \\
-\bottomrule
-\end{longtable}
-}
-
-
-
-{\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{5.3cm}}
-\caption{Encaje de los detectores evaluados en la interfaz \textsf{IDetector}.}\label{tab:idetector}\\
-\toprule
-\textbf{Implementación} & \textbf{Delimita} & \textbf{Compon.} & \textbf{Puntaje crudo y su normalización} \\
-\midrule
-\endfirsthead
-\multicolumn{4}{l}{\itshape Cuadro \thetable{} (continuación)}\\
-\toprule
-\textbf{Implementación} & \textbf{Delimita} & \textbf{Compon.} & \textbf{Puntaje crudo y su normalización} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{4}{r}{\itshape Continúa en la página siguiente}\\
-\endfoot
-\bottomrule
-\endlastfoot
-STA/LTA & Sí & 1 & Razón de energía, no acotada superiormente; se normaliza
-respecto del umbral de disparo configurado \\
-\addlinespace
-EQTransformer & Sí & 3 & Probabilidad de detección en $[0,1]$; la
-normalización es la identidad \\
-\addlinespace
-PhaseNet & No & 3 & Probabilidad de arribo en $[0,1]$; la normalización es la
-identidad y el envoltorio expande el arribo a intervalo \\
-\addlinespace
-Detector sintético & Sí & 1 & Puntaje fijo declarado en el caso de prueba;
-la normalización es la identidad \\
-\bottomrule
+RNF-01 & Cumple & La cadena completa corre en CPU
+(Sección~\ref{subsec:res-tiempo}). \\
+RNF-02 & Cumple con cambios & El entrenamiento pasó a un servidor con cola de
+trabajos; la búsqueda guarda cada prueba y se reanudó tras una
+interrupción. \\
+RNF-03 & Parcial & Se fijan las semillas y se registran las versiones; no se
+repitió una corrida para comparar. \\
+RNF-04 & Cumple con cambios & El clasificador recibió recortes de tres orígenes
+sin cambios: el automático, la ventana fija y el de referencia. \\
+RNF-05 & Cumple & La cadena procesa 9,74 horas entre 47 y 102\,s, entre 340 y
+740 veces más rápido que el tiempo real. \\
+RNF-06 & Cumple & Las comparaciones llevan intervalos de confianza o la
+variación entre folds. \\
+RNF-07 & Cumple & El código está en el repositorio, sin datos ni pesos. \\
+RNF-08 & Cumple & Cada corrida deja una tabla con cada recorte, su etiqueta y
+la clase asignada, y figuras de inspección. \\
 \end{longtable}
 }
 
 \section{Criterios de aceptación}
 \label{sec:anexo-aceptacion}
 
-Los criterios se formulan como comparaciones contra una referencia medible y
+Los criterios se formularon como comparaciones contra una referencia medible y
 no como umbrales absolutos, porque fijar un umbral numérico sin medición previa
-que lo respalde sería arbitrario.
+que lo respalde sería arbitrario. El Cuadro~\ref{tab:aceptacion} los enuncia
+junto con su resultado.
 
-\begin{itemize}
-\item \textbf{CA-01.} El clasificador entrenado sobre recortes adaptativos debe
-superar, con intervalos de confianza que no se solapen, a un clasificador de
-referencia entrenado sobre la ventana fija actual, en las métricas por clase.
-\item \textbf{CA-02.} La degradación entre recorte de referencia y recorte
-automático debe quedar cuantificada con su intervalo de confianza. No se fija un
-máximo admisible: esa magnitud es el resultado que OE4 busca establecer.
-\item \textbf{CA-03.} La clase de rechazo debe reducir la proporción de
-detecciones no volcánicas propagadas como eventos volcánicos, respecto de la
-configuración sin rechazo.
-\item \textbf{CA-04.} El ajuste por transferencia debe reportarse con la
-partición, la semilla y el presupuesto de entrenamiento declarados, y con las
-métricas desglosadas por clase.
-\item \textbf{CA-05.} La cadena completa debe ejecutarse sobre la traza de
-evaluación en CPU y reportar su tiempo de procesamiento.
-\end{itemize}
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}p{5.4cm}>{\raggedright\arraybackslash}p{5.8cm}}
+\caption{Criterios de aceptación y su resultado.}\label{tab:aceptacion}\\
+\cabecera{\textbf{ID} & \textbf{Criterio} & \textbf{Resultado}}{3}
+CA-01 & El clasificador entrenado sobre el recorte que sigue la duración debe
+superar, con intervalos que no se solapen, a uno entrenado sobre ventana fija,
+en las métricas por clase &
+No se cumple: los dos rinden igual dentro de la variación entre folds (F1 macro
+de 0,834 a 0,843 con el recorte y de 0,831 a 0,835 con la ventana fija de
+60\,s). Con un buen recorte, TR se reconoce mejor que con la ventana fija \\
+\addlinespace
+CA-02 & La degradación entre recorte de referencia y recorte automático debe
+quedar cuantificada con su intervalo de confianza &
+Se cumple: entre 0,056 y 0,098 de sensibilidad volcánica, casi toda en TR, y
+sin diferencia cuando el recorte calza \\
+\addlinespace
+CA-03 & La clase de rechazo debe reducir la proporción de detecciones no
+volcánicas propagadas como volcánicas &
+Parcial: en la traza, entre 0,47 y 0,60 de los AV e IC van a rechazo, pero
+solo entre un cuarto y un tercio de los recortes sin evento. No se entrenó una
+versión sin rechazo para comparar \\
+\addlinespace
+CA-04 & El ajuste por transferencia debe reportarse con la partición, la
+semilla y el presupuesto de entrenamiento, y con métricas por clase &
+Se cumple (Secciones~\ref{sec:clasificador-transferencia}
+y~\ref{sec:res-clasificador}) \\
+\addlinespace
+CA-05 & La cadena completa debe ejecutarse sobre la traza en CPU y reportar su
+tiempo de procesamiento &
+Se cumple (Sección~\ref{subsec:res-tiempo}) \\
+\end{longtable}
+}
 
 \section{Riesgos y mitigaciones}
 \label{sec:anexo-riesgos}
@@ -719,7 +847,7 @@ Sección~\ref{sec:riesgos}. La severidad corresponde a un juicio propio y se
 declara como tal, no como una estimación cuantitativa.
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{1.1cm}>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{4.5cm}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.1cm}>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}p{4.3cm}}
 \caption{Riesgos identificados y mitigación prevista.}\label{tab:riesgos}\\
 \toprule
 \textbf{ID} & \textbf{Riesgo} & \textbf{Severidad} & \textbf{Mitigación} \\
@@ -770,6 +898,16 @@ Objetivos formulados en términos de lo que se mide y no de cómo se implementa 
 \end{longtable}
 }
 
+Al cierre del trabajo, RG-01 quedó descartado: el conjunto de entrenamiento
+final está formado por ventanas etiquetadas de 300\,s, y ninguna comparte tiempo
+con la traza. RG-02 se resolvió usando la misma estación, FRE, con sus tres
+componentes, en el entrenamiento y en la evaluación. RG-03 se atacó con el
+recorte por energía; los tremores siguen siendo la clase peor recortada. RG-04
+se trató con pesos por clase o con la pérdida focal y con métricas por clase.
+RG-05 se resolvió entrenando en un servidor con cola de trabajos. RG-06 ocurrió:
+los objetivos se reformularon y se pidió comparar tres redes, y los cambios se
+registran en la Sección~\ref{sec:anexo-cambios}.
+
 \section{Capacidad, método de estimación y épicas}
 \label{sec:anexo-planificacion}
 
@@ -780,14 +918,15 @@ administrativas. Resultaban 16~horas comprometibles por semana y una capacidad
 total cercana a 208~horas para las 13,1 semanas que restan hasta la entrega final,
 repartidas en tres sprints de cuatro semanas.
 
-Esa cifra dejó de ser válida antes de cerrar esta etapa. Inicié mi práctica
-profesional, mayormente remota y con asistencia presencial los lunes, lo que sitúa
-la disponibilidad real cerca de 15~horas semanales. Con el mismo factor de 0,8
+Esa cifra dejó de ser válida durante la Etapa 2. El inicio de la práctica
+profesional del autor, mayormente remota, situó la disponibilidad real cerca de
+15~horas semanales. Con el mismo factor de 0,8
 resultan 12~horas comprometibles por semana y una capacidad revisada cercana a
 157~horas, un 25\,\% menos que la estimación inicial.
 
-El backlog suma 181~horas y por lo tanto excede esa capacidad revisada. En lugar
-de recortar tareas de forma prematura, traslado el ajuste a la prioridad: las 30
+El backlog sumaba 181~horas y por lo tanto excedía esa capacidad revisada. En
+lugar de recortar tareas de forma prematura, el ajuste se trasladó a la
+prioridad: las 30
 tareas se reparten en 142~horas de prioridad \emph{Debe}, 36 de \emph{Debería} y 3
 de \emph{Podría}. Las 142~horas de prioridad \emph{Debe} caben dentro de las
 157~disponibles y constituyen el compromiso firme de esta planificación; las de
@@ -800,21 +939,18 @@ Las estimaciones por tarea provienen de juicio propio anclado en trabajo análog
 ya ejecutado durante la evaluación de detectores. Corresponde declarar la
 limitación: no se llevó registro del esfuerzo real invertido en aquellas tareas,
 por lo que el anclaje es cualitativo y las cifras son estimaciones, no
-mediciones. Como mitigación, registraré el esfuerzo real de cada tarea a medida
-que se complete, de modo que los sprints siguientes puedan recalibrarse con datos
-propios.
+mediciones.
 
-El backlog se organiza en seis épicas. \textbf{EP-1, validez experimental},
-garantiza que ningún resultado esté contaminado por superposición entre conjuntos
-ni por supuestos no verificados. \textbf{EP-2, cadena de detección operativa},
-permite conectar cualquier detector mediante una interfaz única. \textbf{EP-3,
-recorte adaptativo y representación}, resuelve el paso de duración variable a
-entrada fija y responde a OE2. \textbf{EP-4, clasificador de cuatro salidas},
-distingue las clases volcánicas y rechaza el resto, y responde a OE3.
-\textbf{EP-5, evaluación
-integrada}, mide la degradación entre recorte de referencia y automático, y
-responde a OE4. \textbf{EP-6, documentación y cierre}, asegura que cada resultado
-quede escrito, versionado y reproducible.
+El backlog se organiza en seis épicas. EP-1, validez experimental, garantiza
+que ningún resultado esté contaminado por superposición entre conjuntos ni por
+supuestos no verificados. EP-2, cadena de detección operativa, permite conectar
+cualquier detector con un mismo formato de salida. EP-3, recorte adaptativo y
+representación, resuelve el paso de duración variable a entrada fija y responde
+a OE2. EP-4, clasificador de cuatro salidas, distingue las clases volcánicas y
+rechaza el resto, y responde a OE3. EP-5, evaluación integrada, mide la
+degradación entre recorte de referencia y automático, y responde a OE4. EP-6,
+documentación y cierre, asegura que cada resultado quede escrito, versionado y
+reproducible.
 
 Cada épica se descompone en historias de usuario y estas en tareas técnicas
 estimadas y priorizadas, detalladas en la Sección~\ref{sec:anexo-backlog}.
@@ -909,7 +1045,7 @@ reales. Las cifras producidas quedan almacenadas junto con la configuración que
 las generó. Y todo supuesto o limitación detectado durante la ejecución queda
 registrado en el documento, no solo en el código.
 
-\subsection{Sprint 1, cierre el 2 de octubre}
+\subsection{Sprint 1, Etapa 2}
 \label{sec:anexo-s1}
 
 Concentra las condiciones habilitantes y el diseño de la cadena. La tarea B-01
@@ -924,7 +1060,7 @@ B-08. La columna
 \emph{Tipo} distingue diseño, implementación, validación y documentación.
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{1.2cm}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{1.5cm}}
 \caption{Backlog del sprint 1. Capacidad comprometible según la estimación inicial: 64~horas.}\label{tab:bl1}\\
 \toprule
 \textbf{ID} & \textbf{Tarea} & \textbf{Tipo} & \textbf{Traza} & \textbf{h} & \textbf{Prior.} \\
@@ -975,14 +1111,14 @@ B-10 & Redactar el avance documental del sprint & Doc. & --- & 5 & Debe \\
 \end{longtable}
 }
 
-\subsection{Sprint 2, cierre el 30 de octubre}
+\subsection{Sprint 2, Etapa 3}
 \label{sec:anexo-s2}
 
 Materializa el diseño del sprint anterior y produce los primeros resultados
 preliminares del clasificador.
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{1.2cm}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{1.5cm}}
 \caption{Backlog del sprint 2. Capacidad comprometible según la estimación inicial: 64~horas.}\label{tab:bl2}\\
 \toprule
 \textbf{ID} & \textbf{Tarea} & \textbf{Tipo} & \textbf{Traza} & \textbf{h} & \textbf{Prior.} \\
@@ -1030,7 +1166,7 @@ B-19 & Entrenar el clasificador de línea base sobre ventana fija & Imp. & CA-01
 \end{longtable}
 }
 
-\subsection{Sprint 3, cierre el 4 de diciembre}
+\subsection{Sprint 3, Etapa 4}
 \label{sec:anexo-s3}
 
 Cierra OE3 y OE4 y produce el informe final. Es el más extenso y concentra el
@@ -1041,7 +1177,7 @@ retira del backlog y no se reutiliza, para conservar la trazabilidad con la
 numeración de la Etapa 1.
 
 {\small
-\begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{1.2cm}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{1.5cm}}
 \caption{Backlog del sprint 3. Capacidad comprometible según la estimación inicial: 80~horas.}\label{tab:bl3}\\
 \toprule
 \textbf{ID} & \textbf{Tarea} & \textbf{Tipo} & \textbf{Traza} & \textbf{h} & \textbf{Prior.} \\
@@ -1092,6 +1228,70 @@ Doc. & --- & 8 & Debe \\
 \multicolumn{4}{r}{\textbf{Comprometido}} & \textbf{65} & \\
 \multicolumn{4}{r}{\textbf{Holgura}} & 15 & \\
 \bottomrule
+\end{longtable}
+}
+
+\subsection{Estado final del backlog}
+\label{sec:anexo-estado-backlog}
+
+El Cuadro~\ref{tab:estado-backlog} compara cada tarea del backlog con lo que se
+hizo. De las 30 tareas, 18 se completaron como estaban planificadas, 7 se
+completaron con cambios, 2 quedaron parciales y 3 no se hicieron. Las tres no
+hechas responden a decisiones de método: los recortes sin evento quedaron fuera
+del entrenamiento, la duración se evaluó con una ventana fija en vez de
+agregarla como dato, y el efecto del error de inicio se midió con el IoU y con
+la onda que da el aviso en vez de con desplazamientos controlados.
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.1cm}>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}p{9.0cm}}
+\caption{Estado final de cada tarea del backlog.}\label{tab:estado-backlog}\\
+\cabecera{\textbf{ID} & \textbf{Estado} & \textbf{Qué se hizo}}{3}
+B-01 & Hecha con cambios & La correlación de forma de onda encontró copias de
+eventos de la traza en el conjunto publicado. El conjunto final de
+entrenamiento se verificó por tiempo: ninguna ventana comparte tiempo con la
+traza \\
+B-02 & Hecha con cambios & En vez de auditar estaciones, se extrajeron las tres
+componentes de FRE para todas las ventanas: 5.669 quedan completas \\
+B-03 & Hecha con cambios & El test es un conjunto aparte de ventanas
+etiquetadas; para los detectores se usa la rotación de tramos de la traza \\
+B-04 & Hecha & Diagrama de arquitectura (Figura~\ref{fig:arquitectura}) \\
+B-05 & Hecha con cambios & El contrato de datos se simplificó a los archivos que
+cada etapa deja a la siguiente (Sección~\ref{sec:contrato-datos}) \\
+B-06 & Hecha & Formato común de intervalos para los tres detectores \\
+B-07 & Hecha con cambios & La evaluación común se probó con casos sintéticos de
+resultado conocido, sin un detector sintético aparte \\
+B-08 & Hecha & Diseño del recorte por energía (Sección~\ref{sec:recorte}) \\
+B-09 & Hecha & Repositorio ordenado, sin datos ni pesos \\
+B-10 & Hecha & Informe de la Etapa 2 \\
+B-11 & Hecha & Regla de aviso a intervalo y su IoU \\
+B-12 & Hecha & Recorte por energía con corte en el aviso siguiente \\
+B-13 & Hecha & Casos sintéticos de solapamiento \\
+B-14 & Hecha & Espectrograma de tamaño fijo a partir de recortes de duración
+variable \\
+B-15 & No hecha & La duración no se agregó como dato aparte; se comparó con una
+ventana fija de 60\,s \\
+B-16 & No hecha & Los recortes sin evento no se usan para entrenar, por
+decisión de método \\
+B-17 & Hecha & Conjunto de cuatro clases a partir de las ventanas etiquetadas \\
+B-18 & Hecha & Informe de la Etapa 3 \\
+B-19 & Hecha con cambios & La línea base de ventana fija es de 60\,s, evaluada
+con el mismo protocolo \\
+B-20 & Hecha & Clasificador sobre el recorte, comparado con la ventana fija \\
+B-21 & No hecha & Se reemplazó por la sensibilidad según el IoU del recorte y
+el inicio del recorte según la onda que avisa \\
+B-22 & Parcial & Pesos por clase y pérdida focal dentro de la búsqueda, sin
+una medición aislada de su efecto \\
+B-23 & Hecha con cambios & Se ajustaron tres redes en vez de una: VGG16,
+ResNet50 y EfficientNet-B0 \\
+B-25 & Hecha & Cadena completa en CPU con su tiempo \\
+B-26 & Hecha & Comparación pareada con intervalo por \emph{bootstrap} \\
+B-27 & Parcial & Se mide cuántos AV, IC y recortes sin evento van a rechazo,
+sin una versión sin rechazo para comparar \\
+B-28 & Hecha & Tablas de recortes clasificados y figuras \\
+B-29 & Hecha & Los resúmenes de los folds se regeneran desde los registros \\
+B-30 & Hecha & Capítulo~\ref{cap:resultados} \\
+B-31 & Hecha & Capítulos~\ref{cap:discusion} y~\ref{cap:conclusiones} \\
 \end{longtable}
 }
 
@@ -1151,3 +1351,72 @@ forma silenciosa. Quedan explícitamente fuera del backlog las tareas
 correspondientes a lo declarado fuera de alcance en la
 Sección~\ref{sec:alcances}. No se incorporan como tareas de baja prioridad,
 porque hacerlo sugeriría que podrían abordarse si sobrara tiempo, y no es el caso.
+
+\section{Cambios respecto de la planificación inicial}
+\label{sec:anexo-cambios}
+
+El Cuadro~\ref{tab:cambios} registra los cambios introducidos respecto de la
+planificación inicial, con su origen y el lugar del documento donde quedan
+reflejados.
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.4cm}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{3.5cm}}
+\caption{Cambios respecto de la planificación inicial.}\label{tab:cambios}\\
+\cabecera{\textbf{Cambio} & \textbf{Origen} & \textbf{Dónde se refleja}}{3}
+Objetivo general y objetivos específicos reformulados: de tres a cuatro, con
+transferencia de aprendizaje y espectrogramas en el objetivo general y la
+evaluación integrada como objetivo propio &
+Retroalimentación del profesor guía &
+Sección~\ref{sec:objetivos} \\
+\addlinespace
+La detección se repite con una sola estación, FRE, y sus tres componentes
+reales, en vez de cinco estaciones con solo la vertical &
+Evaluación inicial: los detectores profundos dependen de las componentes
+horizontales &
+Secciones~\ref{sec:datos} y~\ref{sec:res-detectores} \\
+\addlinespace
+Una detección se cuenta por intersección y no con una tolerancia de 5\,s
+desde el inicio del evento &
+La tolerancia cambiaba el resultado y no viene de ninguna librería &
+Sección~\ref{subsec:protocolo-deteccion} \\
+\addlinespace
+El entrenamiento usa ventanas etiquetadas de 300\,s con las tres componentes
+de FRE, en vez de las ventanas de 81,92\,s del conjunto publicado &
+Necesidad de usar la misma estación y las mismas componentes que la
+detección &
+Sección~\ref{subsec:ventanas} \\
+\addlinespace
+Se comparan VGG16, ResNet50 y EfficientNet-B0, con búsqueda de la
+configuración, aumento de datos, parada temprana y cinco folds &
+Pedido del profesor guía &
+Secciones~\ref{sec:clasificador-transferencia} y~\ref{sec:res-clasificador} \\
+\addlinespace
+Los recortes que no corresponden a ningún evento quedan fuera del
+entrenamiento y de las métricas, y se informa a qué clase los asigna el
+clasificador &
+Decisión del profesor guía: no se sabe qué son &
+Secciones~\ref{sec:etiquetado} y~\ref{sec:disc-clasificador} \\
+\addlinespace
+Se agrega una ventana fija de 60\,s como alternativa al recorte, y la
+detección también se evalúa en las ventanas de test &
+Pedido del profesor guía &
+Capítulo~\ref{cap:resultados} \\
+\addlinespace
+Los intervalos de las proporciones se calculan con el método de Wilson; el
+\emph{bootstrap} se reserva para la diferencia pareada &
+Wilson funciona bien con pocos datos y no requiere sorteos &
+Secciones~\ref{sec:protocolo} y~\ref{subsec:protocolo-sistema} \\
+\addlinespace
+El entrenamiento pasa de un cuaderno remoto con sesión limitada a un servidor
+de la universidad con cola de trabajos &
+Tiempo de entrenamiento de la búsqueda y de los cinco folds &
+Sección~\ref{sec:clasificador-transferencia} \\
+\addlinespace
+El capítulo~2 pasa de marco teórico a diseño del sistema; la teoría queda en el
+estado del arte y en el glosario &
+Decisión de estructura acordada con el profesor guía &
+Capítulo~\ref{cap:diseno} y Anexo~\ref{sec:anexo-glosario} \\
+\end{longtable}
+}
+

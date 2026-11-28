@@ -1,25 +1,31 @@
 \chapter*{Resumen}
 \addcontentsline{toc}{chapter}{Resumen}
 
-El monitoreo sismo-volcánico automático requiere detectar eventos en
-registro continuo y clasificarlos por tipo. Los sistemas en operación
-resuelven ambas etapas de forma desacoplada: un detector fija los límites
-del evento y un clasificador entrenado sobre segmentaciones hechas por
-analistas asigna la clase. Esta tesis desarrolla un algoritmo de
-identificación de eventos sismo-volcánicos que ajusta la etapa de
-clasificación a la variabilidad del recorte que produce el detector, sobre
-registros del Complejo Volcánico Nevados de Chillán.
+La vigilancia de un volcán exige revisar sin pausa su registro sísmico,
+encontrar los eventos y decidir de qué tipo es cada uno. Este trabajo
+desarrolla un sistema que hace esa tarea de forma automática para el Complejo
+Volcánico Nevados de Chillán. El sistema detecta los eventos en el registro
+continuo de una estación, recorta cada uno según su energía, convierte el
+recorte en un espectrograma y lo clasifica con una red neuronal convolucional
+ajustada por transferencia de aprendizaje en cuatro clases: volcano-tectónico
+(VT), largo período (LP), tremor (TR) y una clase de rechazo para avalanchas y
+sismos de hielo.
 
-El trabajo evalúa empíricamente tres detectores (STA/LTA, PhaseNet y
-EQTransformer) en dos niveles, identificación del instante del evento y
-calidad de la delimitación temporal; construye un procedimiento de recorte
-adaptativo que se ajusta a la duración real de los eventos, cuyo rango
-excede en dos órdenes de magnitud la ventana fija empleada habitualmente; y
-valida el algoritmo integrado contrastando arquitecturas convolucionales
-alternativas y cuantificando la degradación entre el recorte de referencia
-y el recorte automático.
+Se compararon tres detectores sobre 10,18 horas de registro continuo
+etiquetado: STA/LTA, EQTransformer y PhaseNet. Solo PhaseNet alcanzó la meta de
+detectar el 95\,\% de los eventos volcánicos (0,952), con 69 falsas alarmas por
+hora; su recorte por energía delimitó bien el 86\,\% de ellos. Para clasificar
+se ajustaron VGG16, ResNet50 y EfficientNet-B0 con validación cruzada de cinco
+partes; en el conjunto de prueba las tres alcanzaron un F1 macro de 0,83 a
+0,84. Sobre el
+registro continuo, el sistema completo detectó, recortó y clasificó bien entre
+el 65 y el 70\,\% de los eventos volcánicos, y procesó todo el registro en menos
+de dos minutos en un computador personal. Frente al inicio y el fin que marca el
+catálogo, el recorte automático no empeoró la clasificación cuando delimitó
+bien el evento; la pérdida se concentró en los tremores, que el detector y el
+recorte delimitan peor.
 
-\vspace{1cm}
+\vspace{0.5cm}
 \noindent\textbf{Palabras clave:} sismología volcánica, detección de
 eventos, clasificación automática, redes neuronales convolucionales,
-Nevados de Chillán.
+transferencia de aprendizaje, Nevados de Chillán.
