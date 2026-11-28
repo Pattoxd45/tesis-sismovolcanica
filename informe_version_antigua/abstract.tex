@@ -1,0 +1,23 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Automatic volcano-seismic monitoring requires detecting events in
+continuous records and classifying them by type. Operational systems solve
+both stages separately: a detector sets the event boundaries and a
+classifier, trained on analyst-made segmentations, assigns the class. This
+thesis develops an algorithm for volcano-seismic event identification that
+adapts the classification stage to the variability of the window produced
+by the detector, using records from the Nevados de Chillán Volcanic
+Complex.
+
+The work empirically evaluates three detectors (STA/LTA, PhaseNet and
+EQTransformer) at two levels, event onset identification and quality of the
+temporal delimitation; builds an adaptive windowing procedure fitted to the
+actual duration of the events, whose range exceeds by two orders of
+magnitude the fixed window commonly used; and validates the integrated
+algorithm by contrasting alternative convolutional architectures and
+quantifying the degradation between reference and automatic windows.
+
+\vspace{1cm}
+\noindent\textbf{Keywords:} volcano seismology, event detection, automatic
+classification, convolutional neural networks, Nevados de Chillán.

@@ -1,0 +1,658 @@
+\chapter{Introducción}
+\label{cap:introduccion}
+
+\section{Problema}
+\label{sec:problema}
+
+\subsection{Contexto operativo}
+
+El monitoreo sismo-volcánico en Chile es responsabilidad del Observatorio
+Volcanológico de los Andes del Sur (OVDAS), dependiente de SERNAGEOMIN. Su labor
+exige detectar, clasificar y localizar eventos de forma continua sobre el flujo
+permanente de datos que producen las redes desplegadas en cada complejo
+volcánico, y el procesamiento automático no reemplaza al analista sino que le
+permite concentrar su atención en la actividad relevante. En el Complejo
+Volcánico Nevados de Chillán (NVChVC) concurren cinco tipos de señal de interés
+para esa vigilancia: tres de origen volcánico, volcano-tectónicos (VT), de largo
+período (LP) y tremor (TR), y dos que no lo son pero aparecen en el mismo
+registro y con energía comparable, avalanchas (AV) y eventos de hielo o
+\emph{ice-quakes} (IC). El sistema debe distinguir unas de otras, porque solo las
+primeras informan sobre el estado interno del volcán. La línea base tomada en
+esta tesis es \texttt{ovdas-core} \parencite{aracena2025ovdascore}, una
+reimplementación del flujo de trabajo del observatorio bajo arquitectura de
+microservicios, que detecta con el algoritmo STA/LTA
+\parencite{allen1978stalta} de umbral fijo y clasifica con una red convolucional
+VGG16 \parencite{simonyan2015vgg} de tres salidas, acompañada de un módulo de
+detección de señales fuera de distribución (\emph{out-of-distribution}, OOD)
+basado en vecinos más cercanos que fuerza la etiqueta \enquote{OT} cuando la
+señal no se parece a ninguna clase conocida.
+
+\subsection{Limitaciones del enfoque vigente}
+\label{subsec:limitaciones}
+
+Esa arquitectura arrastra cuatro limitaciones que no son defectos de
+implementación, sino consecuencias de decisiones de diseño que nunca fueron
+contrastadas empíricamente sobre datos del volcán objetivo.
+
+La primera es que \textbf{el umbral de detección decide sobre energía y no
+sobre clase}. Una avalancha es un transitorio de banda ancha y un
+\emph{ice-quake} es impulsivo y limpio; ambos disparan un detector de energía
+tan bien como un evento volcánico, y no existe umbral que admita los eventos
+volcánicos débiles y rechace los no volcánicos intensos, porque las dos
+poblaciones se solapan en la variable sobre la que el umbral decide. La segunda
+es que \textbf{la elección del detector no está respaldada por evidencia local}:
+STA/LTA fue calibrado manualmente y los detectores profundos disponibles hoy
+fueron entrenados con catálogos tectónicos, y \textcite{jiang2021comparacion}
+documentan caídas de \emph{recall} de entre 13\,\% y 56\,\% al aplicarlos fuera
+de su región de entrenamiento.
+
+La tercera es que \textbf{la ventana de análisis es de longitud fija}: el
+clasificador opera sobre segmentos de 8\,192 muestras, equivalentes a 81,92\,s
+a 100\,Hz, tamaño que no proviene de la duración de los eventos sino de que la
+red espera una entrada constante. La cuarta es que \textbf{el clasificador se
+entrena con recortes de referencia y opera sobre recortes automáticos}: los
+ejemplos de entrenamiento provienen de segmentaciones hechas por analistas,
+mientras que en operación los límites del evento los fija el detector, y nadie
+ha medido cuánto desempeño se pierde en ese traspaso pese a que es la condición
+real de uso.
+
+\subsection{Evidencia empírica preliminar}
+\label{subsec:evidencia}
+
+La fase experimental ya ejecutada convierte esas cuatro limitaciones en
+mediciones sobre un tramo continuo de 10,18\,h del NVChVC con 203 eventos
+catalogados utilizables, del conjunto de datos público asociado a
+\textcite{espinosacurilem2026segmentacion}
+\parencite{espinosacurilem2025dataset}. Cuatro resultados bastan para fijar el
+problema. \textbf{73 de los 203 eventos, un 36\,\%, son avalanchas o
+\emph{ice-quakes}}, de modo que las clases descartables no son un caso marginal
+y los detectores no fallan al encontrarlas. Los tres detectores evaluados
+resultan \textbf{indistinguibles al medirlos globalmente}, con \emph{recall} de
+0,542; 0,527 y 0,581 e intervalos de confianza del 95\,\% solapados, mientras
+que por clase aparecen diferencias significativas de signo opuesto que se
+cancelan al promediar. La \textbf{duración mediana de los tremores, 87,8\,s,
+excede los 81,92\,s de la ventana fija}, en un rango de 3,4\,s a 240,8\,s. Y en
+calidad del recorte STA/LTA supera a EQTransformer de forma robusta frente al
+umbral de emparejamiento (IoU medio 0,563 contra 0,479), quedando PhaseNet
+excluido de esa comparación por entregar arribos de fase y no intervalos.
+
+Los nueve hallazgos medidos, con su implicación de diseño, están en el
+Anexo~\ref{sec:anexo-evidencia}; su tratamiento estadístico, en el
+Capítulo~\ref{cap:resultados}.
+
+\subsection{Percepción de las partes interesadas}
+\label{subsec:interesados}
+
+La relevancia del problema está documentada por quienes operan y desarrollan
+estos sistemas. \textcite{espinosacurilem2025ood}, trabajando sobre el mismo
+complejo volcánico, plantean explícitamente que los clasificadores de conjunto
+cerrado asignan con alta confianza una clase conocida a señales que no
+pertenecen a ninguna de las clases de entrenamiento, y que esa conducta es
+inaceptable en un contexto de vigilancia donde una clasificación errónea puede
+alterar la lectura del estado del volcán.
+\textcite{espinosacurilem2026segmentacion} sitúan el problema en términos
+operativos: el objetivo es el reconocimiento en tiempo real sobre registro
+continuo, no la clasificación de eventos previamente aislados por un analista.
+
+A esa evidencia documental se suma una medición propia sobre el sistema en
+operación: al ejecutar \texttt{ovdas-core} sobre sus archivos de prueba, el
+módulo OOD rechaza entre el 59\,\% y el 100\,\% de los eventos detectados según
+el archivo, asignándoles la etiqueta \enquote{OT}. Un sistema que descarta esa
+proporción de lo que él mismo detecta traslada al analista el trabajo que
+debía ahorrarle.
+
+Las partes interesadas de este trabajo son dos. La primera es el profesor guía,
+que actúa como contraparte académica y fija el criterio con el que se evaluará
+el resultado. La segunda son los profesionales del área de geología, que serían
+quienes emplearan el sistema y sobre quienes recae hoy la carga de detectar y
+clasificar manualmente los eventos del registro continuo.
+
+El valor que ambos esperan es el mismo: un detector y un clasificador
+automáticos no reemplazan el juicio del especialista, sino que reducen el
+volumen de señal que debe revisar a mano y le devuelven tiempo para las tareas
+que sí exigen su criterio, como la interpretación del estado del volcán. Es el
+sentido en que planteo este trabajo como herramienta de apoyo y no de reemplazo,
+y también la razón por la que la clase de rechazo pesa tanto como las tres
+clases volcánicas: cada avalancha o sismo de hielo que el sistema propague como
+evento volcánico es una revisión manual que el especialista no debería haber
+tenido que hacer, y cada evento volcánico que descarte es información que no
+llega a quien debe interpretarla. Corresponde declarar el alcance de esta
+caracterización: la necesidad de los profesionales de geología me fue
+transmitida a través del profesor guía y no proviene de una entrevista directa
+ni de un instrumento de levantamiento formal, por lo que la trato como enunciado
+de contexto y no como requerimiento levantado.
+
+\subsection{Síntesis del problema}
+\label{subsec:sintesis-problema}
+
+El problema puede enunciarse así: \textbf{no existe evidencia empírica local
+que permita decidir qué detector conviene usar sobre registro sismo-volcánico
+del NVChVC, ni un procedimiento de recorte que se ajuste a la duración real de
+los eventos, ni una medición de cuánto desempeño pierde un clasificador al
+pasar de recortes de referencia a recortes automáticos.} Mientras esas tres
+cosas no existan, cualquier mejora del clasificador se construye sobre
+supuestos no verificados.
+
+\section{Estado del Arte}
+\label{sec:estado-arte}
+
+Esta sección sintetiza los trabajos que sustentan directamente las decisiones
+metodológicas de esta tesis, sin pretender una revisión exhaustiva del campo.
+
+\subsection{De los detectores heurísticos al aprendizaje profundo}
+
+El algoritmo STA/LTA \parencite{allen1978stalta} compara la energía media en
+una ventana corta con la de una ventana larga y declara una detección cuando
+el cociente supera un umbral. Es computacionalmente económico, no requiere
+entrenamiento y sigue siendo el detector desplegado en numerosos
+observatorios, pero su desempeño depende de la calibración manual de umbrales
+y ventanas, y no se adapta a cambios en el régimen de ruido.
+
+\textcite{zhu2019phasenet} presentan PhaseNet, un método de \emph{picking} de
+fases P y S basado en una U-Net unidimensional que produce, para cada instante,
+una distribución de probabilidad sobre arribo P, arribo S y ruido. Fue entrenado
+con más de 700\,000 formas de onda del norte de California, un catálogo
+puramente tectónico, y reporta F1$_P$ = 0,896 y F1$_S$ = 0,801 en esa misma
+región. Es el más liviano de los detectores profundos considerados, factor
+relevante bajo la restricción de inferencia en CPU de la
+Sección~\ref{sec:alcances}. \textcite{mousavi2020eqtransformer} presentan
+EQTransformer, que resuelve simultáneamente detección y \emph{picking} mediante
+atención jerárquica sobre el catálogo STEAD y, a diferencia de PhaseNet, entrega
+un canal de detección que delimita el evento además de los arribos. La
+distinción es determinante aquí: solo los detectores que delimitan pueden
+alimentar directamente un recorte. Ambos se emplean a través de
+\texttt{seisbench} \parencite{woollam2022seisbench}, que unifica su interfaz.
+
+\subsection{Generalización fuera del dominio de entrenamiento}
+
+\textcite{jiang2021comparacion} comparan ambos modelos sobre las réplicas de
+los terremotos de Yangbi y Maduo, fuera de su región de entrenamiento, y
+documentan caídas de \emph{recall} de entre 13\,\% y 56\,\% respecto de lo
+publicado, además de que PhaseNet supera a EQTransformer en ese contexto pese a
+su menor complejidad. Este resultado es la justificación metodológica central de
+OE1: el desempeño publicado no se asume, se verifica sobre datos locales.
+\textcite{sheehan2025eqtlab} refuerzan el punto mostrando que EQTransformer
+preentrenado transfiere a emisiones acústicas de laboratorio, un dominio aún más
+alejado del tectónico.
+
+\subsection{Clasificación de eventos sismo-volcánicos}
+
+\textcite{bueno2020bnn} aplican redes bayesianas con transferencia de
+aprendizaje a seis clases sismo-volcánicas, incorporando cuantificación de
+incertidumbre, y alcanzan 92,08\,\% de exactitud.
+\textcite{espinosacurilem2025ood} trabajan sobre el mismo complejo volcánico de
+esta tesis y combinan un VGG16 con un detector OOD basado en vecinos más
+cercanos sobre las representaciones internas de la red; su mejor configuración
+combina espectrograma y forma de onda, con F1 media de 95,3\,\% y AUROC de 0,97
+para la detección de señales desconocidas. Es la arquitectura ya implementada en
+\texttt{ovdas-core} y se adopta aquí como línea base de comparación, no como
+diseño propio: la limitación que se busca superar es que sus clases no
+volcánicas se resuelven por rechazo estadístico en lugar de por supervisión,
+pese a existir ejemplos etiquetados de ellas.
+
+\subsection{Detección y clasificación conjuntas}
+
+\textcite{espinosacurilem2026segmentacion} proponen resolver detección y
+clasificación en una sola pasada: apilan las formas de onda de hasta ocho
+estaciones en una imagen bidimensional y aplican segmentación semántica que
+asigna una clase por píxel entre fondo y cinco tipos de evento, con F1 = 0,91 e
+IoU = 0,88 usando UNet sobre ventanas de 80\,s. El enfoque se toma como punto de
+comparación de resultados pero no se adopta: al fundir detección y clasificación
+en un solo modelo eliminaría la comparación independiente de detectores, que es
+el objeto de OE1. El conjunto de datos publicado junto a ese trabajo
+\parencite{espinosacurilem2025dataset} es el que se emplea en esta tesis.
+
+\subsection{Posicionamiento de esta tesis}
+
+De la revisión se desprenden tres observaciones que fundamentan el diseño
+metodológico. Primero, la generalización geográfica no puede asumirse, por lo
+que los tres detectores se ejecutan sobre datos locales antes de decidir.
+Segundo, ningún trabajo revisado mide la degradación que sufre un clasificador
+al pasar de recortes de referencia a recortes producidos automáticamente, pese
+a que esa es la condición de operación real. Tercero, la ventana de longitud
+fija es una convención heredada de la visión computacional y no una propiedad
+de los datos sísmicos, cuyas duraciones abarcan dos órdenes de magnitud. La
+contribución de esta tesis, en consecuencia, no consiste en proponer
+arquitecturas de red nuevas sino en configurar, adaptar y evaluar componentes
+existentes para construir un sistema integrado ajustado a este problema, y en
+medir lo que hasta ahora no se ha medido.
+
+\section{Objetivos}
+\label{sec:objetivos}
+
+\subsection{Objetivo general}
+
+\begin{itemize}
+    \item Desarrollar un sistema de identificación de eventos sismovolcánicos
+    del Complejo Volcánico Nevados de Chillán, basado en la detección
+    automática y la posterior clasificación de los eventos recortados a partir
+    de sus espectrogramas mediante una red neuronal convolucional ajustada por
+    transferencia de aprendizaje.
+\end{itemize}
+
+\subsection{Objetivos específicos}
+\label{subsec:objetivos-especificos}
+
+\begin{itemize}
+    \item \textbf{OE1.} Evaluar el desempeño de STA/LTA, EQTransformer y
+    PhaseNet en la detección de eventos sobre registros continuos etiquetados
+    del Complejo Volcánico Nevados de Chillán, considerando la sensibilidad,
+    la tasa de falsos positivos y la calidad de los recortes mediante la
+    intersección sobre unión (IoU).
+    \item \textbf{OE2.} Implementar un procedimiento de generación de
+    espectrogramas a partir de los eventos identificados por los detectores,
+    que considere la variabilidad de su duración, los errores de delimitación
+    temporal y el solapamiento entre eventos.
+    \item \textbf{OE3.} Ajustar mediante transferencia de aprendizaje una red
+    neuronal convolucional para clasificar los espectrogramas en eventos VT,
+    LP, TR y una categoría de rechazo, utilizando un protocolo de
+    entrenamiento y evaluación reproducible.
+    \item \textbf{OE4.} Evaluar el sistema integrado sobre registros
+    continuos, comparando el desempeño de la clasificación con recortes de
+    referencia y recortes automáticos, y reportando los resultados por clase
+    y el tiempo de procesamiento.
+\end{itemize}
+
+El objetivo general emplea un solo verbo en infinitivo perteneciente al nivel
+\emph{crear}, el más alto de la taxonomía de Bloom revisada
+\parencite{anderson2001taxonomy}. Los cuatro objetivos específicos se ubican
+en los niveles \emph{evaluar}, \emph{aplicar}, \emph{crear} y \emph{evaluar}
+respectivamente, todos iguales o inferiores al del objetivo general.
+
+\subsection{Criterios SMART}
+\label{subsec:smart}
+
+Los cuatro objetivos específicos se formularon verificando los cinco criterios
+SMART. El Cuadro~\ref{tab:smart} resume, para cada uno, el criterio medible con
+el que se comprobará su cumplimiento y el hito en que queda cerrado; el desglose
+completo de los cinco criterios, con la justificación de por qué cada objetivo es
+específico, alcanzable y relevante, está en el Anexo~\ref{sec:anexo-smart}.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.9cm}>{\raggedright\arraybackslash}p{7.6cm}>{\raggedright\arraybackslash}p{2.8cm}}
+\caption{Criterio medible y hito de cierre de cada objetivo específico.}\label{tab:smart}\\
+\toprule
+\textbf{OE} & \textbf{Criterio medible} & \textbf{Cierre} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{OE} & \textbf{Criterio medible} & \textbf{Cierre} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+OE1 & Sensibilidad (\emph{recall}) y tasa de falsos positivos, globales y por
+clase, con intervalos de confianza del 95\,\% obtenidos por \emph{bootstrap};
+distribución de IoU; error de onset; frontera de Pareto de los barridos de
+parámetros &
+Etapa 2, 2 de octubre de 2026 \\
+\addlinespace
+OE2 & IoU del recorte adaptativo contra el recorte de referencia, comparado con
+la línea base de ventana fija y desglosado por clase; fracción de eventos
+truncados; cobertura del rango de 3,4\,s a 240,8\,s; solapamientos resueltos
+correctamente; tolerancia al error de onset medida con desplazamientos
+controlados &
+Etapa 3, 30 de octubre de 2026 \\
+\addlinespace
+OE3 & F1 macro y \emph{recall} por clase con intervalos de confianza del
+95\,\%; matriz de confusión de cuatro clases; protocolo reproducible verificado
+por re-ejecución con la misma semilla &
+Etapa 3, resultados preliminares; Etapa 4, completo, 4 de diciembre de 2026 \\
+\addlinespace
+OE4 & Diferencia de desempeño pareada entre recorte de referencia y recorte
+automático con su intervalo de confianza; resultados desglosados por clase;
+tiempo de procesamiento de la cadena completa en CPU &
+Etapa 4, 4 de diciembre de 2026 \\
+\bottomrule
+\end{longtable}
+}
+
+\subsection{Matriz de trazabilidad}
+\label{subsec:trazabilidad}
+
+El Cuadro~\ref{tab:trazabilidad} vincula cada aspecto del problema
+identificado en la Sección~\ref{sec:problema} con el objetivo que lo aborda, con
+los requerimientos que lo materializan y con la medición que permitirá verificar
+su cumplimiento. La evidencia que respalda cada aspecto se expuso en la
+Sección~\ref{subsec:evidencia} y se detalla, hallazgo por hallazgo, en el
+Anexo~\ref{sec:anexo-evidencia}.
+
+{\footnotesize
+\begin{longtable}{@{}p{0.05\textwidth}>{\raggedright\arraybackslash}p{0.26\textwidth}>{\raggedright\arraybackslash}p{0.07\textwidth}>{\raggedright\arraybackslash}p{0.22\textwidth}>{\raggedright\arraybackslash}p{0.28\textwidth}@{}}
+\caption{Trazabilidad entre los aspectos del problema, el objetivo que los
+aborda, los requerimientos que los materializan y su criterio de
+verificación.}\label{tab:trazabilidad}\\
+\toprule
+\textbf{Cód.} & \textbf{Aspecto del problema} & \textbf{OE} &
+\textbf{Requerimientos} & \textbf{Verificación} \\
+\midrule
+\endfirsthead
+\multicolumn{5}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Cód.} & \textbf{Aspecto del problema} & \textbf{OE} &
+\textbf{Requerimientos} & \textbf{Verificación} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+P1 & El umbral de detección decide sobre energía y no distingue eventos
+volcánicos de no volcánicos &
+OE1, OE2 &
+RF-06, RF-07, RF-08, RF-13, RF-14 &
+Separabilidad del estadístico de detección entre clases de interés y de no
+interés \\
+\addlinespace
+P2 & La elección del detector carece de respaldo empírico local &
+OE1 &
+RF-03, RF-06, RF-08, RF-19 &
+\emph{Recall}, precisión e IoU por detector y por clase con IC del 95\,\% \\
+\addlinespace
+P3 & La ventana de análisis de longitud fija trunca eventos &
+OE2 &
+RF-09, RF-10, RF-11, RF-12, RF-13 &
+Fracción de eventos truncados e IoU del recorte adaptativo contra la línea
+base de ventana fija \\
+\addlinespace
+P4 & No se ha medido la pérdida de desempeño al pasar de recortes de
+referencia a recortes automáticos &
+OE4 &
+RF-18, RF-19, RF-20 &
+Diferencia de F1 macro del mismo modelo sobre ambos tipos de recorte \\
+\addlinespace
+P5 & El clasificador vigente no cubre las clases no volcánicas y las resuelve
+por rechazo estadístico &
+OE3 &
+RF-14, RF-15, RF-16, RF-17 &
+\emph{Recall} de la clase de rechazo y tasa de entradas fuera de dominio
+atribuidas a la etapa de detección \\
+\bottomrule
+\end{longtable}
+}
+
+Los requerimientos RF-01, RF-02, RF-04 y RF-05 no se asocian a un aspecto
+específico porque son condiciones habilitantes: sin lectura correcta de los
+datos y sin una partición libre de superposición, ninguna medición posterior
+sería interpretable.
+
+\section{Alcances y limitaciones}
+\label{sec:alcances}
+
+El sistema recibe registro sísmico continuo y entrega, para cada evento
+detectado, una etiqueta de clase con su puntaje asociado. Se organiza en cuatro
+bloques encadenados. El bloque A ingiere la traza multicanal a 100~Hz y la
+acondiciona, aplicando la estrategia de relleno de componentes que corresponda al
+detector. El bloque B detecta eventos y entrega intervalos candidatos con
+instante de inicio, término y puntaje. El bloque C recorta cada candidato con
+duración variable y produce una representación espectral de dimensiones fijas. El
+bloque D clasifica esa representación en cuatro salidas: VT, LP, TR y rechazo.
+
+El bloque B ya fue estudiado empíricamente y su evaluación está cerrada; sus
+resultados son insumo de los bloques C y D, no materia pendiente. Los bloques C y
+D constituyen el desarrollo propio de este trabajo. Todo lo que sigue queda fuera
+del alcance y se declara como limitación.
+
+\begin{itemize}
+    \item \textbf{No se diseñan arquitecturas de red nuevas.} La contribución
+    consiste en configurar, adaptar y evaluar componentes existentes sobre datos
+    sismo-volcánicos del NVChVC.
+    \item \textbf{Los detectores profundos se emplean preentrenados}, sin
+    reentrenamiento ni ajuste fino sobre datos volcánicos chilenos. Se declara
+    como limitación y se propone como trabajo futuro.
+    \item \textbf{La detección opera a nivel de canal individual.} La asociación
+    por coincidencia entre estaciones queda fuera del alcance y es la vía natural
+    para reducir falsos positivos en trabajo posterior.
+    \item \textbf{El trabajo se restringe al NVChVC.} No se evalúa la
+    generalización a otros volcanes ni a otras redes de estaciones.
+    \item \textbf{La evaluación es fuera de línea}, sobre registro histórico. El
+    despliegue en producción, la ingesta en tiempo real y la integración con el
+    flujo operativo del observatorio quedan excluidos.
+    \item \textbf{Toda inferencia se ejecuta en CPU}, porque el entorno de
+    desarrollo no dispone de aceleración por hardware. El entrenamiento se hace
+    en un entorno externo con GPU manteniendo compatibilidad de inferencia en CPU.
+    \item \textbf{El catálogo de referencia se toma como verdad de terreno}, sin
+    estudio de concordancia entre analistas ni tratamiento de su incertidumbre.
+\end{itemize}
+
+\section{Análisis de requerimientos}
+\label{sec:requerimientos}
+
+Los requerimientos de este trabajo no se postulan a priori: se derivan de tres
+fuentes diferenciables. La primera son las mediciones propias obtenidas en la
+evaluación de detectores, ya cerrada. La segunda son las restricciones del
+entorno de trabajo y de los datos disponibles. La tercera son las decisiones
+metodológicas acordadas con el profesor guía. Cada requerimiento declara su
+origen y el criterio con el que se comprobará su cumplimiento, de modo que
+ninguno quede formulado como una aspiración no verificable. Cuando el origen es
+una medición, se indica el valor observado; cuando es un supuesto todavía no
+verificado, se declara como tal y no se lo trata como evidencia. El alcance del
+sistema sobre el que se formulan es el descrito en la
+Sección~\ref{sec:alcances}, y la identificación de las partes interesadas, la de
+la Sección~\ref{subsec:interesados}.
+
+\subsection{Evidencia empírica que origina los requerimientos}
+\label{sec:evidencia}
+
+La evaluación de detectores entregó nueve hallazgos, identificados E1 a E9, que
+condicionan el diseño de los bloques posteriores. Todos corresponden a mediciones
+sobre la traza continua de 10,18~horas con su catálogo de 203 eventos, y cada uno
+se enuncia junto a la implicación de diseño que impone en el
+Cuadro~\ref{tab:evidencia} del Anexo~\ref{sec:anexo-evidencia}. Los
+requerimientos funcionales declaran en su columna de origen cuál de esos
+hallazgos los motiva, de modo que la cadena entre medición y requerimiento queda
+recorrible en ambos sentidos.
+
+Conviene explicitar aquí la tensión de diseño que surge de E5. Una red
+convolucional exige entrada de dimensiones fijas, mientras que las duraciones
+observadas abarcan casi dos órdenes de magnitud. Reconciliar ambas exigencias sin
+destruir la información de duración, que es discriminante entre clases, es el
+problema central del bloque C y la razón de ser del segundo objetivo específico.
+
+\subsection{Evaluación de alternativas}
+\label{sec:alternativas}
+
+Cada decisión de diseño se tomó contrastando alternativas viables. Son siete,
+identificadas D1 a D7: la elección del detector, el manejo de las clases no
+volcánicas, la estrategia de recorte, la representación de entrada, la
+estrategia de entrenamiento del clasificador, el uso de detectores
+preentrenados y el nivel de operación. En todas ellas el criterio decisivo es una medición propia y no una
+preferencia: se conservan varios detectores porque E1 y E2 muestran que no existe
+un ganador único y E3 que sus recortes difieren de forma medible; se entrena una
+clase de rechazo supervisada, en lugar de elevar el umbral de detección, porque
+E6 muestra que los detectores sí encuentran las clases no volcánicas y existen
+1.782 ejemplos etiquetados de ellas; y se adopta el recorte adaptativo porque E5
+muestra que la ventana fija trunca la clase más extensa. El cuadro comparativo de
+las siete decisiones y el desarrollo del criterio en cada caso están en el
+Anexo~\ref{sec:anexo-alternativas}.
+
+\subsection{Síntesis de requerimientos}
+\label{sec:sintesis-req}
+
+El sistema queda especificado por veinte requerimientos funcionales y ocho no
+funcionales, distribuidos por bloque del modo siguiente. El bloque A, de ingesta
+y preprocesamiento, reúne RF-01 a RF-05 y exige lectura correcta, uso de los
+canales utilizables, relleno de componentes declarado por modelo y partición
+libre de superposición. El bloque B, de detección, reúne RF-06 a RF-08 y exige
+interfaz común de detector, expansión de arribo a intervalo y métricas por
+clase. El bloque C, de recorte y representación, reúne RF-09 a RF-13 y exige
+duración adaptativa, política para eventos extensos, margen de contexto,
+resolución de solapamientos y entrada de tamaño fijo. El bloque D, de
+clasificación, reúne RF-14 a RF-17 y exige cuatro salidas, entrenamiento
+explícito del rechazo, tratamiento del desbalance y ajuste por transferencia
+de aprendizaje bajo un protocolo reproducible. La evaluación integrada, que
+responde a OE4, reúne RF-18 a RF-20 y exige comparación pareada, intervalos de
+confianza y persistencia reproducible. Los ocho
+requerimientos no funcionales, RNF-01 a RNF-08, cubren inferencia en CPU,
+entrenamiento reanudable, reproducibilidad, modularidad, eficiencia y salidas
+revisables.
+
+El enunciado completo de cada requerimiento, con su origen y su criterio de
+verificación, está en el Anexo~\ref{sec:anexo-rf}.
+
+\subsection{Restricciones y supuestos}
+\label{sec:restricciones}
+
+Las restricciones acotan el espacio de soluciones admisibles y no son
+negociables dentro de este alcance: el equipo carece de aceleración por GPU, lo
+que obliga a entrenar en un entorno remoto y a diseñar la inferencia para CPU;
+el conjunto de datos es fijo y no se solicitarán registros adicionales; solo un
+subconjunto de las estaciones presenta señal utilizable en la traza continua;
+los detectores profundos se emplean con pesos preentrenados; y el calendario
+académico fija cuatro hitos de evaluación que condicionan la profundidad
+alcanzable en cada frente.
+
+La traza continua de evaluación no es un registro ininterrumpido. Al inspeccionar
+la fila de marca de tiempo del archivo se identifican dos discontinuidades, en las
+muestras 2.160.000 y 3.240.001, que separan tres segmentos procedentes de fechas
+distintas y no consecutivas: seis horas del 9 de febrero de 2018, tres horas del
+14 de enero de 2020 y una hora y once minutos del 10 de enero de 2017, todas en
+UTC. Esta estructura no aparece descrita en la documentación del conjunto y se
+determinó de forma directa sobre el archivo. Tiene tres consecuencias: obliga a
+excluir las guardas de unión entre segmentos al construir el conjunto de
+evaluación, sostiene la partición por bloque temporal como mitigación del riesgo
+RG-01, e impide descartar por metadatos la superposición con el conjunto de
+entrenamiento, cuyos nombres registran día, mes y hora pero no año.
+
+\subsection{Riesgos y mitigaciones}
+\label{sec:riesgos}
+
+Los seis riesgos identificados se detallan en el
+Anexo~\ref{sec:anexo-riesgos}, y los cinco criterios con los que se aceptará el
+resultado del trabajo, CA-01 a CA-05, en el Anexo~\ref{sec:anexo-aceptacion}. Dos son de severidad alta. El primero es la
+posible superposición entre el conjunto de entrenamiento y la traza de
+evaluación: hay 31 archivos cuya fecha parcial cae dentro de los bloques de la
+traza, pero los nombres carecen de año y los conteos son compatibles con el
+azar, de modo que no está probada ni descartada; se mitiga con partición por
+bloque temporal y verificación por correlación de forma de onda antes de
+reportar resultados. El segundo es el truncamiento sistemático de los eventos
+más extensos por efecto de la ventana fija, que se mitiga con el recorte
+adaptativo y su política explícita para eventos que exceden la ventana nominal.
+
+\section{Planificación del proyecto}
+\label{sec:planificacion}
+
+El trabajo restante se organiza en tres sprints de cuatro semanas. El inicio de
+mi práctica profesional redujo la capacidad estimada de 208 a unas 157~horas y el
+backlog suma 181, de modo que el compromiso firme queda acotado a las tareas de
+prioridad \emph{Debe}, que suman 142~horas; las de prioridad \emph{Debería} y
+\emph{Podría} quedan como alcance opcional. El método de estimación, el detalle
+de ese ajuste y las seis épicas están en el
+Anexo~\ref{sec:anexo-planificacion}; el desglose en historias de usuario, tareas,
+criterios de aceptación y dependencias, en el Anexo~\ref{sec:anexo-backlog}. El
+Cuadro~\ref{tab:sprints} resume la distribución.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}p{5.2cm}>{\raggedright\arraybackslash}p{1.3cm}>{\raggedright\arraybackslash}p{1.3cm}}
+\caption{Distribución del backlog en sprints de cuatro semanas.}\label{tab:sprints}\\
+\toprule
+\textbf{Sprint} & \textbf{Cierre} & \textbf{Foco} & \textbf{Compr.} & \textbf{Holgura} \\
+\midrule
+\endfirsthead
+\multicolumn{5}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Sprint} & \textbf{Cierre} & \textbf{Foco} & \textbf{Compr.} & \textbf{Holgura} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+S1 & 2 de octubre & Validez experimental y diseño de la cadena: verificación de
+superposición, diagramas de arquitectura y especificación de interfaces & 58 h & 6 h \\
+\addlinespace
+S2 & 30 de octubre & Implementación del recorte adaptativo, de la representación
+espectral y del conjunto de entrenamiento de cuatro clases & 58 h & 6 h \\
+\addlinespace
+S3 & 4 de diciembre & Ajuste por transferencia de aprendizaje, evaluación
+integrada y redacción del informe final & 65 h & 15 h \\
+\bottomrule
+\end{longtable}
+}
+
+La distribución responde a las dependencias técnicas entre tareas y a la
+naturaleza de cada etapa: el primer sprint concentra el diseño, el segundo la
+implementación y el tercero la validación y el cierre documental. Ante una
+desviación aplicaré la política de detener una tarea que supere su estimación en
+más del 50\,\% y reevaluar el alcance, en lugar de absorber la holgura de forma
+silenciosa, de modo que la desviación se convierta en información para
+replanificar y no en una deuda invisible.
+
+\section{Registro de cambios respecto de la Etapa 1}
+\label{sec:registro-cambios}
+
+Esta sección registra los cambios introducidos respecto del documento
+entregado en la Etapa 1, con su origen y el lugar del documento donde cada uno
+queda reflejado. El origen principal es la retroalimentación del profesor guía
+del 15 de septiembre de 2026, que reformuló los objetivos; el resto son
+consecuencias de esa reformulación o ajustes de planificación declarados como
+desviación, no absorbidos en silencio. El Cuadro~\ref{tab:registro-cambios}
+los resume.
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.8cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{3.1cm}}
+\caption{Registro de cambios respecto de la Etapa 1.}\label{tab:registro-cambios}\\
+\toprule
+\textbf{Cambio} & \textbf{Origen} & \textbf{Dónde se refleja} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{l}{\itshape Cuadro \thetable{} (continuación)}\\
+\toprule
+\textbf{Cambio} & \textbf{Origen} & \textbf{Dónde se refleja} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\itshape Continúa en la página siguiente}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Objetivo general y objetivos específicos reformulados: de tres a cuatro OE, con
+transferencia de aprendizaje y espectrogramas fijados en el objetivo general &
+Retroalimentación del profesor guía, 15 de septiembre de 2026 &
+Sección~\ref{sec:objetivos}, Cuadros~\ref{tab:smart}
+y~\ref{tab:trazabilidad}, Anexo~\ref{sec:anexo-smart} \\
+\addlinespace
+D5 pasa de comparar tres arquitecturas a decidir la estrategia de
+entrenamiento: transferencia desde ImageNet sobre una sola CNN &
+Consecuencia de OE3 &
+Sección~\ref{sec:alternativas}, Anexo~\ref{sec:anexo-alternativas} \\
+\addlinespace
+RF-17, CA-04 y HU-09 se reescriben en términos de ajuste por transferencia;
+B-23 y B-24 se funden en una sola tarea B-23 de 10~h y el identificador B-24 se
+retira sin reutilizarse &
+Consecuencia de OE3 &
+Anexos~\ref{sec:anexo-rf}, \ref{sec:anexo-aceptacion}
+y~\ref{sec:anexo-backlog} \\
+\addlinespace
+La evaluación integrada se separa en un cuarto objetivo; RF-18 a RF-20 y EP-5
+pasan a responder a OE4, y B-25 sube de \emph{Debería} a \emph{Debe} porque el
+tiempo de procesamiento queda dentro del objetivo &
+Retroalimentación del profesor guía (OE4) &
+Cuadro~\ref{tab:trazabilidad}, Anexos~\ref{sec:anexo-rf},
+\ref{sec:anexo-planificacion} y~\ref{sec:anexo-backlog} \\
+\addlinespace
+Los totales del backlog pasan de 188~h (143 \emph{Debe}, 42 \emph{Debería}, 3
+\emph{Podría}) a 181~h (142, 36 y 3) &
+Consecuencia de los dos cambios anteriores &
+Sección~\ref{sec:planificacion}, Anexos~\ref{sec:anexo-planificacion}
+y~\ref{sec:anexo-backlog} \\
+\addlinespace
+B-01 se posterga a la primera semana del sprint 2 &
+Capacidad del sprint 1 reducida por el inicio de la práctica profesional;
+B-01 bloquea el entrenamiento, que es materia de la Etapa 3 &
+Anexo~\ref{sec:anexo-s1} \\
+\addlinespace
+El capítulo 2 pasa de marco teórico a diseño del sistema &
+Decisión de estructura: la teoría quedó integrada en la revisión del estado
+del arte a solicitud del profesor guía; sujeta a confirmación en la reunión
+del 21 de septiembre &
+Capítulo~\ref{cap:diseno} \\
+\bottomrule
+\end{longtable}
+}
