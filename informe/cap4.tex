@@ -1,2 +1,288 @@
 \chapter{Discusión y análisis de resultados}
 \label{cap:discusion}
+
+Este capítulo interpreta los resultados del Capítulo~\ref{cap:resultados},
+los compara con trabajos anteriores sobre el mismo problema y declara sus
+limitaciones. Se separa lo que se midió de lo que se interpreta: cuando una
+explicación no se comprobó con datos, se dice.
+
+% =====================================================================
+\section{Detección}
+\label{sec:disc-deteccion}
+
+En un sistema de vigilancia, perder un evento es más grave que dar una falsa
+alarma. El evento perdido ya no llega al clasificador, mientras que la falsa
+alarma todavía puede terminar en la clase de rechazo. Por eso la meta se puso
+en la sensibilidad. Con esa meta, la comparación favorece a PhaseNet: es el
+único detector que llega a 0,95 de los volcánicos (119 de 125) y mantiene la
+meta cuando se mide en tramos que no se usaron para elegir sus umbrales (0,960
+en la rotación de tramos). EQTransformer, con su curva de detección, queda
+cerca (0,936) y con menos falsas alarmas (52,7 por hora contra 69,0), pero no
+llega, y los intervalos que entrega son demasiado cortos para delimitar los
+eventos: solo 31 de 125 quedan bien recortados. STA/LTA es el que da menos
+falsas alarmas, pero detecta 0,848 de los volcánicos y su recorte pierde casi
+todos los TR.
+
+La ventaja de PhaseNet viene casi entera de la onda S. Con el umbral de la
+onda P en 0,40 y el de la S en 0,05, la S detecta 47 volcánicos que la P no
+ve, y la P solo 3 que la S no ve. Una explicación posible es que en los LP y
+los TR la energía llega de forma gradual, sin el golpe nítido de una onda P de
+sismo tectónico, que es con lo que se entrenó la red; no se comprobó. El costo
+de depender de la S es doble: PhaseNet necesita un umbral muy bajo, con 69
+falsas alarmas por hora, y cuando solo avisa la S el recorte empieza tarde.
+
+La sensibilidad de 0,952 pasa la meta, pero su intervalo de confianza va de
+0,899 a 0,978: con 125 eventos no se puede asegurar que el detector supere
+0,95 con otro grupo de eventos parecido. Las ventanas de test, que no se
+usaron para elegir ningún parámetro, dan una medición independiente: ahí
+PhaseNet detecta 845 de 869 eventos principales (0,972), con un intervalo, de
+0,959 a 0,981, que queda entero sobre la meta. Las dos mediciones son
+coherentes entre sí.
+
+La forma de contar pesa tanto como el detector. Con un aviso a 5\,s del
+inicio, PhaseNet detectaba 0,904 de los volcánicos con umbral 0,10, y con
+10\,s, 0,968; la diferencia eran solo TR, cuyo aviso cae dentro del evento y
+lejos de su inicio. Contar por intersección evita elegir esa tolerancia, que
+no viene de ninguna librería, y trata igual a los tres detectores. Su
+contrapartida es que cuenta como detectado un evento que el intervalo apenas
+toca; por eso la detección se informa siempre junto con el IoU del recorte.
+
+La rotación de tramos mostró que, con más parámetros para elegir, la elección
+se ajusta a los eventos con que se hace. En PhaseNet, cambiar también las
+ventanas bajaba las falsas alarmas de 69,0 a 48,1 por hora con la traza
+completa, pero en tramos nuevos la sensibilidad caía a 0,928. Con 125 eventos
+repartidos de forma desigual entre tres tramos la prueba es limitada, pero es
+la única forma disponible con estos datos de separar la elección de la
+evaluación.
+
+Las falsas alarmas son muchas: unas 69 por hora, casi seis por cada volcánico
+detectado. Es un nivel parecido al que informa \textcite{soto2016llaima} para
+el detector del volcán Llaima con una estación, cuya FDR era de 0,77 antes de
+agregar una etapa que descartaba falsas detecciones y la bajaba a 0,42. En
+este trabajo esa tarea queda en manos de la clase de rechazo, que no se
+entrenó con falsas alarmas (Sección~\ref{sec:disc-clasificador}).
+
+% =====================================================================
+\section{Recorte y espectrogramas}
+\label{sec:disc-recorte}
+
+El recorte por energía cumple su papel con VT y LP: en la traza quedan bien
+recortados 35 de 36 VT y 49 de 52 LP, y en test, 293 de 300 VT y 281 de 288
+LP. Su punto débil es el tremor, que queda bien recortado en 0,65 de los casos
+tanto en la traza (24 de 37) como en test (183 de 281). Las mediciones
+señalan tres causas. La primera es que el aviso de los TR viene casi siempre
+de la onda S y llega en mediana 12,9\,s después del inicio, así que el recorte
+empieza tarde. La segunda es que PhaseNet da varios avisos dentro de un mismo
+tremor, y el corte en el aviso siguiente lo parte. La tercera es que algunos
+TR casi no sobresalen del ruido en FRE y el criterio de energía los termina
+antes de tiempo. El corte en el aviso siguiente es un compromiso: suma 12 LP
+bien recortados y resta 3 TR.
+
+La duración variable de los eventos se resolvió estirando las columnas del
+recorte hasta el ancho de entrada de la red. La ventana fija de 60\,s rinde
+casi lo mismo en test (F1 macro de 0,831 a 0,835, contra 0,834 a 0,843 con el
+recorte) y en la traza (0,708 a 0,720, contra 0,717 a 0,770). En el promedio,
+entonces, el recorte variable no da una ventaja medible. La diferencia
+aparece en el tremor cuando el recorte es bueno: con el inicio y el fin del
+catálogo, TR se reconoce entre 0,784 y 0,859 con el recorte y entre 0,535 y
+0,643 con la ventana fija. Cuando el evento está bien delimitado, conocer su
+duración ayuda a reconocer el tremor; el problema de esa clase no está en la
+imagen de duración variable, sino en el recorte automático.
+
+Los errores de delimitación se trataron en dos lugares: al etiquetar, aceptando
+recortes con IoU de 0,3 o más con su evento, y al entrenar, con la deformación
+elástica en el eje del tiempo. Las mediciones por IoU en test muestran que VT
+y LP toleran bien esos errores: la sensibilidad de LP casi no cambia con el IoU
+y la de VT es incluso algo mayor con IoU bajo que con IoU de 0,7 o más. TR no
+los tolera: con IoU entre 0,3 y 0,5 se acierta entre 0,59 y 0,71, y con 0,7 o
+más, sobre 0,92.
+
+% =====================================================================
+\section{Clasificador}
+\label{sec:disc-clasificador}
+
+Las tres redes rinden lo mismo dentro de la variación entre folds: en test, el
+F1 macro de VT, LP y TR va de 0,834 a 0,843, con desviaciones de 0,008 a 0,012
+y diferencias entre redes menores que la distancia entre el mejor y el peor
+modelo de una misma red. Esto le da sentido a la red liviana. EfficientNet-B0,
+con unos 5 millones de parámetros en su versión para ImageNet, contra unos 138
+millones de VGG16, clasifica más de tres veces más rápido sin perder
+desempeño. Con estos resultados no hay razón de desempeño para preferir una
+red más grande.
+
+La búsqueda de la configuración, el aumento de datos y la parada temprana
+subieron el F1 macro de validación en 0,02 a 0,03. Es una mejora del mismo
+orden que la variación entre folds, así que su efecto es modesto. La búsqueda
+se hizo con un solo fold y 20 pruebas por red; una búsqueda más amplia podría
+encontrar algo mejor, pero no se repitió después de ver test ni la traza,
+porque eso sería elegir con los datos de evaluación.
+
+La confusión principal es TR con LP: entre el 13 y el 21\,\% de los TR de test
+se clasifican como LP. Las dos clases concentran su energía en frecuencias
+bajas, y el tremor se distingue sobre todo por durar más. Las mediciones por
+IoU son coherentes con eso: un TR mal recortado, con IoU entre 0,3 y 0,5, se
+acierta mucho menos que uno bien recortado.
+
+El punto más débil del clasificador para operar sobre registro continuo son
+los recortes sin caja, es decir, los que no tocan ningún evento del catálogo.
+Por decisión de método no se usaron para entrenar, porque no se sabe qué son,
+y el clasificador manda a la clase de rechazo solo entre un cuarto y un tercio
+de ellos. En la traza eso deja entre 60 y 68 recortes por hora llamados
+volcánicos sin un evento del catálogo detrás. Una parte podría ser eventos
+reales que el catálogo no registró; no se revisó.
+
+% =====================================================================
+\section{Sistema completo: dónde se pierde el desempeño}
+\label{sec:disc-sistema}
+
+Las mediciones permiten repartir la pérdida del sistema completo. En la traza,
+la detección y el recorte dejan bien delimitados 109 de los 125 volcánicos,
+lo que pone un techo de 0,872 a la sensibilidad completa; la clasificación la
+baja a entre 0,646 y 0,704. La comparación con el recorte de referencia
+muestra que lo que cuesta el recorte se concentra en TR: con el inicio y el
+fin del catálogo, TR se acierta entre 0,784 y 0,859, y con el sistema, entre
+0,432 y 0,519. En VT y LP el recorte automático no cuesta nada medible, y
+cuando calza con su evento, clasificar con él rinde igual que con el de
+referencia: las diferencias volcánicas van de $-$0,007 a +0,044, con
+intervalos que incluyen el cero. Esto responde la pregunta que dio origen al
+OE4. Para un clasificador entrenado con recortes automáticos, pasar del recorte
+de referencia al automático no degrada la clasificación cuando el recorte
+calza; la pérdida viene de los eventos, casi todos TR, que el detector y el
+recorte no alcanzan a delimitar.
+
+La otra pérdida, la de VT y la de la clase de rechazo, no viene del recorte.
+Con el recorte del catálogo, VT se acierta entre 0,567 y 0,589, igual que con
+el automático y muy por debajo de test (0,889 a 0,910). Las comprobaciones
+descartaron también que la traza se haya usado para entrenar y que sus
+recortes estén peor delimitados que los de test. En la traza, los VT se
+confunden con LP y con rechazo, y una cuarta parte del rechazo va a VT. Quedan
+dos explicaciones posibles, ninguna medida. Una es que el catálogo de la traza
+y el de las ventanas etiquetadas asignen VT, AV e IC con criterios distintos.
+La otra es que los tres tramos de la traza correspondan a condiciones del
+volcán o del ruido que el entrenamiento no cubre bien, aunque las ventanas de
+entrenamiento abarcan de 2014 a 2020 y los tramos son de 2017, 2018 y 2020.
+Con 35 VT y 40 eventos de rechazo no se puede separar una de otra; una
+revisión de esos eventos por un analista sería la forma directa de hacerlo.
+
+En tiempo, la cadena completa procesa las 9,74 horas de la traza entre 47 y
+102\,s según la red, en el procesador de un computador personal y sin tarjeta
+gráfica: entre 340 y 740 veces más rápido que el tiempo real. El tiempo no es
+una restricción para operar en línea, y la red puede elegirse por desempeño y
+no por costo.
+
+% =====================================================================
+\section{Comparación con trabajos anteriores}
+\label{sec:disc-comparacion}
+
+Los trabajos más cercanos usan el mismo volcán y el mismo conjunto publicado.
+\textcite{espinosacurilem2026segmentacion} segmentan con una UNet ventanas de
+81,92\,s armadas con la componente vertical de hasta ocho estaciones, y
+obtienen en su conjunto de prueba un F1 macro de 0,91 sobre cinco clases (VT
+0,92, LP 0,88, TR 0,93, AV 0,90 e IC 0,93) y un IoU medio de 0,88.
+\textcite{espinosacurilem2025ood} combinan un VGG16 con un detector de señales
+desconocidas y reportan un 84,3\,\% de acierto en las clases volcánicas y un
+93,5\,\% en reconocer las no volcánicas. En este trabajo, el F1 macro de VT,
+LP y TR en test va de 0,834 a 0,843, con F1 por clase de 0,84 a 0,85 en VT, de
+0,86 a 0,87 en LP y de 0,79 a 0,82 en TR.
+
+Las cifras no se pueden comparar directamente, y la diferencia no debe leerse
+como una diferencia entre métodos, porque cambian tres condiciones. Aquí se
+usa una sola estación y allá hasta ocho, y combinar estaciones mejora el
+acierto: \textcite{curilem2016estaciones} midieron una mejora media de 9\,\% en
+el volcán Llaima. Aquí cada evento llega recortado por el detector, con su
+error de inicio y fin, y allá viene aislado en su ventana. Y los conjuntos de
+prueba difieren en composición y en balance de clases. Aun así, la diferencia
+mayor está en TR (0,93 contra 0,79 a 0,82), que es justamente la clase que el
+recorte automático delimita peor.
+
+El trabajo de \textcite{soto2016llaima}, sobre el volcán Llaima y con una
+estación, enfrentó la misma pregunta con un clasificador de máquinas de
+vectores de soporte. Entrenado con recortes del detector, rindió 85,05\,\% de
+sensibilidad media con esos recortes y 83,69\,\% con los de analistas, y
+concluyó que conviene entrenar con los recortes del detector. Aquí el
+clasificador también se entrenó con recortes automáticos, y la comparación
+pareada en la traza lleva a la misma conclusión con otra técnica y otro
+volcán. En operación continua, ese trabajo midió 77,30\,\% de sensibilidad
+media de clasificación y 66,04\,\% para el sistema completo, y reporta que,
+con una sola estación, ni los analistas superaban el 70\,\% de acierto. Aquí la
+sensibilidad completa volcánica va de 0,646 a 0,704. Las medidas no son
+iguales, porque allá se multiplica la sensibilidad media de detección por la
+de clasificación y aquí se exige que cada evento se detecte, se recorte y se
+clasifique bien a la vez; pero en los dos casos el sistema completo queda
+claramente por debajo de lo que cada etapa logra por separado.
+
+% =====================================================================
+\section{Cumplimiento de los objetivos}
+\label{sec:disc-objetivos}
+
+El Cuadro~\ref{tab:disc-objetivos} resume, para cada objetivo específico, lo
+que se pidió y lo que se obtuvo.
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.0cm}>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{7.0cm}}
+\caption{Cumplimiento de los objetivos específicos.}\label{tab:disc-objetivos}\\
+\cabecera{\textbf{Obj.} & \textbf{Qué pide} & \textbf{Qué se obtuvo}}{3}
+OE1 & Evaluar STA/LTA, EQTransformer y PhaseNet sobre registro continuo
+etiquetado: sensibilidad, falsas alarmas y calidad del recorte (IoU) &
+Cumplido. Los tres se evaluaron con la misma forma de contar, con barrido de
+sus parámetros y rotación de tramos. PhaseNet es el único que llega a la meta:
+0,952 [0,899; 0,978] con 69,0 falsas alarmas por hora; su recorte por energía
+deja bien delimitados 0,864 de los volcánicos
+(Sección~\ref{sec:res-detectores} y Sección~\ref{sec:res-recorte}). \\
+\addlinespace
+OE2 & Generar espectrogramas desde los eventos detectados, considerando su
+duración variable, los errores de delimitación y el solapamiento &
+Cumplido. El recorte se estira a la entrada de la red (duración variable), se
+etiqueta con IoU de 0,3 o más y se entrena con deformación elástica (errores
+de delimitación), y se corta en el aviso siguiente (solapamiento). TR es la
+clase peor recortada: 0,65 en la traza y en test
+(Sección~\ref{sec:recorte-espectrogramas} y
+Sección~\ref{sec:res-deteccion-test}). \\
+\addlinespace
+OE3 & Ajustar por transferencia una CNN que clasifique en VT, LP, TR y
+rechazo, con protocolo reproducible &
+Cumplido con tres redes (VGG16, ResNet50 y EfficientNet-B0), búsqueda de la
+configuración y validación cruzada de cinco folds. F1 macro de VT, LP y TR en
+test de 0,834 a 0,843. Los datos, las particiones y la semilla quedan fijos;
+no se comprobó repitiendo una corrida que dé exactamente lo mismo
+(Sección~\ref{sec:res-clasificador}). \\
+\addlinespace
+OE4 & Evaluar el sistema integrado sobre registro continuo: recorte de
+referencia contra automático, por clase y con tiempo de procesamiento &
+Cumplido. Sensibilidad completa volcánica de 0,646 a 0,704; frente al recorte
+de referencia, el sistema pierde entre 0,056 y 0,098, casi todo en TR, y sin
+pérdida cuando el recorte calza. La cadena procesa 9,74 horas en 47 a 102\,s
+en CPU (Sección~\ref{sec:res-sistema}). \\
+\end{longtable}
+}
+
+% =====================================================================
+\section{Limitaciones}
+\label{sec:disc-limitaciones}
+
+Todo el sistema usa una sola estación, FRE. Los trabajos con varias
+estaciones rinden más, y la asociación entre estaciones es la forma habitual de
+descartar falsas alarmas, pero queda fuera del alcance de este trabajo.
+
+La traza continua tiene 125 eventos volcánicos, y algunas clases quedan con
+pocos recortes (24 TR bien recortados, 35 VT). Los intervalos de confianza
+son anchos y varias diferencias no se pueden distinguir del azar. Además, los
+umbrales del detector se eligieron con la misma traza con que se evalúa; la
+rotación de tramos y las ventanas de test atenúan ese problema, pero no lo
+eliminan.
+
+Los detectores se usaron con los pesos publicados, entrenados con sismos
+tectónicos, sin ajustarlos con datos volcánicos. El recorte por energía, el
+umbral de IoU de 0,3 y los límites del aumento de datos (desplazamiento del
+rango de colores de hasta 5\,dB, ancho de 50 a 70\,dB y deformación solo en el
+tiempo) son decisiones propias de este trabajo, explicadas en el
+Capítulo~\ref{cap:diseno}, y otras elecciones podrían cambiar los resultados.
+
+Los recortes sin caja no se usaron para entrenar, y el clasificador llama
+volcánicos a la mayoría de ellos. El catálogo se tomó como la verdad, sin
+medir cuánto concuerdan distintos analistas al etiquetar, y esa es una de las
+posibles explicaciones de la caída de VT en la traza que quedó sin comprobar.
+La búsqueda de la configuración usó un solo fold y 20 pruebas por red.
+Finalmente, la evaluación es fuera de línea, sobre registro guardado; no se
+probó el sistema recibiendo señal en tiempo real.

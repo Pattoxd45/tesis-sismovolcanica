@@ -1,2 +1,88 @@
 \chapter{Conclusiones}
 \label{cap:conclusiones}
+
+Este trabajo desarrolló un sistema que identifica eventos sismo-volcánicos del
+Complejo Volcánico Nevados de Chillán en registro continuo: detecta los
+eventos con PhaseNet en la estación FRE, recorta cada uno según su energía,
+genera su espectrograma y lo clasifica en VT, LP, TR o rechazo con una red
+convolucional ajustada por transferencia de aprendizaje. El problema planteado
+en el Capítulo~\ref{cap:introduccion} señalaba que faltaban tres cosas: evidencia
+local de qué detector conviene usar, un recorte que se ajuste a la duración
+real de los eventos y una medición de cuánto desempeño pierde el clasificador
+al pasar de recortes de referencia a recortes automáticos. Las tres quedaron
+medidas.
+
+\section{Conclusiones por objetivo}
+
+Sobre la detección (OE1), PhaseNet es el único de los tres detectores que
+llega a la meta de 0,95 de sensibilidad volcánica sobre la traza continua
+(0,952), la mantiene en tramos que no se usaron para elegir sus umbrales y la
+supera en las ventanas de test (0,972). Lo logra gracias a la onda S y a un
+umbral bajo, con un costo de unas 69 falsas alarmas por hora. EQTransformer
+queda cerca con menos falsas alarmas, pero sus intervalos son demasiado cortos
+para delimitar los eventos, y STA/LTA pierde casi todos los tremores al
+recortar. También se mostró que la forma de contar una detección cambia el
+resultado tanto como el detector; contar por intersección evita depender de
+una tolerancia elegida a mano.
+
+Sobre el recorte y los espectrogramas (OE2), el recorte por energía con corte
+en el aviso siguiente delimita bien 0,864 de los volcánicos de la traza y casi
+todos los VT y LP de test. El tremor es su límite: solo 0,65 de los TR quedan
+bien recortados, porque el aviso llega tarde, porque PhaseNet avisa varias
+veces dentro de un mismo tremor y porque algunos casi no sobresalen del ruido.
+Con un buen recorte, la duración variable ayuda a reconocer el tremor; en
+promedio, el recorte y la ventana fija de 60\,s rinden lo mismo.
+
+Sobre el clasificador (OE3), VGG16, ResNet50 y EfficientNet-B0 alcanzan en
+test un F1 macro de VT, LP y TR de 0,834 a 0,843, sin diferencias entre ellas
+mayores que la variación entre folds. La búsqueda de la configuración y el
+aumento de datos aportaron entre 0,02 y 0,03. La red liviana, EfficientNet-B0,
+rinde igual que las grandes y clasifica más de tres veces más rápido que
+VGG16. La confusión principal es entre TR y LP, y el clasificador manda a la
+clase de rechazo solo una parte de las falsas alarmas del detector.
+
+Sobre el sistema completo (OE4), en la traza continua el sistema detecta,
+recorta y clasifica bien entre 0,646 y 0,704 de los volcánicos, y procesa las
+9,74 horas en menos de dos minutos en un computador personal. Frente al
+recorte de referencia, el sistema pierde entre 0,056 y 0,098 de sensibilidad
+volcánica, casi todo en TR; cuando el recorte automático calza con su evento,
+clasificar con él rinde lo mismo que con el de referencia. La pérdida en VT y
+en la clase de rechazo frente a test no viene del recorte, y queda sin
+explicar con los datos disponibles.
+
+En conjunto, el sistema cumple el objetivo general. Su desempeño en registro
+continuo queda por debajo del que logra cada etapa por separado, como ocurrió
+en trabajos anteriores con una sola estación, y las mediciones dicen dónde se
+pierde: en el recorte de los tremores, en la clasificación de VT y en las
+falsas alarmas que el clasificador no rechaza.
+
+\section{Recomendaciones y trabajo futuro}
+
+Las recomendaciones salen de lo que los resultados mostraron como más débil.
+
+Entrenar la clase de rechazo también con recortes que no corresponden a ningún
+evento, o agregar una etapa que descarte falsas detecciones antes del
+clasificador, como la que usó \textcite{soto2016llaima}. Es la vía más directa
+para bajar las falsas alarmas que hoy llegan como volcánicas, y debe medirse
+cuánto cuesta en sensibilidad.
+
+Mejorar el recorte de los tremores sin usar información del catálogo, por
+ejemplo juntando los avisos que caen dentro de un mismo tremor o usando la
+curva de detección de EQTransformer para fijar el fin del evento. Cualquier
+cambio debe compararse con el recorte actual usando el mismo IoU y la misma
+traza.
+
+Incorporar más estaciones. La asociación de avisos entre estaciones es la
+forma habitual de descartar falsas alarmas, y combinar estaciones mejora la
+clasificación en otros volcanes \parencite{curilem2016estaciones}.
+
+Revisar con un analista los VT y los eventos de rechazo de la traza que el
+clasificador confunde, para saber si la caída frente a test se debe a cómo se
+etiquetaron o a la señal misma.
+
+Ajustar PhaseNet y EQTransformer con datos volcánicos, para que reconozcan la
+llegada gradual de los LP y los TR sin depender de umbrales tan bajos.
+
+Evaluar el sistema con más horas de registro continuo y más eventos, para
+estrechar los intervalos de confianza, y probarlo recibiendo señal en tiempo
+real.
